@@ -13,6 +13,24 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("App Error:", error);
+
+    // Auto-reload on chunk loading and fetch network errors to recover instantly
+    const errorMsg = error?.message || "";
+    const isChunkError =
+      /loading.*chunk/i.test(errorMsg) ||
+      /failed to fetch/i.test(errorMsg) ||
+      /dynamically imported module/i.test(errorMsg) ||
+      /load failed/i.test(errorMsg);
+
+    if (isChunkError) {
+      const lastReload = sessionStorage.getItem("last_chunk_error_reload");
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem("last_chunk_error_reload", now.toString());
+        console.warn("Chunk loading error detected in error boundary. Auto-recovering...");
+        window.location.reload();
+      }
+    }
   }, [error]);
 
   return (
