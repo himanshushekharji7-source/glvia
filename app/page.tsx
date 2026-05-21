@@ -544,13 +544,84 @@ export default function HomePage() {
             </div>
 
             {/* Referral Banner */}
-            <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] p-4 flex items-center gap-4 shadow-md">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 border-2 border-white/40">
-                <span className="text-white font-black text-xl italic">B</span>
+            <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] p-4 flex items-center gap-4 shadow-md mt-4 relative">
+              <div className="absolute inset-0 opacity-20">
+                 <svg width="100%" height="100%" viewBox="0 0 400 100" preserveAspectRatio="none">
+                   <path d="M0,50 Q100,0 200,50 T400,50 L400,100 L0,100 Z" fill="none" stroke="white" strokeWidth="2" />
+                   <path d="M0,70 Q100,20 200,70 T400,70 L400,100 L0,100 Z" fill="none" stroke="white" strokeWidth="1" />
+                 </svg>
               </div>
-              <p className="text-white text-[14px] font-medium">
-                Earn ₹ 100 for every referral
+              <div className="relative w-14 h-14 rounded-full bg-white flex items-center justify-center shrink-0 shadow-lg border-2 border-pink-500">
+                <span className="text-pink-500 font-black text-3xl italic font-serif">B</span>
+                {/* Circular text simulation */}
+                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full animate-[spin_10s_linear_infinite]">
+                  <path id="curve" d="M 10 50 A 40 40 0 1 1 10 50.01" fill="transparent" />
+                  <text className="text-[10px] fill-pink-500 font-bold uppercase tracking-widest">
+                    <textPath href="#curve" startOffset="0%">BILLU CASH POINTS • BILLU CASH POINTS • </textPath>
+                  </text>
+                </svg>
+              </div>
+              <p className="text-white text-[16px] font-medium z-10">
+                Earn <span className="font-bold">₹ 100</span> for every referral
               </p>
+            </div>
+
+            {/* Billu Cash Points Card */}
+            <div className="mt-4 bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between relative">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-gray-900 mb-1">1000</div>
+                  <div className="text-[11px] font-bold text-gray-800 tracking-wide">Billu Cash Points</div>
+                </div>
+                
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                  <div className="h-10 w-px bg-pink-200 absolute top-1/2 -translate-y-1/2 -z-10" />
+                  <div className="w-8 h-8 rounded-full border border-pink-500 bg-white flex items-center justify-center">
+                    <span className="text-pink-500 font-bold text-xl leading-none">=</span>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-2xl font-black text-gray-900 mb-1">₹10</div>
+                  <div className="text-[11px] font-bold text-gray-800 tracking-wide">Real Money</div>
+                </div>
+              </div>
+
+              <div className="text-center mt-6 mb-5">
+                <h3 className="text-lg font-black text-[#1E293B] mb-1">Redeem Now</h3>
+                <p className="text-[13px] text-gray-500 font-medium">Choose your preferred option</p>
+              </div>
+
+              <div className="flex gap-3">
+                <Link href="/at-home" className="flex-1 bg-black text-white py-3 px-4 rounded-lg flex items-center justify-between hover:bg-gray-900 transition-colors">
+                  <span className="text-sm font-bold">Salon At Home</span>
+                  <span className="material-icons-round text-[16px]">chevron_right</span>
+                </Link>
+                <Link href="/at-the-salon" className="flex-1 bg-black text-white py-3 px-4 rounded-lg flex items-center justify-between hover:bg-gray-900 transition-colors">
+                  <span className="text-sm font-bold">At the Salon</span>
+                  <span className="material-icons-round text-[16px]">chevron_right</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* 100% Secure Section */}
+            <div className="mt-6 flex items-center gap-4 px-2">
+              <div className="flex-1 pr-2">
+                <h4 className="text-[15px] font-black text-gray-900 mb-1 leading-tight">Your data is 100% secure.</h4>
+                <p className="text-[13px] text-gray-600 leading-snug">
+                  We don't share your information with any third party.
+                </p>
+              </div>
+              <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                  <path d="M32 4L10 12V28C10 41.5 19.5 54 32 60C44.5 54 54 41.5 54 28V12L32 4Z" stroke="#E11D48" strokeWidth="4" strokeLinejoin="round"/>
+                  <path d="M32 8L14 14.5V28C14 39.5 21.5 50 32 55C42.5 50 50 39.5 50 28V14.5L32 8Z" fill="#E11D48"/>
+                  <rect x="26" y="28" width="12" height="10" rx="2" fill="white"/>
+                  <path d="M28 28V24C28 21.7909 29.7909 20 32 20C34.2091 20 36 21.7909 36 24V28" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="32" cy="33" r="1.5" fill="#E11D48"/>
+                  <path d="M32 33V35" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
