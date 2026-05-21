@@ -1,152 +1,232 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSalons, useCategories } from "./lib/hooks";
 import Header from "./components/Header";
+import BottomNav from "./components/BottomNav";
+
+/* ─── Gender-specific dummy data ─── */
+
+const maleServices = [
+  { id: "ms1", name: "Haircut + Beard", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=400&q=80", price: 299, duration: "30 min" },
+  { id: "ms2", name: "Haircut + Head Massage 10 Min", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=400&q=80", price: 299, duration: "40 min" },
+  { id: "ms3", name: "Haircut + Massage + Facial", image: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=400&q=80", price: 349, duration: "50 min" },
+  { id: "ms4", name: "Premium Hair Color", image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=400&q=80", price: 599, duration: "60 min" },
+  { id: "ms5", name: "Royal Shave + Facial", image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=400&q=80", price: 449, duration: "45 min" },
+];
+
+const femaleServices = [
+  { id: "fs1", name: "Full Face Threading", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80", price: 299, duration: "30 min" },
+  { id: "fs2", name: "Basic Manicure", image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80", price: 399, duration: "45 min" },
+  { id: "fs3", name: "Basic Pedicure", image: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=400&q=80", price: 399, duration: "45 min" },
+  { id: "fs4", name: "Bridal Makeup", image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=400&q=80", price: 2999, duration: "120 min" },
+  { id: "fs5", name: "Hair Spa Treatment", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80", price: 799, duration: "60 min" },
+];
+
+const maleCategories = [
+  { id: "mc1", name: "Haircut", icon: "content_cut" },
+  { id: "mc2", name: "Beard", icon: "face_6" },
+  { id: "mc3", name: "Massage", icon: "spa" },
+  { id: "mc4", name: "Facial", icon: "face_retouching_natural" },
+  { id: "mc5", name: "Hair Color", icon: "palette" },
+  { id: "mc6", name: "Grooming", icon: "clean_hands" },
+];
+
+const femaleCategories = [
+  { id: "fc1", name: "Threading", icon: "auto_fix_high" },
+  { id: "fc2", name: "Facial", icon: "face" },
+  { id: "fc3", name: "Waxing", icon: "spa" },
+  { id: "fc4", name: "Nails", icon: "back_hand" },
+  { id: "fc5", name: "Makeup", icon: "brush" },
+  { id: "fc6", name: "Hair Spa", icon: "self_improvement" },
+];
+
+const maleSalonDeals = [
+  { id: "md1", title: "Men's Grooming Pack", desc: "Haircut + Beard + Facial", price: 499, oldPrice: 749, image: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=400&q=80" },
+  { id: "md2", title: "Premium Combo", desc: "Hair Color + Head Massage", price: 799, oldPrice: 1199, image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=400&q=80" },
+];
+
+const femaleSalonDeals = [
+  { id: "fd1", title: "Bridal Glow Pack", desc: "Facial + Manicure + Pedicure", price: 999, oldPrice: 1499, image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=400&q=80" },
+  { id: "fd2", title: "Self-Care Sunday", desc: "Hair Spa + Threading + Waxing", price: 699, oldPrice: 1099, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" },
+];
 
 export default function HomePage() {
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: salons, isLoading: salonsLoading } = useSalons();
+  const [gender, setGender] = useState<"male" | "female">("male");
+  const [cart, setCart] = useState<string[]>([]);
 
-  const featuredSalons = salons?.filter((s: any) => s.rating >= 4.5).slice(0, 4);
+  const services = gender === "male" ? maleServices : femaleServices;
+  const categories = gender === "male" ? maleCategories : femaleCategories;
+  const deals = gender === "male" ? maleSalonDeals : femaleSalonDeals;
+
+  const handleBook = (id: string) => {
+    setCart((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
 
   return (
     <div className="min-h-dvh bg-surface-card pb-20 overflow-x-hidden">
-      <Header showBack={false} />
-      
-      {/* Hero Banner Section */}
-      <div className="px-6 pt-4 pb-4">
-        {/* Hero Banner */}
-        <div className="relative h-44 rounded-[28px] overflow-hidden group animate-fadeInUp">
-          <Image
-            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80"
-            alt="Hero"
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent flex flex-col justify-center px-8">
-            <div className="bg-white/20 backdrop-blur-md w-fit px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider mb-2 border border-white/30">Limited Offer</div>
-            <h2 className="text-2xl font-black text-white leading-tight max-w-[180px]">Get 30% Off Beauty Services</h2>
-            <Link href="/search">
-              <button className="mt-4 bg-white text-black text-[11px] font-bold px-5 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all shadow-lg">Book Now</button>
-            </Link>
-          </div>
+      {/* Header with M/F toggle + Cart */}
+      <Header
+        showBack={false}
+        showGenderToggle
+        showCart
+        showNotification={false}
+        gender={gender}
+        onGenderChange={setGender}
+        cartCount={cart.length}
+      />
+
+      {/* ─── Hero Banner (100% width, like Billu) ─── */}
+      <div className="relative w-full h-48 overflow-hidden animate-fadeInUp">
+        <Image
+          src={
+            gender === "male"
+              ? "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80"
+              : "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80"
+          }
+          alt="Hero"
+          fill
+          className="object-cover transition-all duration-700"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/60 to-transparent flex flex-col justify-center px-6">
+          <h2 className="text-2xl font-black text-white leading-tight max-w-[220px]">
+            Salon At Home
+            <br />
+            In <span className="bg-white text-primary px-2 py-0.5 rounded-lg inline-block mx-1">30</span> Minutes
+          </h2>
+          <Link href="/search">
+            <button className="mt-4 bg-white text-primary text-[12px] font-black px-6 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all shadow-lg w-fit">
+              Book Now
+            </button>
+          </Link>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="px-6 mb-8">
+      {/* ─── Offer Strip ─── */}
+      <div className="bg-slate-900 px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="font-black text-white text-sm tracking-wider uppercase">glvia Silver</span>
+          <span className="text-white/70 text-xs font-medium">
+            {gender === "male" ? "Get 15% OFF on all bookings" : "@Just ₹199 — only for you"}
+          </span>
+        </div>
+        <span className="material-icons-round text-white/50 text-[18px]">chevron_right</span>
+      </div>
+
+      {/* ─── Instant Services ─── */}
+      <div className="px-5 pt-6 pb-2">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-black text-text-primary">
+              <span className="text-primary">Insta</span> Salon At Home{" "}
+              <span className="text-text-tertiary text-xs font-bold">
+                ({gender === "male" ? "8:00 AM to 8:00 PM" : "9:00 AM to 7:00 PM"})
+              </span>
+            </h3>
+            <p className="text-xs text-text-secondary mt-0.5">
+              🏍️ Arriving in <span className="text-primary font-bold">30 mins</span>
+            </p>
+          </div>
+          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
+        </div>
+
+        {/* Horizontal Service Cards */}
+        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
+          {services.map((svc) => (
+            <div key={svc.id} className="flex-shrink-0 w-[160px] animate-fadeInUp">
+              <div className="relative w-[160px] h-[140px] rounded-2xl overflow-hidden bg-surface-dim mb-2">
+                <Image
+                  src={svc.image}
+                  alt={svc.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <h4 className="text-[13px] font-bold text-text-primary leading-tight mb-1 line-clamp-2 min-h-[36px]">
+                {svc.name}
+              </h4>
+              <div className="text-primary font-black text-sm mb-2">₹{svc.price}</div>
+              <button
+                onClick={() => handleBook(svc.id)}
+                className={`w-full py-2 rounded-full text-xs font-bold border-2 transition-all duration-200 ${
+                  cart.includes(svc.id)
+                    ? "bg-primary text-white border-primary"
+                    : "border-primary text-primary hover:bg-primary hover:text-white"
+                }`}
+              >
+                {cart.includes(svc.id) ? "✓ Added" : "Book"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Categories Grid ─── */}
+      <div className="px-5 pb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-black text-text-primary">
+            {gender === "male" ? "Men's Services" : "Women's Services"}
+          </h3>
+          <Link href="/categories" className="text-xs font-bold text-primary hover:underline">View All</Link>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {categories.map((cat) => (
+            <Link key={cat.id} href={`/search?category=${cat.name.toLowerCase()}`}>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border border-border hover:border-primary/30 hover:shadow-md transition-all group">
+                <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <span className="material-icons-round text-primary text-[24px]">{cat.icon}</span>
+                </div>
+                <span className="text-[11px] font-bold text-text-secondary group-hover:text-primary transition-colors text-center">{cat.name}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── At the Salon Deals ─── */}
+      <div className="px-5 pb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-black text-text-primary">At the Salon Deals</h3>
+          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
+        </div>
+        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+          {deals.map((deal) => (
+            <div key={deal.id} className="flex-shrink-0 w-[200px] animate-fadeInUp">
+              <div className="relative w-full h-[130px] rounded-2xl overflow-hidden bg-surface-dim mb-3">
+                <Image
+                  src={deal.image}
+                  alt={deal.title}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute top-2 left-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                  {Math.round(((deal.oldPrice - deal.price) / deal.oldPrice) * 100)}% Off
+                </div>
+              </div>
+              <h4 className="text-[13px] font-bold text-text-primary mb-0.5">{deal.title}</h4>
+              <p className="text-[11px] text-text-tertiary mb-1.5">{deal.desc}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-primary font-black text-sm">₹{deal.price}</span>
+                <span className="text-text-tertiary text-xs line-through">₹{deal.oldPrice}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Search Bar ─── */}
+      <div className="px-5 pb-8">
         <Link href="/search" className="flex items-center gap-3 bg-white border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
           <span className="material-icons-round text-text-tertiary group-hover:text-primary transition-colors">search</span>
-          <span className="text-text-tertiary text-sm font-medium">Search for salons, spas, or stylists...</span>
+          <span className="text-text-tertiary text-sm font-medium">
+            Search for {gender === "male" ? "barbers, grooming" : "salons, beauty"}...
+          </span>
         </Link>
       </div>
 
-      {/* Categories */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between px-6 mb-4">
-          <h3 className="text-lg font-black text-text-primary tracking-tight">Categories</h3>
-          <Link href="/categories" className="text-xs font-bold text-primary hover:underline">View All</Link>
-        </div>
-        <div className="flex gap-4 overflow-x-auto px-6 no-scrollbar pb-2">
-          {categoriesLoading ? (
-            [1, 2, 3, 4].map((n) => (
-              <div key={n} className="flex-shrink-0 w-16 h-24 bg-border/30 rounded-2xl animate-pulse" />
-            ))
-          ) : (
-            categories?.map((cat: any) => (
-              <Link key={cat._id} href={`/search?category=${cat.slug}`} className="flex-shrink-0 group">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 rounded-[22px] bg-white border border-border flex items-center justify-center shadow-sm group-hover:bg-primary transition-all group-hover:scale-105 group-hover:shadow-lg">
-                    <span className="material-icons-round text-text-secondary text-[28px] group-hover:text-white transition-colors">{cat.icon}</span>
-                  </div>
-                  <span className="text-[11px] font-extrabold text-text-secondary group-hover:text-primary transition-colors uppercase tracking-widest">{cat.name}</span>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Featured Salons */}
-      <div className="px-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black text-text-primary tracking-tight">Featured Salons</h3>
-          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See All</Link>
-        </div>
-        <div className="space-y-4">
-          {salonsLoading ? (
-            [1, 2].map((n) => (
-              <div key={n} className="w-full h-32 bg-border/30 rounded-3xl animate-pulse" />
-            ))
-          ) : (
-            featuredSalons?.map((salon: any) => (
-              <Link key={salon._id} href={`/salon/${salon._id}`} className="block">
-                <div className="card p-4 flex gap-4 hover:shadow-xl transition-all group border-none bg-white shadow-sm ring-1 ring-border/50">
-                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-inner">
-                    <Image
-                      src={salon.images?.[0] || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80"}
-                      alt={salon.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="flex-1 py-1">
-                    <div className="flex items-center gap-1 mb-1">
-                      <span className="material-icons-round text-amber-500 text-[14px]">star</span>
-                      <span className="text-[12px] font-black text-text-primary">{salon.rating}</span>
-                      <span className="text-[10px] text-text-tertiary font-bold">({salon.totalReviews})</span>
-                    </div>
-                    <h4 className="font-extrabold text-text-primary text-[15px] mb-1.5 group-hover:text-primary transition-colors">{salon.name}</h4>
-                    <div className="flex items-center gap-1 text-text-tertiary mb-2">
-                      <span className="material-icons-round text-[14px]">location_on</span>
-                      <span className="text-[11px] font-bold truncate">{salon.address?.city || 'City'}, {salon.address?.state || 'State'}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="bg-primary/5 text-primary text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-primary/10">Top Rated</span>
-                      <span className="bg-success/5 text-success text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-success/10">Open Now</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Special Offers */}
-      <div className="px-6 mb-8">
-        <h3 className="text-lg font-black text-text-primary tracking-tight mb-4">Special Offers</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="relative h-48 rounded-3xl overflow-hidden shadow-sm group">
-            <Image
-              src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80"
-              alt="Facial"
-              fill
-              className="object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
-              <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Skincare</span>
-              <h5 className="text-white font-black text-sm">Glow Facial Special</h5>
-              <div className="mt-2 text-white font-black text-xs">Save 20%</div>
-            </div>
-          </div>
-          <div className="relative h-48 rounded-3xl overflow-hidden shadow-sm group">
-            <Image
-              src="https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&q=80"
-              alt="Hair"
-              fill
-              className="object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
-              <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Haircare</span>
-              <h5 className="text-white font-black text-sm">Full Color Pack</h5>
-              <div className="mt-2 text-white font-black text-xs">Save ₹40</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BottomNav />
     </div>
   );
 }
