@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSalons, useCategories } from "./lib/hooks";
+import Header from "./components/Header";
 
 export default function HomePage() {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -12,25 +13,10 @@ export default function HomePage() {
 
   return (
     <div className="min-h-dvh bg-surface-card pb-20 overflow-x-hidden">
-      {/* Header Section */}
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-1">Current Location</div>
-            <div className="flex items-center gap-1.5 cursor-pointer group">
-              <span className="material-icons-round text-primary text-[20px]">location_on</span>
-              <span className="font-extrabold text-text-primary text-base">New York, USA</span>
-              <span className="material-icons-round text-text-tertiary text-[18px] transition-transform group-hover:rotate-180">expand_more</span>
-            </div>
-          </div>
-          <Link href="/notifications" className="relative group">
-            <div className="w-11 h-11 rounded-2xl bg-white border border-border flex items-center justify-center shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md">
-              <span className="material-icons-round text-text-secondary text-[22px]">notifications</span>
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white"></span>
-            </div>
-          </Link>
-        </div>
-
+      <Header showBack={false} />
+      
+      {/* Hero Banner Section */}
+      <div className="px-6 pt-4 pb-4">
         {/* Hero Banner */}
         <div className="relative h-44 rounded-[28px] overflow-hidden group animate-fadeInUp">
           <Image
