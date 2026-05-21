@@ -55,6 +55,43 @@ const femaleSalonDeals = [
   { id: "fd2", title: "Self-Care Sunday", desc: "Hair Spa + Threading + Waxing", price: 699, oldPrice: 1099, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" },
 ];
 
+/* ─── Popular At Home Services (horizontal scroll with Add to cart) ─── */
+const malePopularServices = [
+  { id: "mph1", name: "Haircut + Beard or Shave", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=400&q=80", price: 299, duration: "45 min" },
+  { id: "mph2", name: "Classic Grooming", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=400&q=80", price: 499, duration: "60 min" },
+  { id: "mph3", name: "Pedicure + Manicure", image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80", price: 599, duration: "15 min" },
+  { id: "mph4", name: "Head Massage + Oil", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80", price: 249, duration: "30 min" },
+];
+
+const femalePopularServices = [
+  { id: "fph1", name: "Full Face Threading", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80", price: 199, duration: "20 min" },
+  { id: "fph2", name: "Facial & Cleanup", image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=400&q=80", price: 499, duration: "45 min" },
+  { id: "fph3", name: "Manicure + Pedicure", image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80", price: 399, duration: "60 min" },
+  { id: "fph4", name: "Hair Spa Premium", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80", price: 799, duration: "60 min" },
+];
+
+/* ─── Service Combo Banner Cards ─── */
+const maleComboBanners = [
+  { id: "mcb1", label: "Haircut | Beard | Head Massage", prefix: "At just", price: 499, image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=500&q=80" },
+  { id: "mcb2", label: "Facial & Cleanup", prefix: "Starting at", price: 499, image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=80" },
+  { id: "mcb3", label: "Manicure & Pedicure", prefix: "Starting at", price: 99, image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=500&q=80" },
+  { id: "mcb4", label: "Haircut Male & Female", prefix: "Starting at", price: 299, image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=500&q=80" },
+];
+
+const femaleComboBanners = [
+  { id: "fcb1", label: "Facial | Full Body Wax | Threading", prefix: "At just", price: 1199, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=500&q=80" },
+  { id: "fcb2", label: "Waxing Services", prefix: "Starting at", price: 99, image: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=500&q=80" },
+  { id: "fcb3", label: "Manicure & Pedicure", prefix: "Starting at", price: 99, image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=500&q=80" },
+  { id: "fcb4", label: "Haircut Male & Female", prefix: "Starting at", price: 299, image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=500&q=80" },
+];
+
+/* ─── Membership Plans ─── */
+const membershipPlans = [
+  { id: "mp1", name: "Silver", price: 199, duration: "1 Month", benefits: ["10% off on all services", "Priority booking", "Free head massage"] },
+  { id: "mp2", name: "Gold", price: 499, duration: "3 Months", benefits: ["20% off on all services", "Priority booking", "Free haircut every month", "Free head massage"] },
+  { id: "mp3", name: "Platinum", price: 999, duration: "6 Months", benefits: ["30% off on all services", "VIP booking", "Free haircut every month", "Free facial monthly", "Free head massage"] },
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [gender, setGender] = useState<"male" | "female">("male");
@@ -86,6 +123,8 @@ export default function HomePage() {
   const services = gender === "male" ? maleServices : femaleServices;
   const categories = gender === "male" ? maleCategories : femaleCategories;
   const deals = gender === "male" ? maleSalonDeals : femaleSalonDeals;
+  const popularServices = gender === "male" ? malePopularServices : femalePopularServices;
+  const comboBanners = gender === "male" ? maleComboBanners : femaleComboBanners;
 
   const handleBook = (id: string) => {
     setCart((prev) => {
@@ -299,6 +338,128 @@ export default function HomePage() {
               </div>
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* ─── Popular At Home Services ─── */}
+      <div className="px-5 pb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-black text-text-primary">Popular At Home Services</h3>
+          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
+        </div>
+        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+          {popularServices.map((svc) => (
+            <div key={svc.id} className="flex-shrink-0 w-[160px] animate-fadeInUp">
+              <div 
+                className="relative w-[160px] h-[130px] rounded-2xl overflow-hidden bg-surface-dim mb-2 cursor-pointer"
+                onClick={() => setSelectedService(svc)}
+              >
+                <Image
+                  src={svc.image}
+                  alt={svc.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <h4 className="text-[13px] font-bold text-text-primary leading-tight mb-1 line-clamp-2 min-h-[36px]">
+                {svc.name}
+              </h4>
+              <div className="flex items-center gap-1 text-text-tertiary text-xs mb-1">
+                <span className="material-icons-round text-[13px]">schedule</span>
+                {svc.duration}
+              </div>
+              <div className="text-primary font-black text-sm mb-2">₹{svc.price}</div>
+              <button
+                onClick={() => handleBook(svc.id)}
+                className={`w-full py-2 rounded-full text-xs font-bold border-2 transition-all duration-200 ${
+                  cart.includes(svc.id)
+                    ? "bg-primary text-white border-primary"
+                    : "border-primary text-primary hover:bg-primary hover:text-white"
+                }`}
+              >
+                {cart.includes(svc.id) ? "✓ Added" : "Add to cart"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Service Combo Banner Cards ─── */}
+      <div className="px-5 pb-6">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          {comboBanners.map((banner) => (
+            <Link key={banner.id} href="/search" className="flex-shrink-0 w-[200px] group">
+              <div className="relative w-full h-[260px] rounded-2xl overflow-hidden">
+                <Image
+                  src={banner.image}
+                  alt={banner.label}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                {/* Gradient overlay at bottom */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                {/* Label and Price */}
+                <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                  <div className="inline-block bg-primary/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-md mb-1.5 leading-tight">
+                    {banner.label}
+                  </div>
+                  <div className="text-white/80 text-[11px] font-medium">
+                    {banner.prefix} <span className="text-white text-2xl font-black ml-1">₹{banner.price}</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Membership Plans ─── */}
+      <div className="px-5 pb-8">
+        <div className="border-t border-gray-100 pt-6">
+          <h3 className="text-base font-black text-text-primary mb-4">Membership Plans</h3>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+            {membershipPlans.map((plan) => (
+              <div 
+                key={plan.id} 
+                className={`flex-shrink-0 w-[220px] p-4 rounded-2xl border-2 transition-all ${
+                  plan.name === "Gold" 
+                    ? "border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50" 
+                    : plan.name === "Platinum" 
+                      ? "border-violet-400 bg-gradient-to-br from-violet-50 to-purple-50"
+                      : "border-gray-200 bg-gradient-to-br from-gray-50 to-slate-50"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`text-base font-black ${
+                    plan.name === "Gold" ? "text-amber-600" : plan.name === "Platinum" ? "text-violet-600" : "text-gray-600"
+                  }`}>
+                    {plan.name}
+                  </h4>
+                  <span className="text-[11px] text-text-tertiary font-medium">{plan.duration}</span>
+                </div>
+                <div className="text-xl font-black text-text-primary mb-3">
+                  ₹{plan.price}<span className="text-xs font-medium text-text-tertiary">/{plan.duration.split(" ")[0]}mo</span>
+                </div>
+                <ul className="space-y-1.5 mb-4">
+                  {plan.benefits.map((b, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-text-secondary">
+                      <span className="material-icons-round text-green-500 text-[13px] mt-0.5">check_circle</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+                <button className={`w-full py-2 rounded-full text-xs font-bold transition-all ${
+                  plan.name === "Gold"
+                    ? "bg-amber-500 text-white hover:bg-amber-600"
+                    : plan.name === "Platinum"
+                      ? "bg-violet-500 text-white hover:bg-violet-600"
+                      : "bg-gray-800 text-white hover:bg-gray-900"
+                }`}>
+                  Get {plan.name}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
