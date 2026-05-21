@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import BottomNav from "./components/BottomNav";
 
 export default function GlobalError({
   error,
@@ -34,7 +33,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-dvh bg-surface-card pb-nav flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-dvh bg-surface-card flex flex-col items-center justify-center p-6 text-center">
       <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mb-6">
         <span className="material-icons-round text-5xl text-error">wifi_off</span>
       </div>
@@ -59,7 +58,6 @@ export default function GlobalError({
           Reload
         </button>
       </div>
-      <BottomNav />
     </div>
   );
 }

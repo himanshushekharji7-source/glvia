@@ -66,11 +66,17 @@ export default function HomePage() {
     if (savedCart) {
       try {
         const parsed = JSON.parse(savedCart);
-        if (parsed.salonId === "glvia-home") {
-          setCart(parsed.services.map((s: any) => s._id));
+        if (parsed && parsed.salonId === "glvia-home" && Array.isArray(parsed.services)) {
+          setCart(parsed.services.map((s: any) => s?._id || s?.id).filter(Boolean));
+        } else if (parsed && parsed.salonId) {
+          // Keep valid carts from standard salons, but don't set homepage instant services cart
+        } else {
+          // Clear any corrupt/old cart structures
+          localStorage.removeItem('cart');
         }
       } catch (e) {
-        console.error(e);
+        console.error("Cart parse error:", e);
+        localStorage.removeItem('cart');
       }
     }
   }, []);

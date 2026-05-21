@@ -36,7 +36,19 @@ export default function CheckoutPage() {
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        const parsed = JSON.parse(savedCart);
+        if (parsed && Array.isArray(parsed.services)) {
+          setCart(parsed);
+        } else {
+          localStorage.removeItem('cart');
+          router.push("/search");
+        }
+      } catch (e) {
+        console.error("Checkout cart parse error:", e);
+        localStorage.removeItem('cart');
+        router.push("/search");
+      }
     } else {
       router.push("/search");
     }
