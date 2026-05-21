@@ -90,13 +90,49 @@ const membershipPlans = [
   { id: "gold", name: "GLIVAJI GOLD", duration: "(12 Months)", price: 299, discount: "15% off" },
   { id: "silver", name: "GLIVAJI SILVER", duration: "(6 Months)", price: 199, discount: "15% off" },
 ];
+/* ─── Trust Banners (Carousel) ─── */
+const trustBanners = [
+  { 
+    id: "tb1", 
+    title: "Verified Experts", 
+    desc: "Our experts are KYC-verified and background-checked.", 
+    icon: "how_to_reg", 
+    iconColor: "text-blue-500", 
+    bgLight: "bg-blue-50" 
+  },
+  { 
+    id: "tb2", 
+    title: "Experienced Professional", 
+    desc: "All GLIVAJI professionals have 5+ years of relevant experience.", 
+    icon: "groups", 
+    iconColor: "text-pink-500", 
+    bgLight: "bg-pink-50" 
+  },
+  { 
+    id: "tb3", 
+    title: "Dedicated Support", 
+    desc: "The GLIVAJI customer care team is always available to ensure quick resolution of your concerns.", 
+    icon: "support_agent", 
+    iconColor: "text-purple-500", 
+    bgLight: "bg-purple-50" 
+  }
+];
 
 export default function HomePage() {
   const router = useRouter();
   const [gender, setGender] = useState<"male" | "female">("male");
   const [cart, setCart] = useState<string[]>([]);
   const [selectedService, setSelectedService] = useState<any>(null);
+  const [activeTrustSlide, setActiveTrustSlide] = useState(0);
   const { data: salons } = useSalons();
+
+  // Auto-slide trust banners
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTrustSlide((prev) => (prev + 1) % trustBanners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load cart from localStorage on mount (only for home-delivery services)
   useEffect(() => {
@@ -443,26 +479,45 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Verified Experts Banner */}
-            <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-4 bg-white shadow-sm mt-4">
-              <div className="flex-1">
-                <h4 className="text-[15px] font-bold text-text-primary mb-1">Verified Experts</h4>
-                <p className="text-[12px] text-text-secondary leading-snug">
-                  Our experts are KYC-verified and background-checked.
-                </p>
+            {/* Trust Banners Carousel */}
+            <div className="relative mt-4">
+              <div className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200 h-[100px] relative">
+                {trustBanners.map((banner, idx) => (
+                  <div 
+                    key={banner.id}
+                    className={`absolute inset-0 p-4 flex items-center gap-4 transition-opacity duration-500 ${
+                      idx === activeTrustSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <h4 className="text-[15px] font-bold text-text-primary mb-1">{banner.title}</h4>
+                      <p className="text-[12px] text-text-secondary leading-snug">
+                        {banner.desc}
+                      </p>
+                    </div>
+                    <div className="w-[60px] h-[60px] relative shrink-0">
+                      <div className={`absolute inset-0 ${banner.bgLight} rounded-full`}></div>
+                      <span className={`material-icons-round ${banner.iconColor} absolute inset-0 flex items-center justify-center text-3xl`}>
+                        {banner.icon}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="w-[60px] h-[60px] relative shrink-0">
-                <div className="absolute inset-0 bg-[#EEF2FF] rounded-full"></div>
-                {/* Simplified icon representation using material icons */}
-                <span className="material-icons-round text-[#3B82F6] absolute inset-0 flex items-center justify-center text-3xl">how_to_reg</span>
+              
+              {/* Dynamic Dots Indicator */}
+              <div className="flex justify-center mt-3 gap-1.5">
+                {trustBanners.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveTrustSlide(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      idx === activeTrustSlide ? 'w-4 bg-gray-400' : 'w-2 bg-gray-200'
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
               </div>
-            </div>
-            
-            {/* Dots Indicator (Decorative) */}
-            <div className="flex justify-center my-2 gap-1.5">
-              <div className="w-4 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
             </div>
 
             {/* Referral Banner */}
