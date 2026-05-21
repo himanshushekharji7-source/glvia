@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   }
 
   const kpiData = [
-    { label: "Total Revenue", value: `$${stats.totalRevenue.toLocaleString()}`, trend: "+12.5%", positive: true, icon: "account_balance_wallet", color: "#ec4899" },
+    { label: "Total Revenue", value: `₹${stats.totalRevenue.toLocaleString()}`, trend: "+12.5%", positive: true, icon: "account_balance_wallet", color: "#ec4899" },
     { label: "Total Bookings", value: stats.totalBookings.toLocaleString(), trend: "+8.2%", positive: true, icon: "event_available", color: "#8b5cf6" },
     { label: "Active Salons", value: stats.activeSalons.toString(), trend: "+3", positive: true, icon: "storefront", color: "#10b981" },
     { label: "Total Customers", value: stats.totalUsers.toLocaleString(), trend: "+15.4%", positive: true, icon: "group", color: "#f59e0b" },
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
                   style={{ height: `${height}%`, background: "var(--gradient-primary)" }}
                 >
                   <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-card shadow-lg text-[10px] font-bold px-2 py-1 rounded transition-opacity whitespace-nowrap">
-                    ${(height * 120).toFixed(0)}
+                    ₹{(height * 120).toFixed(0)}
                   </div>
                 </div>
                 <div className="text-[10px] text-text-tertiary text-center mt-2 font-medium">
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                 </div>
-                <div className="text-[14px] font-bold text-text-primary">${salon.revenue.toLocaleString()}</div>
+                <div className="text-[14px] font-bold text-text-primary">₹{salon.revenue.toLocaleString()}</div>
               </div>
             )) : (
               <div className="text-sm text-text-tertiary text-center py-4">No salon data available yet.</div>

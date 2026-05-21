@@ -32,6 +32,7 @@ export default function SalonDetailPage() {
     localStorage.setItem('cart', JSON.stringify({
       salonId: salon?._id || salon?.id,
       salonName: salon?.name,
+      salonAddress: salon?.address ? `${salon.address.street}, ${salon.address.city}` : "",
       services: selectedServices,
       totalPrice
     }));

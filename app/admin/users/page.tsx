@@ -95,7 +95,7 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-[13px] font-medium text-text-primary text-center">0</td>
-                    <td className="px-5 py-4 text-[13px] font-bold text-text-primary">${user.walletBalance || '0'}</td>
+                    <td className="px-5 py-4 text-[13px] font-bold text-text-primary">₹{user.walletBalance || '0'}</td>
                     <td className="px-5 py-4 text-[12px] text-text-secondary">{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td className="px-5 py-4 text-right">
                       <button className="text-text-tertiary hover:text-primary transition-colors">

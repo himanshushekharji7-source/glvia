@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "./components/Header";
@@ -56,12 +56,50 @@ export default function HomePage() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [cart, setCart] = useState<string[]>([]);
 
+  // Load cart from localStorage on mount (only for home-delivery services)
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        const parsed = JSON.parse(savedCart);
+        if (parsed.salonId === "glvia-home") {
+          setCart(parsed.services.map((s: any) => s._id));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
   const services = gender === "male" ? maleServices : femaleServices;
   const categories = gender === "male" ? maleCategories : femaleCategories;
   const deals = gender === "male" ? maleSalonDeals : femaleSalonDeals;
 
   const handleBook = (id: string) => {
-    setCart((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setCart((prev) => {
+      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
+      
+      // Update localStorage cart
+      if (next.length === 0) {
+        localStorage.removeItem('cart');
+      } else {
+        const selectedSvcs = next.map(cartId => services.find(s => s.id === cartId)).filter(Boolean);
+        const totalPrice = selectedSvcs.reduce((sum, s: any) => sum + s.price, 0);
+        localStorage.setItem('cart', JSON.stringify({
+          salonId: "glvia-home",
+          salonName: "glvia Salon at Home",
+          salonAddress: "Delivered to your location",
+          services: selectedSvcs.map((s: any) => ({
+            _id: s.id,
+            name: s.name,
+            price: s.price,
+            duration: parseInt(s.duration) || 30
+          })),
+          totalPrice
+        }));
+      }
+      return next;
+    });
   };
 
   return (

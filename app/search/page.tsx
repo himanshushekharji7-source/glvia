@@ -1,16 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import SalonCard from "../components/SalonCard";
 import { useSalons } from "../lib/hooks";
 
 const filters = ["All", "Nearby", "Top Rated", "Budget", "Premium", "Available Now"];
 
-export default function SearchPage() {
+function SearchContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+
+  useEffect(() => {
+    if (categoryParam) {
+      setQuery(categoryParam);
+    }
+  }, [categoryParam]);
 
   const { data: salons, isLoading, isError } = useSalons(query);
 
@@ -90,10 +100,10 @@ export default function SearchPage() {
                   image={salon.images?.[0] || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=450&fit=crop"}
                   rating={salon.rating}
                   reviews={salon.totalReviews}
-                  distance="1.2 km" // Placeholder for distance
+                  distance={salon.distance || "1.2 km"}
                   address={`${salon.address.street}, ${salon.address.city}`}
-                  tags={["Hair", "Spa"]} // Placeholder or map from services
-                  priceRange="₹45" // Placeholder
+                  tags={salon.tags || ["Hair", "Spa"]}
+                  priceRange={salon.priceRange || "₹45"}
                 />
               </div>
             ))}
@@ -115,5 +125,17 @@ export default function SearchPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-dvh bg-surface-card flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }

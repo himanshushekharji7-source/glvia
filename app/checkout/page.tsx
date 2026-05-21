@@ -54,12 +54,24 @@ export default function CheckoutPage() {
       await createBookingMutation.mutateAsync({
         salonId: cart.salonId,
         services: cart.services.map((s: any) => s._id),
+        serviceNames: cart.services.map((s: any) => s.name),
         date: selectedDate,
         timeSlot: selectedTime,
         totalAmount: total,
         paymentMethod: paymentMethod === 'cash' ? 'Pay at Salon' : 'Online',
       });
       
+      // Save details of the confirmed booking for the success screen
+      localStorage.setItem('lastBooking', JSON.stringify({
+        salonName: cart.salonName,
+        salonAddress: cart.salonAddress || "124 Elite Avenue, Beverly Hills",
+        bookingId: '#GLV-' + Math.floor(100000 + Math.random() * 900000),
+        date: selectedDate,
+        timeSlot: selectedTime,
+        services: cart.services.map((s: any) => s.name).join(", "),
+        totalAmount: total
+      }));
+
       localStorage.removeItem('cart');
       router.push("/booking-confirmed");
     } catch (error: any) {
@@ -107,7 +119,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[15px] font-bold text-text-primary">${item.price}</span>
+                  <span className="text-[15px] font-bold text-text-primary">₹{item.price}</span>
                 </div>
               </div>
             ))}
@@ -219,16 +231,16 @@ export default function CheckoutPage() {
           <div className="space-y-2 text-[14px]">
             <div className="flex justify-between">
               <span className="text-text-secondary">Subtotal</span>
-              <span className="text-text-primary font-medium">${subtotal}</span>
+              <span className="text-text-primary font-medium">₹{subtotal}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-text-secondary">Tax</span>
-              <span className="text-text-primary font-medium">${tax}</span>
+              <span className="text-text-primary font-medium">₹{tax}</span>
             </div>
             <div className="divider !my-2.5" />
             <div className="flex justify-between text-[16px]">
               <span className="font-bold text-text-primary">Total</span>
-              <span className="font-extrabold text-text-primary">${total}</span>
+              <span className="font-extrabold text-text-primary">₹{total}</span>
             </div>
           </div>
         </section>
@@ -244,7 +256,7 @@ export default function CheckoutPage() {
           {isProcessing ? (
              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            `Confirm Booking — $${total}`
+            `Confirm Booking — ₹${total}`
           )}
         </button>
       </div>

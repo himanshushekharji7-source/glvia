@@ -18,12 +18,12 @@ const dummyUser = {
 };
 
 const dummyCategories = [
-  { _id: '1', name: 'Hair', icon: 'content_cut', count: 120 },
-  { _id: '2', name: 'Nails', icon: 'back_hand', count: 85 },
-  { _id: '3', name: 'Facial', icon: 'face', count: 45 },
-  { _id: '4', name: 'Makeup', icon: 'brush', count: 60 },
-  { _id: '5', name: 'Massage', icon: 'spa', count: 30 },
-  { _id: '6', name: 'Barber', icon: 'storefront', count: 55 }
+  { _id: '1', name: 'Hair', slug: 'hair', icon: 'content_cut', count: 120 },
+  { _id: '2', name: 'Nails', slug: 'nails', icon: 'back_hand', count: 85 },
+  { _id: '3', name: 'Facial', slug: 'facial', icon: 'face', count: 45 },
+  { _id: '4', name: 'Makeup', slug: 'makeup', icon: 'brush', count: 60 },
+  { _id: '5', name: 'Massage', slug: 'massage', icon: 'spa', count: 30 },
+  { _id: '6', name: 'Barber', slug: 'barber', icon: 'storefront', count: 55 }
 ];
 
 const dummySalons = [
@@ -105,22 +105,22 @@ const dummySalons = [
   }
 ];
 
-const dummyBookings = [
+let dummyBookings = [
   {
     _id: 'b1',
     id: 'b1',
-    status: 'confirmed',
+    status: 'Confirmed',
     date: '2024-05-25T10:00:00Z',
-    salon: dummySalons[0],
+    salonId: dummySalons[0],
     services: [dummySalons[0].services[0]],
     totalAmount: 80
   },
   {
     _id: 'b2',
     id: 'b2',
-    status: 'completed',
+    status: 'Completed',
     date: '2024-05-10T14:30:00Z',
-    salon: dummySalons[1],
+    salonId: dummySalons[1],
     services: [dummySalons[1].services[0]],
     totalAmount: 50
   }
@@ -202,7 +202,12 @@ export const useSalons = (keyword = '') => {
     queryFn: async () => {
       await delay(500);
       if (keyword) {
-        return dummySalons.filter(s => s.name.toLowerCase().includes(keyword.toLowerCase()));
+        const lowerKeyword = keyword.toLowerCase();
+        return dummySalons.filter(s => 
+          s.name.toLowerCase().includes(lowerKeyword) ||
+          (s.tags && s.tags.some(tag => tag.toLowerCase().includes(lowerKeyword))) ||
+          (s.services && s.services.some(svc => svc.name.toLowerCase().includes(lowerKeyword) || svc.category?.toLowerCase().includes(lowerKeyword)))
+        );
       }
       return dummySalons;
     },
@@ -242,11 +247,37 @@ export const useMyBookings = () => {
 };
 
 export const useCreateBooking = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (bookingData: any) => {
       await delay(1000);
+      
+      const salon = dummySalons.find(s => s.id === bookingData.salonId || s._id === bookingData.salonId) || dummySalons[0];
+      
+      // Look up services from the salon or map placeholder info
+      const services = bookingData.services.map((svcId: string) => {
+        const salonSvc = salon.services?.find(s => s._id === svcId);
+        if (salonSvc) return salonSvc;
+        // In case they are home delivery services booked from the homepage
+        return { _id: svcId, name: bookingData.serviceNames?.find((n: string, idx: number) => bookingData.services[idx] === svcId) || "Salon Service", price: bookingData.totalAmount, duration: "30" };
+      });
+
+      const newBooking = {
+        _id: 'b' + (dummyBookings.length + 1),
+        id: 'b' + (dummyBookings.length + 1),
+        status: 'Confirmed',
+        date: bookingData.date + 'T10:00:00Z',
+        salonId: salon,
+        services: services,
+        totalAmount: bookingData.totalAmount
+      };
+      
+      dummyBookings = [newBooking, ...dummyBookings];
       return { success: true, message: 'Booking successful!' };
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myBookings'] });
+    }
   });
 };
 

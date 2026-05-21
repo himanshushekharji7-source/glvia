@@ -80,7 +80,7 @@ export default function BookingsPage() {
                       <span className="material-icons-round text-[12px]">schedule</span>
                       {booking.startTime}
                     </span>
-                    <span className="text-[13px] font-bold text-text-primary ml-auto">${booking.totalAmount}</span>
+                    <span className="text-[13px] font-bold text-text-primary ml-auto">₹{booking.totalAmount}</span>
                   </div>
                 </div>
               </div>
