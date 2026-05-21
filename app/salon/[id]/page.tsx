@@ -30,8 +30,8 @@ export default function SalonDetailPage() {
   const handleBookNow = () => {
     // Save selected services to local storage or state management for checkout
     localStorage.setItem('cart', JSON.stringify({
-      salonId: salon._id,
-      salonName: salon.name,
+      salonId: salon?._id || salon?.id,
+      salonName: salon?.name,
       services: selectedServices,
       totalPrice
     }));

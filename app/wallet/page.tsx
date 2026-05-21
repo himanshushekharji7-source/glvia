@@ -50,8 +50,8 @@ export default function WalletPage() {
           <div className="space-y-4">
             {isLoading ? (
                [1, 2, 3].map(n => <div key={n} className="w-full h-16 bg-border/20 rounded-2xl animate-pulse" />)
-            ) : wallet?.transactions?.length > 0 ? (
-              wallet.transactions.map((tx: any, i: number) => (
+            ) : (wallet?.transactions?.length || 0) > 0 ? (
+              wallet?.transactions?.map((tx: any, i: number) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-border">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.type === 'credit' ? 'bg-success/10' : 'bg-error/10'}`}>
                     <span className={`material-icons-round text-[20px] ${tx.type === 'credit' ? 'text-success' : 'text-error'}`}>

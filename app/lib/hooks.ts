@@ -4,10 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // --- DUMMY DATA ---
 
 const dummyUser = {
+  _id: 'u1',
   id: 'u1',
-  name: 'Jane Doe',
+  firstName: 'Jane',
+  lastName: 'Doe',
   email: 'jane@example.com',
-  phone: '+1 234 567 8900',
+  phoneNumber: '+1 234 567 8900',
+  role: 'customer',
+  walletBalance: 250,
+  createdAt: new Date().toISOString(),
   avatar: 'https://i.pravatar.cc/150?u=jane',
   wishlist: ['s1', 's2']
 };
@@ -26,67 +31,76 @@ const dummySalons = [
     id: 's1',
     _id: 's1',
     name: 'Aura Prestige',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80',
+    images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80'],
     rating: 4.9,
-    reviews: 128,
+    totalReviews: 128,
     distance: '0.8 km',
-    address: '124 Elite Avenue, Beverly Hills',
+    address: { street: '124 Elite Avenue', city: 'Beverly Hills', state: 'CA' },
     priceRange: '$120 - $350',
     tags: ['Luxury', 'Hair', 'Spa'],
+    description: 'A premium salon experience tailored for you.',
     featured: true,
+    contactPhone: '+1 310-555-0101',
+    contactEmail: 'hello@auraprestige.com',
     services: [
-      { _id: 'srv1', name: 'Signature Blowout', duration: '45 min', price: '$80', category: 'Hair' },
-      { _id: 'srv2', name: 'Balayage Color', duration: '120 min', price: '$250', category: 'Hair' }
-    ]
+      { _id: 'srv1', name: 'Signature Blowout', duration: '45', price: 80, category: 'Hair' },
+      { _id: 'srv2', name: 'Balayage Color', duration: '120', price: 250, category: 'Hair' }
+    ],
+    openingHours: [{ day: 'Monday', open: '9:00 AM', close: '8:00 PM' }]
   },
   {
     id: 's2',
     _id: 's2',
     name: 'Lumiere Beauty',
-    image: 'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&q=80',
+    images: ['https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&q=80'],
     rating: 4.7,
-    reviews: 84,
+    totalReviews: 84,
     distance: '1.2 km',
-    address: '45 Sunset Blvd, Los Angeles',
+    address: { street: '45 Sunset Blvd', city: 'Los Angeles', state: 'CA' },
     priceRange: '$80 - $200',
     tags: ['Nails', 'Facial'],
+    description: 'A premium salon experience tailored for you.',
     featured: true,
+    contactPhone: '+1 310-555-0202',
     services: [
-      { _id: 'srv3', name: 'Gel Manicure', duration: '60 min', price: '$50', category: 'Nails' },
-      { _id: 'srv4', name: 'Hydrating Facial', duration: '60 min', price: '$120', category: 'Facial' }
-    ]
+      { _id: 'srv3', name: 'Gel Manicure', duration: '60', price: 50, category: 'Nails' },
+      { _id: 'srv4', name: 'Hydrating Facial', duration: '60', price: 120, category: 'Facial' }
+    ],
+    openingHours: [{ day: 'Monday', open: '10:00 AM', close: '7:00 PM' }]
   },
   {
     id: 's3',
     _id: 's3',
     name: 'The Barber Club',
-    image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80',
+    images: ['https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80'],
     rating: 4.8,
-    reviews: 210,
+    totalReviews: 210,
     distance: '2.5 km',
-    address: '88 Downtown Street, LA',
+    address: { street: '88 Downtown Street', city: 'LA', state: 'CA' },
     priceRange: '$40 - $100',
     tags: ['Barber', 'Men'],
+    description: 'A premium salon experience tailored for you.',
     featured: false,
     services: [
-      { _id: 'srv5', name: 'Classic Haircut', duration: '30 min', price: '$40', category: 'Barber' },
-      { _id: 'srv6', name: 'Beard Trim', duration: '20 min', price: '$25', category: 'Barber' }
-    ]
+      { _id: 'srv5', name: 'Classic Haircut', duration: '30', price: 40, category: 'Barber' },
+      { _id: 'srv6', name: 'Beard Trim', duration: '20', price: 25, category: 'Barber' }
+    ],
+    openingHours: [{ day: 'Monday', open: '9:00 AM', close: '9:00 PM' }]
   },
   {
     id: 's4',
     _id: 's4',
     name: 'Glow Studio',
-    image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80',
+    images: ['https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80'],
     rating: 4.6,
-    reviews: 95,
+    totalReviews: 95,
     distance: '3.1 km',
-    address: '77 Melrose Ave, West Hollywood',
+    address: { street: '77 Melrose Ave', city: 'West Hollywood', state: 'CA' },
     priceRange: '$60 - $150',
     tags: ['Makeup', 'Hair'],
     featured: false,
     services: [
-      { _id: 'srv7', name: 'Evening Makeup', duration: '60 min', price: '$90', category: 'Makeup' }
+      { _id: 'srv7', name: 'Evening Makeup', duration: '60', price: 90, category: 'Makeup' }
     ]
   }
 ];
@@ -123,9 +137,14 @@ const dummyWallet = {
 
 const dummyAdminStats = {
   totalUsers: 1250,
-  totalSalons: 45,
+  activeSalons: 45,
   totalBookings: 8400,
-  revenue: 125000
+  totalRevenue: 125000,
+  topSalons: [
+    { name: 'Aura Prestige', bookings: 420, rating: 4.9, revenue: 15400 },
+    { name: 'Lumiere Beauty', bookings: 380, rating: 4.7, revenue: 11200 },
+    { name: 'The Barber Club', bookings: 510, rating: 4.8, revenue: 9800 }
+  ]
 };
 
 const dummyNotifications = [
@@ -278,10 +297,15 @@ export const useSalonOwnerStats = () => {
     queryFn: async () => {
       await delay(500);
       return {
-        totalRevenue: 4500,
+        dailyRevenue: 450,
         totalBookings: 85,
-        newCustomers: 12,
-        rating: 4.8
+        activeStaff: 12,
+        cancellationRate: '4.5%',
+        recentBookings: [
+          { userId: { firstName: 'Alice' }, services: [{ name: 'Haircut' }], timeSlot: '10:00 AM', totalAmount: 45, status: 'confirmed' },
+          { userId: { firstName: 'Bob' }, services: [{ name: 'Beard Trim' }], timeSlot: '11:30 AM', totalAmount: 30, status: 'completed' },
+          { userId: { firstName: 'Charlie' }, services: [{ name: 'Hair Color' }], timeSlot: '02:00 PM', totalAmount: 120, status: 'pending' },
+        ]
       };
     },
   });
@@ -292,7 +316,7 @@ export const useAdminUsers = () => {
     queryKey: ['adminUsers'],
     queryFn: async () => {
       await delay(500);
-      return [dummyUser, { ...dummyUser, id: 'u2', name: 'John Smith', email: 'john@example.com' }];
+      return [dummyUser, { ...dummyUser, _id: 'u2', id: 'u2', firstName: 'John', lastName: 'Smith', email: 'john@example.com', role: 'admin' }];
     },
   });
 };

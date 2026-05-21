@@ -35,7 +35,7 @@ export default function WishlistPage() {
         </div>
       ) : (
         <div className="px-5 pt-4 space-y-3 stagger">
-          {wishlist.map((item: any, i: number) => (
+          {wishlist?.map((item: any, i: number) => (
             <div key={item._id} className="flex gap-3 p-3 rounded-2xl border border-border animate-fadeInUp hover:shadow-sm transition-all" style={{ animationDelay: `${i * 60}ms` }}>
               <Link href={`/salon/${item._id}`} className="shrink-0">
                 <div className="w-24 h-24 rounded-xl overflow-hidden bg-surface-dim">

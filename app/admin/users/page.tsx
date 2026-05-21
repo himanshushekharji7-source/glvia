@@ -72,7 +72,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {users.map((user: any, i: number) => (
+                {users?.map((user: any, i: number) => (
                   <tr key={user._id} className="hover:bg-surface-dim/30 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
