@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import ServiceDetailModal from "./components/ServiceDetailModal";
+import { useSalons } from "./lib/hooks";
 import { useRouter } from "next/navigation";
 
 /* ─── Gender-specific dummy data ─── */
@@ -59,6 +60,7 @@ export default function HomePage() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [cart, setCart] = useState<string[]>([]);
   const [selectedService, setSelectedService] = useState<any>(null);
+  const { data: salons } = useSalons();
 
   // Load cart from localStorage on mount (only for home-delivery services)
   useEffect(() => {
@@ -272,26 +274,30 @@ export default function HomePage() {
           <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-          {deals.map((deal) => (
-            <div key={deal.id} className="flex-shrink-0 w-[200px] animate-fadeInUp">
-              <div className="relative w-full h-[130px] rounded-2xl overflow-hidden bg-surface-dim mb-3">
+          {salons?.map((salon: any) => (
+            <Link key={salon._id} href={`/salon/${salon._id}`} className="flex-shrink-0 w-[160px] animate-fadeInUp group">
+              <div className="relative w-full h-[120px] rounded-2xl overflow-hidden bg-surface-dim mb-2">
                 <Image
-                  src={deal.image}
-                  alt={deal.title}
+                  src={salon.images?.[0] || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80'}
+                  alt={salon.name}
                   fill
-                  className="object-cover"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute top-2 left-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
-                  {Math.round(((deal.oldPrice - deal.price) / deal.oldPrice) * 100)}% Off
-                </div>
               </div>
-              <h4 className="text-[13px] font-bold text-text-primary mb-0.5">{deal.title}</h4>
-              <p className="text-[11px] text-text-tertiary mb-1.5">{deal.desc}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-primary font-black text-sm">₹{deal.price}</span>
-                <span className="text-text-tertiary text-xs line-through">₹{deal.oldPrice}</span>
+              <h4 className="text-[13px] font-bold text-text-primary mb-0.5 line-clamp-1">{salon.name}</h4>
+              <div className="flex items-center gap-2 text-[11px] text-text-tertiary">
+                <span>{salon.distance}</span>
+                {salon.rating && (
+                  <>
+                    <span>|</span>
+                    <span className="flex items-center gap-0.5">
+                      <span className="material-icons-round text-amber-500 text-[11px]">star</span>
+                      {salon.rating}
+                    </span>
+                  </>
+                )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
