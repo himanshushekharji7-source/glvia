@@ -159,7 +159,7 @@ export default function HomePage() {
                 }
                 alt="Superhero Delivery"
                 fill
-                className="object-contain object-bottom transition-all duration-500 mix-blend-multiply"
+                className="object-contain object-bottom transition-all duration-500"
                 priority
               />
             </div>
