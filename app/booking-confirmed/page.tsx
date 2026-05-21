@@ -73,7 +73,7 @@ export default function BookingConfirmedPage() {
             <span className="material-icons-round text-[18px] text-primary">payment</span>
             <div>
               <div className="text-[11px] text-text-tertiary uppercase tracking-wider font-medium">Total Paid</div>
-              <div className="text-[14px] font-bold text-text-primary">$119</div>
+              <div className="text-[14px] font-bold text-text-primary">₹119</div>
             </div>
           </div>
         </div>

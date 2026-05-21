@@ -1,11 +1,11 @@
 "use client";
 
 const transactions = [
-  { id: "TRX-8921", date: "Today, 10:45 AM", customer: "Sarah Johnson", service: "Balayage & Tone", amount: "$180.00", status: "Completed" },
-  { id: "TRX-8920", date: "Today, 09:30 AM", customer: "Michael Chen", service: "Precision Cut", amount: "$75.00", status: "Completed" },
-  { id: "TRX-8919", date: "Yesterday, 4:15 PM", customer: "Emma Davis", service: "Gel Manicure", amount: "$45.00", status: "Completed" },
-  { id: "TRX-8918", date: "Yesterday, 2:00 PM", customer: "James Wilson", service: "Deep Tissue Massage", amount: "$120.00", status: "Refunded" },
-  { id: "TRX-8917", date: "May 10, 11:00 AM", customer: "Olivia Martinez", service: "Hydra Facial", amount: "$150.00", status: "Completed" },
+  { id: "TRX-8921", date: "Today, 10:45 AM", customer: "Sarah Johnson", service: "Balayage & Tone", amount: "₹180.00", status: "Completed" },
+  { id: "TRX-8920", date: "Today, 09:30 AM", customer: "Michael Chen", service: "Precision Cut", amount: "₹75.00", status: "Completed" },
+  { id: "TRX-8919", date: "Yesterday, 4:15 PM", customer: "Emma Davis", service: "Gel Manicure", amount: "₹45.00", status: "Completed" },
+  { id: "TRX-8918", date: "Yesterday, 2:00 PM", customer: "James Wilson", service: "Deep Tissue Massage", amount: "₹120.00", status: "Refunded" },
+  { id: "TRX-8917", date: "May 10, 11:00 AM", customer: "Olivia Martinez", service: "Hydra Facial", amount: "₹150.00", status: "Completed" },
 ];
 
 export default function FinancePage() {
@@ -25,13 +25,13 @@ export default function FinancePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card p-6 gradient-primary text-white">
           <div className="text-white/80 text-[13px] font-semibold uppercase tracking-wider mb-2">Available for Payout</div>
-          <div className="text-4xl font-extrabold mb-1">$4,250.00</div>
+          <div className="text-4xl font-extrabold mb-1">₹4,250.00</div>
           <div className="text-white/80 text-sm">Next scheduled payout: Friday</div>
         </div>
         
         <div className="card p-6">
           <div className="text-text-tertiary text-[13px] font-semibold uppercase tracking-wider mb-2">Total Earnings (YTD)</div>
-          <div className="text-3xl font-extrabold text-text-primary mb-1">$142,850.50</div>
+          <div className="text-3xl font-extrabold text-text-primary mb-1">₹142,850.50</div>
           <div className="text-success text-sm font-semibold flex items-center gap-1">
             <span className="material-icons-round text-[16px]">trending_up</span> +24% vs last year
           </div>
@@ -39,7 +39,7 @@ export default function FinancePage() {
         
         <div className="card p-6">
           <div className="text-text-tertiary text-[13px] font-semibold uppercase tracking-wider mb-2">Pending Clearance</div>
-          <div className="text-3xl font-extrabold text-text-primary mb-1">$840.00</div>
+          <div className="text-3xl font-extrabold text-text-primary mb-1">₹840.00</div>
           <div className="text-text-secondary text-sm">From 7 recent transactions</div>
         </div>
       </div>

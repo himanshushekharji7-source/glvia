@@ -40,7 +40,7 @@ export default function SalonOwnerDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           {[
             { label: "Total Bookings", value: stats?.totalBookings || '0', icon: "calendar_month", color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Daily Revenue", value: `$${stats?.dailyRevenue || '0'}`, icon: "payments", color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Daily Revenue", value: `₹${stats?.dailyRevenue || '0'}`, icon: "payments", color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Active Staff", value: stats?.activeStaff || '0', icon: "badge", color: "text-purple-600", bg: "bg-purple-50" },
             { label: "Cancellations", value: stats?.cancellationRate || '0%', icon: "cancel", color: "text-rose-600", bg: "bg-rose-50" },
           ].map((stat, i) => (
@@ -85,7 +85,7 @@ export default function SalonOwnerDashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">{booking.services?.[0]?.name}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{booking.timeSlot}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-900">${booking.totalAmount}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-900">₹{booking.totalAmount}</td>
                       <td className="px-6 py-4">
                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter ${
                           booking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'

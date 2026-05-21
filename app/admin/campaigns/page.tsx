@@ -1,9 +1,9 @@
 "use client";
 
 const campaigns = [
-  { id: 1, name: "Summer Glow 2026", code: "SUMMERGLOW20", status: "Active", uses: 342, revenue: "$12,450", roi: "+245%", endDate: "Aug 31, 2026" },
-  { id: 2, name: "Welcome Offer", code: "WELCOME50", status: "Active", uses: 890, revenue: "$24,100", roi: "+180%", endDate: "Ongoing" },
-  { id: 3, name: "Mother's Day Special", code: "MOMSPA", status: "Ended", uses: 156, revenue: "$8,900", roi: "+310%", endDate: "May 12, 2026" },
+  { id: 1, name: "Summer Glow 2026", code: "SUMMERGLOW20", status: "Active", uses: 342, revenue: "₹12,450", roi: "+245%", endDate: "Aug 31, 2026" },
+  { id: 2, name: "Welcome Offer", code: "WELCOME50", status: "Active", uses: 890, revenue: "₹24,100", roi: "+180%", endDate: "Ongoing" },
+  { id: 3, name: "Mother's Day Special", code: "MOMSPA", status: "Ended", uses: 156, revenue: "₹8,900", roi: "+310%", endDate: "May 12, 2026" },
 ];
 
 export default function CampaignsPage() {
@@ -23,7 +23,7 @@ export default function CampaignsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card p-6">
           <div className="text-text-tertiary text-[13px] font-semibold uppercase tracking-wider mb-2">Total Attributed Revenue</div>
-          <div className="text-3xl font-extrabold text-text-primary mb-1">$45,450.00</div>
+          <div className="text-3xl font-extrabold text-text-primary mb-1">₹45,450.00</div>
           <div className="text-success text-sm font-semibold flex items-center gap-1">
             <span className="material-icons-round text-[16px]">trending_up</span> 18% of total revenue
           </div>

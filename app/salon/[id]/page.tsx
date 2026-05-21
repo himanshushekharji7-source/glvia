@@ -235,7 +235,7 @@ export default function SalonDetailPage() {
                 <div className="text-white/80 text-xs font-medium">
                   {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected
                 </div>
-                <div className="text-white text-lg font-bold">${totalPrice}</div>
+                <div className="text-white text-lg font-bold">₹{totalPrice}</div>
               </div>
               <div className="flex items-center gap-2 text-white font-semibold">
                 Proceed to Checkout

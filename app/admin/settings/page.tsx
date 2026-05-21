@@ -60,7 +60,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <div className="text-[14px] font-semibold text-text-primary">Require Deposit</div>
-                  <div className="text-[12px] text-text-secondary">Require a 20% deposit for services over $100</div>
+                  <div className="text-[12px] text-text-secondary">Require a 20% deposit for services over ₹100</div>
                 </div>
               </label>
             </div>

@@ -93,7 +93,7 @@ export default function SearchPage() {
                   distance="1.2 km" // Placeholder for distance
                   address={`${salon.address.street}, ${salon.address.city}`}
                   tags={["Hair", "Spa"]} // Placeholder or map from services
-                  priceRange="$45" // Placeholder
+                  priceRange="₹45" // Placeholder
                 />
               </div>
             ))}

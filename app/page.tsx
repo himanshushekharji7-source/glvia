@@ -156,7 +156,7 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
               <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Haircare</span>
               <h5 className="text-white font-black text-sm">Full Color Pack</h5>
-              <div className="mt-2 text-white font-black text-xs">Save $40</div>
+              <div className="mt-2 text-white font-black text-xs">Save ₹40</div>
             </div>
           </div>
         </div>

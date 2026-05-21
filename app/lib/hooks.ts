@@ -36,7 +36,7 @@ const dummySalons = [
     totalReviews: 128,
     distance: '0.8 km',
     address: { street: '124 Elite Avenue', city: 'Beverly Hills', state: 'CA' },
-    priceRange: '$120 - $350',
+    priceRange: '₹120 - ₹350',
     tags: ['Luxury', 'Hair', 'Spa'],
     description: 'A premium salon experience tailored for you.',
     featured: true,
@@ -57,7 +57,7 @@ const dummySalons = [
     totalReviews: 84,
     distance: '1.2 km',
     address: { street: '45 Sunset Blvd', city: 'Los Angeles', state: 'CA' },
-    priceRange: '$80 - $200',
+    priceRange: '₹80 - ₹200',
     tags: ['Nails', 'Facial'],
     description: 'A premium salon experience tailored for you.',
     featured: true,
@@ -77,7 +77,7 @@ const dummySalons = [
     totalReviews: 210,
     distance: '2.5 km',
     address: { street: '88 Downtown Street', city: 'LA', state: 'CA' },
-    priceRange: '$40 - $100',
+    priceRange: '₹40 - ₹100',
     tags: ['Barber', 'Men'],
     description: 'A premium salon experience tailored for you.',
     featured: false,
@@ -96,7 +96,7 @@ const dummySalons = [
     totalReviews: 95,
     distance: '3.1 km',
     address: { street: '77 Melrose Ave', city: 'West Hollywood', state: 'CA' },
-    priceRange: '$60 - $150',
+    priceRange: '₹60 - ₹150',
     tags: ['Makeup', 'Hair'],
     featured: false,
     services: [
@@ -149,7 +149,7 @@ const dummyAdminStats = {
 
 const dummyNotifications = [
   { _id: 'n1', title: 'Booking Confirmed', message: 'Your booking at Aura Prestige is confirmed for tomorrow at 10 AM.', date: new Date().toISOString(), read: false },
-  { _id: 'n2', title: 'Wallet Top-up', message: 'You received a $10 cashback reward.', date: new Date(Date.now() - 86400000).toISOString(), read: true }
+  { _id: 'n2', title: 'Wallet Top-up', message: 'You received a ₹10 cashback reward.', date: new Date(Date.now() - 86400000).toISOString(), read: true }
 ];
 
 // Helper to simulate network delay

@@ -27,7 +27,7 @@ export default function WalletPage() {
           <div className="relative z-10">
             <p className="text-sm font-medium text-white/60">Available Balance</p>
             <h2 className="text-4xl font-extrabold mt-1">
-              ${isLoading ? '...' : wallet?.balance || '0.00'}
+              ₹{isLoading ? '...' : wallet?.balance || '0.00'}
             </h2>
             
             <div className="flex gap-3 mt-8">
@@ -63,7 +63,7 @@ export default function WalletPage() {
                     <p className="text-xs text-text-tertiary">{new Date(tx.date).toLocaleDateString()}</p>
                   </div>
                   <div className={`text-sm font-bold ${tx.type === 'credit' ? 'text-success' : 'text-text-primary'}`}>
-                    {tx.type === 'credit' ? '+' : '-'}${tx.amount}
+                    {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
                   </div>
                 </div>
               ))

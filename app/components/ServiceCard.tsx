@@ -50,7 +50,7 @@ export default function ServiceCard({
           </p>
           <div className="flex items-center gap-3 mt-2.5">
             <span className="text-[15px] font-bold text-text-primary">
-              ${price}
+              ₹{price}
             </span>
             <span className="text-[12px] text-text-tertiary flex items-center gap-1">
               <span className="material-icons-round text-[12px]">schedule</span>
