@@ -1,42 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
+import { supabase, TABLES } from "../lib/supabase";
 
 /* ─── Data Arrays ─── */
-const maleCategories = [
+const dummyMaleCategories = [
   { id: "mc1", name: "Haircut & styling", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=200&q=80" },
   { id: "mc2", name: "Facials & Cleanups", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
   { id: "mc3", name: "Shave & Beard", image: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=200&q=80" },
   { id: "mc4", name: "Hair Color", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=200&q=80" },
 ];
 
-const femaleCategories = [
+const dummyFemaleCategories = [
   { id: "fc1", name: "Waxing", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80" },
   { id: "fc2", name: "Facials & Cleanups", image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=200&q=80" },
   { id: "fc3", name: "Threading & Face waxing", image: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=200&q=80" },
   { id: "fc4", name: "Hair", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=200&q=80" },
 ];
 
-const malePackages = [
+const dummyMalePackages = [
   { id: "mp1", title: "Classic Grooming", desc: "Haircut & Beard/Shaving\n10 Minutes Head Massage", price: 499, oldPrice: 699, image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=400&q=80" },
   { id: "mp2", title: "Premium Care", desc: "Haircut & Beard Trimming\nO3+ Shine & Glow Facial", price: 1349, oldPrice: 1999, image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80" },
 ];
 
-const femalePackages = [
+const dummyFemalePackages = [
   { id: "fp1", title: "The Luxe Wax & Glow Package", desc: "Aloevera Wax - Fullbody Wax\nButterfly & Kiss - Fruit &...", price: 1399, oldPrice: 1999, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" },
   { id: "fp2", title: "The Radiance Package", desc: "Manicure & Pedicure\nComplete Facial Service", price: 1899, oldPrice: 2499, image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=400&q=80" },
 ];
 
-const maleServicesList = [
+const dummyMaleServicesList = [
   { id: "ms1", name: "Haircut + Beard Trimming + Charcoal Facial", price: 999, duration: "110 mins", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=400&q=80" },
   { id: "ms2", name: "Haircut + Beard Trimming + O3+ Shine & Glow Facial", price: 1349, duration: "125 mins", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80" },
   { id: "ms3", name: "Haircut", price: 299, duration: "30 mins", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=400&q=80" },
 ];
 
-const femaleServicesList = [
+const dummyFemaleServicesList = [
   { id: "fs1", name: "Full arms + Full Legs + Underarms", prefix: "Start's at", price: 499, options: "4 option", image: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=400&q=80" },
   { id: "fs2", name: "Full arms + Underarms", prefix: "Start's at", price: 199, options: "5 option", image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80" },
   { id: "fs3", name: "Full Legs", prefix: "Start's at", price: 299, options: "5 option", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" },
@@ -46,20 +48,122 @@ export default function AtHomePage() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [activeCategory, setActiveCategory] = useState<string>("mc1");
   const [cart, setCart] = useState<string[]>([]);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [dbPackages, setDbPackages] = useState<any[]>([]);
+  const [dbServices, setDbServices] = useState<any[]>([]);
+  const [appName, setAppName] = useState<string>("glvia");
 
-  const categories = gender === "male" ? maleCategories : femaleCategories;
-  const packages = gender === "male" ? malePackages : femalePackages;
-  const servicesList = gender === "male" ? maleServicesList : femaleServicesList;
-
-  // Update active category when gender changes
+  // Load site settings & data on mount
   useEffect(() => {
-    setActiveCategory(gender === "male" ? "mc1" : "fc1");
-  }, [gender]);
+    async function loadData() {
+      try {
+        const { data: cats } = await supabase.from(TABLES.AT_HOME_CATEGORIES).select('*').order('sort_order', { ascending: true });
+        if (cats && cats.length > 0) setDbCategories(cats);
 
+        const { data: pkgs } = await supabase.from(TABLES.AT_HOME_PACKAGES).select('*').order('sort_order', { ascending: true });
+        if (pkgs && pkgs.length > 0) setDbPackages(pkgs);
+
+        const { data: svcs } = await supabase.from(TABLES.AT_HOME_SERVICES).select('*').order('sort_order', { ascending: true });
+        if (svcs && svcs.length > 0) setDbServices(svcs);
+
+        const { data: settings } = await supabase.from(TABLES.SITE_SETTINGS).select('*');
+        if (settings && settings.length > 0) {
+          const appNameSetting = settings.find(s => s.key === 'app_name');
+          if (appNameSetting) setAppName(appNameSetting.value);
+        }
+      } catch (err) {
+        console.error("Error loading At Home data from Supabase:", err);
+      }
+    }
+    loadData();
+  }, []);
+
+  // Compute lists based on gender & db vs dummy fallback
+  const categories = useMemo(() => {
+    const dbGenderCats = dbCategories.filter(c => c.gender === gender);
+    if (dbGenderCats.length > 0) return dbGenderCats;
+    return gender === "male" ? dummyMaleCategories : dummyFemaleCategories;
+  }, [dbCategories, gender]);
+
+  const packages = useMemo(() => {
+    const dbGenderPkgs = dbPackages.filter(p => p.gender === gender);
+    if (dbGenderPkgs.length > 0) return dbGenderPkgs;
+    return gender === "male" ? dummyMalePackages : dummyFemalePackages;
+  }, [dbPackages, gender]);
+
+  const rawServicesList = useMemo(() => {
+    const dbGenderSvcs = dbServices.filter(s => s.gender === gender);
+    if (dbGenderSvcs.length > 0) return dbGenderSvcs;
+    return gender === "male" ? dummyMaleServicesList : dummyFemaleServicesList;
+  }, [dbServices, gender]);
+
+  // Update active category when gender or categories change
+  useEffect(() => {
+    if (categories.length > 0) {
+      const isValid = categories.some(c => c.id === activeCategory);
+      if (!isValid) {
+        setActiveCategory(categories[0].id);
+      }
+    }
+  }, [gender, categories, activeCategory]);
+
+  // Filter servicesList by active category
+  const servicesList = useMemo(() => {
+    return rawServicesList.filter(service => {
+      if (service.category_id) {
+        return service.category_id === activeCategory;
+      }
+      // Fallback filtering for dummy data
+      if (activeCategory === "mc1" && (service.id || service._id)?.startsWith("ms")) return true;
+      if (activeCategory === "fc1" && (service.id || service._id)?.startsWith("fs")) return true;
+      if ((activeCategory.startsWith("mc") || activeCategory.startsWith("fc")) && typeof activeCategory === 'string') {
+        return activeCategory === "mc1" || activeCategory === "fc1";
+      }
+      return true;
+    });
+  }, [rawServicesList, activeCategory]);
+
+  // Load cart from localStorage under key 'cart'
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        const parsed = JSON.parse(savedCart);
+        if (parsed && parsed.salonId === "glvia-home" && Array.isArray(parsed.services)) {
+          setCart(parsed.services.map((s: any) => s?._id || s?.id).filter(Boolean));
+        }
+      } catch (e) {
+        console.error("Cart parse error in At Home page:", e);
+      }
+    }
+  }, []);
+
+  // Update cart in state + localStorage
   const toggleCart = (id: string) => {
-    setCart((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-    );
+    setCart((prev) => {
+      const next = prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id];
+      
+      if (next.length === 0) {
+        localStorage.removeItem('cart');
+      } else {
+        // Find selected service details
+        const selectedSvcs = next.map(cartId => rawServicesList.find(s => (s.id || s._id) === cartId)).filter(Boolean);
+        const totalPrice = selectedSvcs.reduce((sum, s: any) => sum + s.price, 0);
+        localStorage.setItem('cart', JSON.stringify({
+          salonId: "glvia-home",
+          salonName: `${appName.toUpperCase()} Salon at Home`,
+          salonAddress: "Delivered to your location",
+          services: selectedSvcs.map((s: any) => ({
+            _id: s.id || s._id,
+            name: s.name,
+            price: s.price,
+            duration: parseInt(s.duration) || 30
+          })),
+          totalPrice
+        }));
+      }
+      return next;
+    });
   };
 
   return (

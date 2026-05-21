@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// import { api } from './api'; // Commented out to use dummy data
+import { supabase, TABLES } from './supabase';
 
 // --- DUMMY DATA ---
 
@@ -308,7 +308,47 @@ export const useSalons = (keyword = '') => {
   return useQuery({
     queryKey: ['salons', keyword],
     queryFn: async () => {
-      await delay(500);
+      try {
+        const { data: dbSalons, error } = await supabase
+          .from(TABLES.SALONS)
+          .select('*')
+          .eq('is_active', true);
+        
+        if (error) throw error;
+        
+        if (dbSalons && dbSalons.length > 0) {
+          let mapped = dbSalons.map(s => ({
+            id: s.id,
+            _id: s.id,
+            name: s.name,
+            images: s.images && s.images.length > 0 ? s.images : ['https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80'],
+            rating: Number(s.rating) || 4.5,
+            totalReviews: s.total_reviews || 0,
+            distance: s.distance || '1.0 km',
+            address: { street: s.address_street || '', city: s.address_city || '', state: s.address_state || '' },
+            priceRange: s.price_range || '₹99 - ₹2999',
+            tags: s.tags || ['Unisex'],
+            description: s.description || '',
+            featured: s.featured || false,
+            contactPhone: s.contact_phone || '',
+            contactEmail: s.contact_email || '',
+          }));
+
+          if (keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            mapped = mapped.filter(s => 
+              s.name.toLowerCase().includes(lowerKeyword) ||
+              s.tags.some((tag: any) => tag.toLowerCase().includes(lowerKeyword)) ||
+              s.description.toLowerCase().includes(lowerKeyword)
+            );
+          }
+          return mapped;
+        }
+      } catch (err) {
+        console.error("Error fetching salons from Supabase:", err);
+      }
+
+      await delay(300);
       if (keyword) {
         const lowerKeyword = keyword.toLowerCase();
         return dummySalons.filter(s => 
@@ -326,6 +366,86 @@ export const useSalon = (id: string) => {
   return useQuery({
     queryKey: ['salon', id],
     queryFn: async () => {
+      try {
+        const { data: dbSalon, error: salonErr } = await supabase
+          .from(TABLES.SALONS)
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (salonErr) throw salonErr;
+
+        if (dbSalon) {
+          // Fetch categories and services for this salon
+          const { data: dbCats } = await supabase
+            .from(TABLES.SALON_CATEGORIES)
+            .select('*')
+            .eq('salon_id', id)
+            .order('sort_order', { ascending: true });
+
+          const { data: dbSvcs } = await supabase
+            .from(TABLES.SALON_SERVICES)
+            .select('*')
+            .eq('salon_id', id)
+            .order('sort_order', { ascending: true });
+
+          const maleServiceCategories = dbCats ? dbCats.filter(c => c.gender === 'male').map(c => ({ name: c.name, image: c.image })) : [];
+          const femaleServiceCategories = dbCats ? dbCats.filter(c => c.gender === 'female').map(c => ({ name: c.name, image: c.image })) : [];
+
+          const maleServices = dbSvcs ? dbSvcs.filter(s => s.gender === 'male').map(s => ({
+            _id: s.id,
+            id: s.id,
+            name: s.name,
+            duration: s.duration || '30',
+            price: Number(s.price),
+            oldPrice: s.old_price ? Number(s.old_price) : undefined,
+            category: s.category,
+            image: s.image,
+            description: s.description || ''
+          })) : [];
+
+          const femaleServices = dbSvcs ? dbSvcs.filter(s => s.gender === 'female').map(s => ({
+            _id: s.id,
+            id: s.id,
+            name: s.name,
+            duration: s.duration || '30',
+            price: Number(s.price),
+            oldPrice: s.old_price ? Number(s.old_price) : undefined,
+            category: s.category,
+            image: s.image,
+            description: s.description || ''
+          })) : [];
+
+          // Merge services for backward compatibility
+          const allServices = [...maleServices, ...femaleServices];
+
+          return {
+            id: dbSalon.id,
+            _id: dbSalon.id,
+            name: dbSalon.name,
+            images: dbSalon.images && dbSalon.images.length > 0 ? dbSalon.images : ['https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80'],
+            rating: Number(dbSalon.rating) || 4.5,
+            totalReviews: dbSalon.total_reviews || 0,
+            distance: dbSalon.distance || '1.0 km',
+            address: { street: dbSalon.address_street || '', city: dbSalon.address_city || '', state: dbSalon.address_state || '' },
+            priceRange: dbSalon.price_range || '₹99 - ₹2999',
+            tags: dbSalon.tags || ['Unisex'],
+            description: dbSalon.description || '',
+            featured: dbSalon.featured || false,
+            contactPhone: dbSalon.contact_phone || '',
+            contactEmail: dbSalon.contact_email || '',
+            maleServiceCategories,
+            femaleServiceCategories,
+            maleServices,
+            femaleServices,
+            services: allServices,
+            openingHours: [{ day: 'Monday', open: '9:00 AM', close: '8:00 PM' }]
+          };
+        }
+      } catch (err) {
+        console.error(`Error fetching salon ${id} from Supabase:`, err);
+      }
+
       await delay(300);
       return dummySalons.find(s => s.id === id || s._id === id) || dummySalons[0];
     },
@@ -337,7 +457,29 @@ export const useCategories = () => {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      await delay(400);
+      try {
+        const { data: dbCats, error } = await supabase
+          .from(TABLES.CATEGORIES)
+          .select('*')
+          .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+
+        if (dbCats && dbCats.length > 0) {
+          return dbCats.map(c => ({
+            _id: c.id,
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            icon: c.icon || 'spa',
+            count: 0
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching categories from Supabase:", err);
+      }
+
+      await delay(300);
       return dummyCategories;
     },
   });

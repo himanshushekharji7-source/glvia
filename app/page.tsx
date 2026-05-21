@@ -8,6 +8,7 @@ import BottomNav from "./components/BottomNav";
 import ServiceDetailModal from "./components/ServiceDetailModal";
 import { useSalons } from "./lib/hooks";
 import { useRouter } from "next/navigation";
+import { supabase, TABLES } from "./lib/supabase";
 
 /* ─── Gender-specific dummy data ─── */
 
@@ -86,12 +87,12 @@ const femaleComboBanners = [
 ];
 
 /* ─── Membership Plans ─── */
-const membershipPlans = [
+const dummyMembershipPlans = [
   { id: "gold", name: "GLIVAJI GOLD", duration: "(12 Months)", price: 299, discount: "15% off" },
   { id: "silver", name: "GLIVAJI SILVER", duration: "(6 Months)", price: 199, discount: "15% off" },
 ];
 /* ─── Trust Banners (Carousel) ─── */
-const trustBanners = [
+const dummyTrustBanners = [
   { 
     id: "tb1", 
     title: "Verified Experts", 
@@ -152,13 +153,91 @@ export default function HomePage() {
   const [activeTrustSlide, setActiveTrustSlide] = useState(0);
   const { data: salons } = useSalons();
 
+  const [dbPopularServices, setDbPopularServices] = useState<any[]>([]);
+  const [dbComboBanners, setDbComboBanners] = useState<any[]>([]);
+  const [dbSalonDeals, setDbSalonDeals] = useState<any[]>([]);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [dbMembershipPlans, setDbMembershipPlans] = useState<any[]>([]);
+  const [dbTrustBanners, setDbTrustBanners] = useState<any[]>([]);
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({
+    app_name: "glvia",
+    referral_amount: "100",
+    billu_cash_points: "1000",
+    billu_cash_value: "10"
+  });
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: svc } = await supabase.from(TABLES.HOME_SERVICES).select('*').order('sort_order', { ascending: true });
+        if (svc && svc.length > 0) setDbPopularServices(svc);
+
+        const { data: combo } = await supabase.from(TABLES.HOME_COMBO_BANNERS).select('*').order('sort_order', { ascending: true });
+        if (combo && combo.length > 0) setDbComboBanners(combo);
+
+        const { data: deals } = await supabase.from(TABLES.HOME_SALON_DEALS).select('*').order('sort_order', { ascending: true });
+        if (deals && deals.length > 0) setDbSalonDeals(deals);
+
+        const { data: cats } = await supabase.from(TABLES.HOME_CATEGORIES).select('*').order('sort_order', { ascending: true });
+        if (cats && cats.length > 0) setDbCategories(cats);
+
+        const { data: plans } = await supabase.from(TABLES.MEMBERSHIP_PLANS).select('*').order('sort_order', { ascending: true });
+        if (plans && plans.length > 0) setDbMembershipPlans(plans);
+
+        const { data: trust } = await supabase.from(TABLES.TRUST_BANNERS).select('*').order('sort_order', { ascending: true });
+        if (trust && trust.length > 0) setDbTrustBanners(trust);
+
+        const { data: settings } = await supabase.from(TABLES.SITE_SETTINGS).select('*');
+        if (settings && settings.length > 0) {
+          const mapped = settings.reduce((acc, curr) => {
+            acc[curr.key] = curr.value;
+            return acc;
+          }, {} as Record<string, string>);
+          setSiteSettings(prev => ({ ...prev, ...mapped }));
+        }
+      } catch (err) {
+        console.error("Error loading homepage data from Supabase:", err);
+      }
+    }
+    loadData();
+  }, []);
+
+  const services = gender === "male" ? maleServices : femaleServices;
+  const categories = dbCategories.length > 0
+    ? dbCategories.filter(c => c.gender === gender)
+    : (gender === "male" ? maleCategories : femaleCategories);
+
+  const deals = dbSalonDeals.length > 0
+    ? dbSalonDeals.filter(d => d.gender === gender)
+    : (gender === "male" ? maleSalonDeals : femaleSalonDeals);
+
+  const popularServices = dbPopularServices.length > 0
+    ? dbPopularServices.filter(s => s.gender === gender)
+    : (gender === "male" ? malePopularServices : femalePopularServices);
+
+  const comboBanners = dbComboBanners.length > 0
+    ? dbComboBanners.filter(b => b.gender === gender)
+    : (gender === "male" ? maleComboBanners : femaleComboBanners);
+
+  const membershipPlans = dbMembershipPlans.length > 0 ? dbMembershipPlans : dummyMembershipPlans;
+  
+  const trustBanners = dbTrustBanners.length > 0 
+    ? dbTrustBanners.map(tb => ({
+        id: tb.id,
+        title: tb.title,
+        desc: tb.description,
+        iconName: tb.icon_name,
+      })) 
+    : dummyTrustBanners;
+
   // Auto-slide trust banners
   useEffect(() => {
+    if (trustBanners.length === 0) return;
     const interval = setInterval(() => {
       setActiveTrustSlide((prev) => (prev + 1) % trustBanners.length);
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [trustBanners.length]);
 
   // Load cart from localStorage on mount (only for home-delivery services)
   useEffect(() => {
@@ -181,12 +260,6 @@ export default function HomePage() {
     }
   }, []);
 
-  const services = gender === "male" ? maleServices : femaleServices;
-  const categories = gender === "male" ? maleCategories : femaleCategories;
-  const deals = gender === "male" ? maleSalonDeals : femaleSalonDeals;
-  const popularServices = gender === "male" ? malePopularServices : femalePopularServices;
-  const comboBanners = gender === "male" ? maleComboBanners : femaleComboBanners;
-
   const handleBook = (id: string) => {
     setCart((prev) => {
       const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
@@ -195,14 +268,14 @@ export default function HomePage() {
       if (next.length === 0) {
         localStorage.removeItem('cart');
       } else {
-        const selectedSvcs = next.map(cartId => services.find(s => s.id === cartId)).filter(Boolean);
+        const selectedSvcs = next.map(cartId => popularServices.find(s => (s.id || s._id) === cartId)).filter(Boolean);
         const totalPrice = selectedSvcs.reduce((sum, s: any) => sum + s.price, 0);
         localStorage.setItem('cart', JSON.stringify({
           salonId: "glvia-home",
-          salonName: "glvia Salon at Home",
+          salonName: `${siteSettings.app_name || 'glvia'} Salon at Home`,
           salonAddress: "Delivered to your location",
           services: selectedSvcs.map((s: any) => ({
-            _id: s.id,
+            _id: s.id || s._id,
             name: s.name,
             price: s.price,
             duration: parseInt(s.duration) || 30
@@ -508,24 +581,31 @@ export default function HomePage() {
             {/* Trust Banners Carousel */}
             <div className="relative mt-4">
               <div className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200 h-[100px] relative">
-                {trustBanners.map((banner, idx) => (
-                  <div 
-                    key={banner.id}
-                    className={`absolute inset-0 p-4 flex items-center gap-3 transition-opacity duration-300 ${
-                      idx === activeTrustSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                    }`}
-                  >
-                    <div className="flex-1 pr-2">
-                      <h4 className="text-[15px] font-bold text-text-primary mb-1">{banner.title}</h4>
-                      <p className="text-[12px] text-text-secondary leading-snug">
-                        {banner.desc}
-                      </p>
+                {trustBanners.map((bannerItem, idx) => {
+                  const banner = bannerItem as any;
+                  return (
+                    <div 
+                      key={banner.id}
+                      className={`absolute inset-0 p-4 flex items-center gap-3 transition-opacity duration-300 ${
+                        idx === activeTrustSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                      }`}
+                    >
+                      <div className="flex-1 pr-2">
+                        <h4 className="text-[15px] font-bold text-text-primary mb-1">{banner.title}</h4>
+                        <p className="text-[12px] text-text-secondary leading-snug">
+                          {banner.desc}
+                        </p>
+                      </div>
+                      <div className="w-[70px] h-[70px] relative shrink-0 flex items-center justify-center">
+                        {banner.svgIcon ? (
+                          banner.svgIcon
+                        ) : (
+                          <span className="material-icons-round text-pink-500 text-4xl">{banner.iconName || 'verified'}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-[70px] h-[70px] relative shrink-0 flex items-center justify-center">
-                      {banner.svgIcon}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {/* Dynamic Dots Indicator */}
@@ -552,26 +632,26 @@ export default function HomePage() {
                  </svg>
               </div>
               <div className="relative w-14 h-14 rounded-full bg-white flex items-center justify-center shrink-0 shadow-lg border-2 border-pink-500">
-                <span className="text-pink-500 font-black text-3xl italic font-serif">B</span>
+                <span className="text-pink-500 font-black text-3xl italic font-serif">{(siteSettings.app_name || 'g').charAt(0).toUpperCase()}</span>
                 {/* Circular text simulation */}
                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full animate-[spin_10s_linear_infinite]">
                   <path id="curve" d="M 10 50 A 40 40 0 1 1 10 50.01" fill="transparent" />
                   <text className="text-[10px] fill-pink-500 font-bold uppercase tracking-widest">
-                    <textPath href="#curve" startOffset="0%">BILLU CASH POINTS • BILLU CASH POINTS • </textPath>
+                    <textPath href="#curve" startOffset="0%">{(siteSettings.app_name || 'glvia').toUpperCase()} CASH POINTS • </textPath>
                   </text>
                 </svg>
               </div>
               <p className="text-white text-[16px] font-medium z-10">
-                Earn <span className="font-bold">₹ 100</span> for every referral
+                Earn <span className="font-bold">₹ {siteSettings.referral_amount}</span> for every referral
               </p>
             </div>
 
-            {/* Billu Cash Points Card */}
+            {/* Cash Points Card */}
             <div className="mt-4 bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between relative">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-gray-900 mb-1">1000</div>
-                  <div className="text-[11px] font-bold text-gray-800 tracking-wide">Billu Cash Points</div>
+                  <div className="text-2xl font-black text-gray-900 mb-1">{siteSettings.billu_cash_points}</div>
+                  <div className="text-[11px] font-bold text-gray-800 tracking-wide">{(siteSettings.app_name || 'glvia').toUpperCase()} Cash Points</div>
                 </div>
                 
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
@@ -582,7 +662,7 @@ export default function HomePage() {
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-2xl font-black text-gray-900 mb-1">₹10</div>
+                  <div className="text-2xl font-black text-gray-900 mb-1">₹{siteSettings.billu_cash_value}</div>
                   <div className="text-[11px] font-bold text-gray-800 tracking-wide">Real Money</div>
                 </div>
               </div>

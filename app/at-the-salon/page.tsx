@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import BottomNav from "../components/BottomNav";
+import { useSalons } from "../lib/hooks";
 
 const maleCategories = [
   { id: "mc1", name: "Hair Cut &\nStyle", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=200&q=80" },
@@ -18,7 +20,7 @@ const femaleCategories = [
   { id: "fc4", name: "Hair\nChemicals", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80" },
 ];
 
-const salons = [
+const dummySalons = [
   { id: "s1", name: "Dasho Salon Shalimar Bagh", distance: "5.5 Km", reviews: "No reviews", startingPrice: 199, image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=500&q=80" },
   { id: "s2", name: "Dasho Salon Rajouri", distance: "6.9 Km", reviews: "No reviews", location: "Rohini", startingPrice: 199, image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=500&q=80" },
   { id: "s3", name: "Dasho Salon Defence Colony", distance: "19.5 Km", reviews: "3.4 (5)", location: "Defence Colony", startingPrice: 59, image: "https://images.unsplash.com/photo-1516975080661-46bca191fb4e?auto=format&fit=crop&w=500&q=80" },
@@ -27,7 +29,22 @@ const salons = [
 
 export default function AtTheSalonPage() {
   const [gender, setGender] = useState<"male" | "female">("male");
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const { data: dbSalons, isLoading } = useSalons(searchQuery);
+
   const categories = gender === "male" ? maleCategories : femaleCategories;
+
+  const salonsList = useMemo(() => {
+    if (dbSalons && dbSalons.length > 0) return dbSalons;
+    
+    let list = dummySalons;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(s => s.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [dbSalons, searchQuery]);
 
   return (
     <div className="min-h-dvh bg-white pb-nav">
@@ -95,6 +112,8 @@ export default function AtTheSalonPage() {
           <input 
             type="text" 
             placeholder="Search for the Style you want" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-[13px] shadow-sm focus:outline-none focus:border-pink-500 placeholder-gray-400"
           />
         </div>
@@ -121,31 +140,55 @@ export default function AtTheSalonPage() {
 
       {/* ─── Salons List ─── */}
       <div className="px-5 py-4 pb-24 space-y-4">
-        {salons.map((salon) => (
-          <div key={salon.id} className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-            <div className="w-full h-[160px] relative">
-              <Image src={salon.image} alt={salon.name} fill className="object-cover" />
-            </div>
-            <div className="p-4 bg-white">
-              <h3 className="font-bold text-[15px] text-gray-900 mb-1">{salon.name}</h3>
-              <div className="flex items-center gap-2 text-[12px] text-gray-500 mb-1">
-                <span>{salon.distance}</span>
-                <span>|</span>
-                <span className="text-green-600 material-icons-round text-[14px]">star</span>
-                <span className={salon.reviews === "No reviews" ? "text-green-600 font-medium" : "text-green-600 font-bold"}>
-                  {salon.reviews}
-                </span>
-              </div>
-              {salon.location && <p className="text-[12px] text-gray-500 mb-3">{salon.location}</p>}
-              
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-[12px] text-pink-500 font-medium">
-                  Services starting from ₹{salon.startingPrice}
-                </p>
-              </div>
-            </div>
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-8 h-8 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin"></div>
           </div>
-        ))}
+        ) : salonsList.length > 0 ? (
+          salonsList.map((salonItem) => {
+            const salon = salonItem as any;
+            return (
+              <Link 
+                href={`/salon/${salon.id}`} 
+                key={salon.id} 
+                className="block border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:border-pink-200 transition-all cursor-pointer"
+              >
+                <div className="w-full h-[160px] relative">
+                  <Image 
+                    src={salon.images?.[0] || salon.image || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80'} 
+                    alt={salon.name} 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
+                <div className="p-4 bg-white">
+                  <h3 className="font-bold text-[15px] text-gray-900 mb-1">{salon.name}</h3>
+                  <div className="flex items-center gap-2 text-[12px] text-gray-500 mb-1">
+                    <span>{salon.distance}</span>
+                    <span>|</span>
+                    <span className="text-green-600 material-icons-round text-[14px]">star</span>
+                    <span className="text-green-600 font-bold">
+                      {salon.reviews || (salon.totalReviews ? `${salon.rating} (${salon.totalReviews})` : 'No reviews')}
+                    </span>
+                  </div>
+                  {(salon.location || salon.address?.city) && (
+                    <p className="text-[12px] text-gray-500 mb-3">
+                      {salon.location || `${salon.address?.street}, ${salon.address?.city}`}
+                    </p>
+                  )}
+                  
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-[12px] text-pink-500 font-medium">
+                      Services starting from ₹{salon.startingPrice || (salon.priceRange ? salon.priceRange.match(/\d+/)?.[0] : '199')}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })
+        ) : (
+          <div className="text-center py-10 text-gray-500 text-sm">No salons found.</div>
+        )}
       </div>
 
       <BottomNav />
