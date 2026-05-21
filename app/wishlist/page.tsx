@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport { useState } from \"react\";\nimport Link from \"next/link\";\nimport Header from \"../components/Header\";\nimport BottomNav from \"../components/BottomNav\";\n\nconst wishlistItems = [\n  { id: \"aura-beauty\", name: \"Aura Bea
+<truncated 3822 bytes>

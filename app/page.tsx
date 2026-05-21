@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport Link from \"next/link\";\nimport Header from \"./components/Header\";\nimport BottomNav from \"./components/BottomNav\";\nimport SalonCard from \"./components/SalonCard\";\n\nconst banners = [\n  {\n    title: \"50% Off First Boo
+<truncated 7777 bytes>

@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport { useState } from \"react\";\nimport Link from \"next/link\";\nimport ServiceCard from \"../../components/ServiceCard\";\n\nconst salon = {\n  name: \"Aura Prestige\",\n  address: \"124 Elite Avenue, Beverly Hills\",\n  rating: 4
+<truncated 14054 bytes>

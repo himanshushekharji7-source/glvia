@@ -1,0 +1,2 @@
+"import Link from \"next/link\";\n\nexport default function BookingConfirmedPage() {\n  return (\n    <div className=\"min-h-dvh bg-surface-card flex flex-col items-center justify-center px-6 py-12\">\n      {/* Success Animation */}\n      <div className=
+<truncated 4486 bytes>

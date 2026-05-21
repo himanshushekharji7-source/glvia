@@ -1,0 +1,2 @@
+"import type { Metadata, Viewport } from \"next\";\nimport { Plus_Jakarta_Sans } from \"next/font/google\";\nimport \"./globals.css\";\nimport ClientShell from \"./components/ClientShell\";\n\nconst plusJakarta = Plus_Jakarta_Sans({\n  subsets: [\"latin\"]
+<truncated 1080 bytes>

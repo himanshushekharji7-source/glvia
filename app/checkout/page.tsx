@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport { useState } from \"react\";\nimport Link from \"next/link\";\n\nconst cartItems = [\n  { name: \"Signature Blowout\", salon: \"Aura Prestige\", price: 65, duration: \"45 min\" },\n  { name: \"Gel Manicure\", salon: \"Aura Presti
+<truncated 10710 bytes>

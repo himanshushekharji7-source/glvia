@@ -1,0 +1,2 @@
+"import Link from \"next/link\";\nimport Header from \"../components/Header\";\nimport BottomNav from \"../components/BottomNav\";\n\nconst categories = [\n  {\n    title: \"Hair Care\",\n    icon: \"content_cut\",\n    color: \"#ec4899\",\n    services: [
+<truncated 3651 bytes>

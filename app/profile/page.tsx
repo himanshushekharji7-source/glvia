@@ -1,0 +1,2 @@
+"import Link from \"next/link\";\nimport BottomNav from \"../components/BottomNav\";\n\nconst menuItems = [\n  { icon: \"calendar_today\", label: \"My Bookings\", href: \"/bookings\", badge: \"2\" },\n  { icon: \"favorite\", label: \"Wishlist\", href: \"/w
+<truncated 4590 bytes>

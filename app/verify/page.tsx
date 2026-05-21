@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport { useState, useRef, useEffect } from \"react\";\nimport Link from \"next/link\";\n\nexport default function VerifyPage() {\n  const [otp, setOtp] = useState([\"\", \"\", \"\", \"\", \"\", \"\"]);\n  const [timer, setTimer] = useS
+<truncated 4817 bytes>

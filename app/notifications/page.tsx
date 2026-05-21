@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport { useState } from \"react\";\nimport Header from \"../components/Header\";\nimport BottomNav from \"../components/BottomNav\";\n\nconst notifications = [\n  { id: 1, type: \"booking\", icon: \"calendar_today\", color: \"#ec4899\"
+<truncated 3886 bytes>

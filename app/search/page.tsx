@@ -1,0 +1,2 @@
+"\"use client\";\n\nimport { useState } from \"react\";\nimport Link from \"next/link\";\nimport BottomNav from \"../components/BottomNav\";\nimport SalonCard from \"../components/SalonCard\";\n\nconst filters = [\"All\", \"Nearby\", \"Top Rated\", \"Budge
+<truncated 5653 bytes>
