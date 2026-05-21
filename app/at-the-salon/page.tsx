@@ -23,7 +23,7 @@ const femaleCategories = [
 const dummySalons = [
   { id: "s1", name: "Dasho Salon Shalimar Bagh", distance: "5.5 Km", reviews: "No reviews", startingPrice: 199, image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=500&q=80" },
   { id: "s2", name: "Dasho Salon Rajouri", distance: "6.9 Km", reviews: "No reviews", location: "Rohini", startingPrice: 199, image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=500&q=80" },
-  { id: "s3", name: "Dasho Salon Defence Colony", distance: "19.5 Km", reviews: "3.4 (5)", location: "Defence Colony", startingPrice: 59, image: "https://images.unsplash.com/photo-1516975080661-46bca191fb4e?auto=format&fit=crop&w=500&q=80" },
+  { id: "s3", name: "Dasho Salon Defence Colony", distance: "19.5 Km", reviews: "3.4 (5)", location: "Defence Colony", startingPrice: 59, image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=500&q=80" },
   { id: "s4", name: "Dasho Salon Mayur Vihar", distance: "21.8 Km", reviews: "No reviews", location: "Mayur Vihar", startingPrice: 99, image: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=500&q=80" },
 ];
 
