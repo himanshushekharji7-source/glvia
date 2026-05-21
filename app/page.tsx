@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
+import ServiceDetailModal from "./components/ServiceDetailModal";
+import { useRouter } from "next/navigation";
 
 /* ─── Gender-specific dummy data ─── */
 
@@ -53,8 +55,10 @@ const femaleSalonDeals = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
   const [gender, setGender] = useState<"male" | "female">("male");
   const [cart, setCart] = useState<string[]>([]);
+  const [selectedService, setSelectedService] = useState<any>(null);
 
   // Load cart from localStorage on mount (only for home-delivery services)
   useEffect(() => {
@@ -198,7 +202,11 @@ export default function HomePage() {
         {/* Horizontal Service Cards */}
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
           {services.map((svc) => (
-            <div key={svc.id} className="flex-shrink-0 w-[160px] animate-fadeInUp">
+            <div 
+              key={svc.id} 
+              className="flex-shrink-0 w-[160px] animate-fadeInUp cursor-pointer"
+              onClick={() => setSelectedService(svc)}
+            >
               <div className="relative w-[160px] h-[140px] rounded-2xl overflow-hidden bg-surface-dim mb-2">
                 <Image
                   src={svc.image}
@@ -212,7 +220,10 @@ export default function HomePage() {
               </h4>
               <div className="text-primary font-black text-sm mb-2">₹{svc.price}</div>
               <button
-                onClick={() => handleBook(svc.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBook(svc.id);
+                }}
                 className={`w-full py-2 rounded-full text-xs font-bold border-2 transition-all duration-200 ${
                   cart.includes(svc.id)
                     ? "bg-primary text-white border-primary"
@@ -290,6 +301,15 @@ export default function HomePage() {
       </div>
 
       <BottomNav />
+
+      <ServiceDetailModal 
+        isOpen={!!selectedService}
+        onClose={() => setSelectedService(null)}
+        service={selectedService}
+        isAdded={selectedService ? cart.includes(selectedService.id) : false}
+        onAdd={() => selectedService && handleBook(selectedService.id)}
+        onNext={() => router.push("/checkout")}
+      />
     </div>
   );
 }
