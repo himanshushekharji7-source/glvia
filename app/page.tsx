@@ -75,32 +75,57 @@ export default function HomePage() {
         gender={gender}
         onGenderChange={setGender}
         cartCount={cart.length}
+        merged={true}
       />
 
       {/* ─── Hero Banner (100% width, like Billu) ─── */}
-      <div className="relative w-full h-48 overflow-hidden animate-fadeInUp">
-        <Image
-          src={
-            gender === "male"
-              ? "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80"
-              : "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80"
-          }
-          alt="Hero"
-          fill
-          className="object-cover transition-all duration-700"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/60 to-transparent flex flex-col justify-center px-6">
-          <h2 className="text-2xl font-black text-white leading-tight max-w-[220px]">
-            Salon At Home
-            <br />
-            In <span className="bg-white text-primary px-2 py-0.5 rounded-lg inline-block mx-1">30</span> Minutes
-          </h2>
-          <Link href="/search">
-            <button className="mt-4 bg-white text-primary text-[12px] font-black px-6 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all shadow-lg w-fit">
-              Book Now
-            </button>
-          </Link>
+      <div className="relative w-full h-[260px] -mt-[64px] pt-[64px] bg-gradient-to-br from-[#db2777] via-[#ec4899] to-[#7c3aed] overflow-hidden animate-fadeInUp flex items-center">
+        {/* Background Texture blended in */}
+        <div className="absolute inset-0 opacity-15 mix-blend-overlay pointer-events-none">
+          <Image
+            src={
+              gender === "male"
+                ? "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80"
+                : "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80"
+            }
+            alt="Hero Texture"
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+
+        {/* Content Container */}
+        <div className="relative w-full h-full flex items-center justify-between px-6 z-10">
+          <div className="flex flex-col justify-center max-w-[55%]">
+            <h2 className="text-2xl font-black text-white leading-tight">
+              Salon At Home
+              <br />
+              In <span className="bg-white text-primary px-2.5 py-0.5 rounded-lg inline-block mx-1 font-black shadow-sm">30</span> Minutes
+            </h2>
+            <Link href="/search" className="mt-4 w-fit">
+              <button className="bg-[#fef08a] hover:bg-yellow-200 text-black text-[12px] font-black px-6 py-2.5 rounded-full active:scale-95 transition-all shadow-lg cursor-pointer">
+                Book Now
+              </button>
+            </Link>
+          </div>
+
+          {/* Running Superhero Illustration */}
+          <div className="absolute right-2 bottom-0 h-[210px] w-[180px] pointer-events-none flex items-end justify-end">
+            <div className="relative w-full h-[95%] animate-fadeInUp">
+              <Image
+                src={
+                  gender === "male"
+                    ? "/male_hero_delivery.png"
+                    : "/female_hero_delivery.png"
+                }
+                alt="Superhero Delivery"
+                fill
+                className="object-contain object-bottom transition-all duration-500"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </div>
 
