@@ -23,7 +23,7 @@ export default function AdminSidebar() {
         <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center mr-3">
           <span className="material-icons-round text-white text-[18px]">auto_awesome</span>
         </div>
-        <span className="font-extrabold text-lg text-text-primary tracking-tight">LuxeAdmin</span>
+        <span className="font-extrabold text-lg text-text-primary tracking-tight">glvia Admin</span>
       </div>
 
       {/* Nav */}

@@ -62,7 +62,7 @@ export default function LoginPage() {
             </span>
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            LuxeSalon
+            glvia
           </h1>
           <p className="text-white/70 text-sm mt-1.5">
             {isLogin ? "Welcome back to beauty." : "Start your beauty journey."}

@@ -11,7 +11,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LuxeSalon — Premium Beauty Marketplace",
+  title: "glvia — Premium Beauty Marketplace",
   description:
     "Discover and book premium salon, spa & beauty services near you. Exclusive deals, top-rated professionals, and seamless booking.",
   keywords: ["salon", "beauty", "spa", "booking", "haircut", "nails", "massage"],
