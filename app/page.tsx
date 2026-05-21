@@ -96,25 +96,51 @@ const trustBanners = [
     id: "tb1", 
     title: "Verified Experts", 
     desc: "Our experts are KYC-verified and background-checked.", 
-    icon: "how_to_reg", 
-    iconColor: "text-blue-500", 
-    bgLight: "bg-blue-50" 
+    svgIcon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <rect x="18" y="10" width="28" height="44" rx="4" stroke="#1E293B" strokeWidth="3" fill="white"/>
+        <rect x="24" y="14" width="16" height="2" rx="1" fill="#CBD5E1"/>
+        <path d="M42 32C42 26.4772 46.4772 22 52 22C57.5228 22 62 26.4772 62 32C62 37.5228 57.5228 42 52 42C46.4772 42 42 37.5228 42 32Z" fill="#3B82F6"/>
+        <path d="M48 32L51 35L56 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="32" cy="30" r="6" fill="#F1F5F9"/>
+        <path d="M26 42C26 39 28 37 32 37C36 37 38 39 38 42" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round"/>
+      </svg>
+    )
   },
   { 
     id: "tb2", 
     title: "Experienced Professional", 
     desc: "All GLIVAJI professionals have 5+ years of relevant experience.", 
-    icon: "groups", 
-    iconColor: "text-pink-500", 
-    bgLight: "bg-pink-50" 
+    svgIcon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <path d="M22 64V50C22 45.5817 25.5817 42 30 42H42C46.4183 42 50 45.5817 50 50V64" fill="#334155"/>
+        <path d="M26 64V54C26 50.6863 28.6863 48 32 48H40C43.3137 48 46 50.6863 46 54V64" fill="#EC4899"/>
+        <circle cx="36" cy="24" r="12" fill="#FCD34D"/>
+        <path d="M24 24C24 17.3726 29.3726 12 36 12C42.6274 12 48 17.3726 48 24" fill="#1E293B"/>
+        <path d="M10 64V56C10 52.6863 12.6863 50 16 50H26C29.3137 50 32 52.6863 32 56V64" fill="#475569"/>
+        <path d="M14 64V58C14 55.7909 15.7909 54 18 54H24C26.2091 54 28 55.7909 28 58V64" fill="#DB2777"/>
+        <circle cx="21" cy="36" r="10" fill="#FDE68A"/>
+        <path d="M11 36C11 30.4772 15.4772 26 21 26C26.5228 26 31 30.4772 31 36" fill="#0F172A"/>
+      </svg>
+    )
   },
   { 
     id: "tb3", 
     title: "Dedicated Support", 
-    desc: "The GLIVAJI customer care team is always available to ensure quick resolution of your concerns.", 
-    icon: "support_agent", 
-    iconColor: "text-purple-500", 
-    bgLight: "bg-purple-50" 
+    desc: "Our customer care team is always available to ensure quick resolution of your concerns.", 
+    svgIcon: (
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <rect x="8" y="54" width="48" height="6" fill="#CBD5E1"/>
+        <path d="M20 54L14 44H26L32 54H20Z" fill="#94A3B8"/>
+        <rect x="18" y="38" width="16" height="12" rx="1" fill="#64748B"/>
+        <path d="M38 60V48C38 43.5817 41.5817 40 46 40H54C58.4183 40 62 43.5817 62 48V60" fill="#A855F7"/>
+        <circle cx="50" cy="26" r="10" fill="#FCD34D"/>
+        <path d="M40 26C40 20.4772 44.4772 16 50 16C55.5228 16 60 20.4772 60 26" fill="#1E293B"/>
+        <path d="M38 26C38 19.3726 43.3726 14 50 14C56.6274 14 62 19.3726 62 26" stroke="#475569" strokeWidth="2"/>
+        <circle cx="38" cy="28" r="3" fill="#475569"/>
+        <path d="M38 31C38 34 40 36 44 36" stroke="#475569" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    )
   }
 ];
 
@@ -130,7 +156,7 @@ export default function HomePage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveTrustSlide((prev) => (prev + 1) % trustBanners.length);
-    }, 4000);
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
@@ -485,21 +511,18 @@ export default function HomePage() {
                 {trustBanners.map((banner, idx) => (
                   <div 
                     key={banner.id}
-                    className={`absolute inset-0 p-4 flex items-center gap-4 transition-opacity duration-500 ${
+                    className={`absolute inset-0 p-4 flex items-center gap-3 transition-opacity duration-300 ${
                       idx === activeTrustSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
                     }`}
                   >
-                    <div className="flex-1">
+                    <div className="flex-1 pr-2">
                       <h4 className="text-[15px] font-bold text-text-primary mb-1">{banner.title}</h4>
                       <p className="text-[12px] text-text-secondary leading-snug">
                         {banner.desc}
                       </p>
                     </div>
-                    <div className="w-[60px] h-[60px] relative shrink-0">
-                      <div className={`absolute inset-0 ${banner.bgLight} rounded-full`}></div>
-                      <span className={`material-icons-round ${banner.iconColor} absolute inset-0 flex items-center justify-center text-3xl`}>
-                        {banner.icon}
-                      </span>
+                    <div className="w-[70px] h-[70px] relative shrink-0 flex items-center justify-center">
+                      {banner.svgIcon}
                     </div>
                   </div>
                 ))}
