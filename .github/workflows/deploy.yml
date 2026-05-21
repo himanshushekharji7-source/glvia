@@ -1,0 +1,50 @@
+name: 🚀 Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Install dependencies
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # 4. Build Next.js app
+      - name: 🔨 Build application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_APP_NAME: glvia
+
+      # 5. Deploy via SSH to Hostinger
+      - name: 🚀 Deploy to Hostinger via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            cd ~/domains/${{ secrets.DOMAIN }}/public_html
+            git pull origin main
+            npm ci --omit=dev
+            npm run build
+            pm2 restart glvia || pm2 start npm --name "glvia" -- start
+            pm2 save
