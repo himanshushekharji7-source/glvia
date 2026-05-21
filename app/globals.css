@@ -454,17 +454,16 @@ body {
   }
 }
 
-@keyframes wavePop {
-  0% { transform: scale(1) translateY(0); }
-  25% { transform: scale(1.03) translateY(-3px) rotate(-1deg); }
-  50% { transform: scale(1) translateY(0); }
-  75% { transform: scale(1.03) translateY(3px) rotate(1deg); }
-  100% { transform: scale(1) translateY(0); }
+@keyframes zoomWave {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 
-.animate-wavePop {
-  animation: wavePop 3s ease-in-out infinite;
+.animate-zoomWave {
+  animation: zoomWave 2s ease-in-out infinite;
   display: inline-block;
+  transform-origin: center;
 }
 
 .animate-fadeInUp {

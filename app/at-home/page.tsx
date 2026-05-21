@@ -75,9 +75,9 @@ export default function AtHomePage() {
         </div>
 
         <div className="absolute top-8 left-6 z-10 text-white">
-          <h1 className="text-2xl font-black leading-tight drop-shadow-md animate-wavePop">
+          <h1 className="text-2xl font-black leading-tight drop-shadow-md">
             Salon At Home <br />
-            In <span className="text-4xl px-2 py-0.5 bg-white/20 rounded-xl border border-white/30 backdrop-blur-sm text-white inline-block">30</span> Minutes
+            In <span className="text-3xl px-3 py-1 bg-white text-pink-600 rounded-full mx-1 shadow-md animate-zoomWave">30</span> Minutes
           </h1>
           <button className="mt-4 bg-[#FFE87C] text-black px-4 py-1.5 rounded-md font-bold text-sm shadow-lg">
             Book Now
