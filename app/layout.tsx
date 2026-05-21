@@ -1,2 +1,47 @@
-"import type { Metadata, Viewport } from \"next\";\nimport { Plus_Jakarta_Sans } from \"next/font/google\";\nimport \"./globals.css\";\nimport ClientShell from \"./components/ClientShell\";\n\nconst plusJakarta = Plus_Jakarta_Sans({\n  subsets: [\"latin\"]
-<truncated 1080 bytes>
+import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import "./globals.css";
+import ClientShell from "./components/ClientShell";
+import QueryProvider from "./components/QueryProvider";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+});
+
+export const metadata: Metadata = {
+  title: "LuxeSalon — Premium Beauty Marketplace",
+  description:
+    "Discover and book premium salon, spa & beauty services near you. Exclusive deals, top-rated professionals, and seamless booking.",
+  keywords: ["salon", "beauty", "spa", "booking", "haircut", "nails", "massage"],
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#ec4899",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={`${plusJakarta.variable} antialiased`}>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-dvh bg-surface">
+        <QueryProvider>
+          <ClientShell>{children}</ClientShell>
+        </QueryProvider>
+      </body>
+    </html>
+  );
+}

@@ -6,10 +6,10 @@ import BottomNav from "../components/BottomNav";
 import { useMyBookings } from "../lib/hooks";
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: "bg-amber-500/10", text: "text-amber-600", label: "Pending" },
-  confirmed: { bg: "bg-success/10", text: "text-success", label: "Confirmed" },
-  completed: { bg: "bg-primary/10", text: "text-primary", label: "Completed" },
-  cancelled: { bg: "bg-error/10", text: "text-error", label: "Cancelled" },
+  Pending: { bg: "bg-amber-500/10", text: "text-amber-600", label: "Pending" },
+  Confirmed: { bg: "bg-success/10", text: "text-success", label: "Confirmed" },
+  Completed: { bg: "bg-primary/10", text: "text-primary", label: "Completed" },
+  Cancelled: { bg: "bg-error/10", text: "text-error", label: "Cancelled" },
 };
 
 export default function BookingsPage() {
@@ -17,7 +17,8 @@ export default function BookingsPage() {
   const { data: bookings, isLoading, isError } = useMyBookings();
 
   const filteredBookings = bookings?.filter((b: any) => {
-    const isPast = b.status === "completed" || b.status === "cancelled";
+    const status = b.status?.toLowerCase();
+    const isPast = status === "completed" || status === "cancelled";
     return activeTab === "upcoming" ? !isPast : isPast;
   }) || [];
 
@@ -46,7 +47,7 @@ export default function BookingsPage() {
              <p className="font-bold">Failed to load bookings</p>
           </div>
         ) : filteredBookings.map((booking: any, i: number) => {
-          const status = statusConfig[booking.status] || statusConfig.pending;
+          const status = statusConfig[booking.status] || statusConfig.Pending;
           return (
             <div
               key={booking._id}
@@ -77,14 +78,14 @@ export default function BookingsPage() {
                     </span>
                     <span className="text-[12px] text-text-tertiary flex items-center gap-1">
                       <span className="material-icons-round text-[12px]">schedule</span>
-                      {booking.timeSlot}
+                      {booking.startTime}
                     </span>
                     <span className="text-[13px] font-bold text-text-primary ml-auto">${booking.totalAmount}</span>
                   </div>
                 </div>
               </div>
 
-              {booking.status === "confirmed" && (
+              {booking.status === "Confirmed" && (
                 <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                   <button className="btn-ghost flex-1 text-[12px] py-2">
                     <span className="material-icons-round text-[14px]">edit</span>
@@ -102,7 +103,7 @@ export default function BookingsPage() {
                 </div>
               )}
 
-              {booking.status === "completed" && (
+              {booking.status === "Completed" && (
                 <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                   <button className="btn-ghost flex-1 text-[12px] py-2">
                     <span className="material-icons-round text-[14px]">rate_review</span>
