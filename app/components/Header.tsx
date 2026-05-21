@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import LocationPickerModal from "./LocationPickerModal";
 
 interface HeaderProps {
   title?: string;
@@ -19,6 +20,7 @@ export default function Header({
   transparent = false,
 }: HeaderProps) {
   const [locationName, setLocationName] = useState("Fetching Location...");
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   useEffect(() => {
     if (showLocation && !title) {
@@ -42,68 +44,86 @@ export default function Header({
             }
           },
           (error) => {
-            setLocationName("Location Access Denied");
+            setLocationName("Select Location");
           }
         );
       } else {
-        setLocationName("Geolocation not supported");
+        setLocationName("Select Location");
       }
     }
   }, [showLocation, title]);
 
-  return (
-    <header
-      className={`sticky top-0 z-40 px-5 py-3 flex items-center justify-between ${
-        transparent
-          ? ""
-          : "bg-surface-card/90 backdrop-blur-xl border-b border-border"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        {showBack && (
-          <Link
-            href="/"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-dim hover:bg-border-strong transition-colors"
-          >
-            <span className="material-icons-round text-[20px] text-text-primary">
-              arrow_back
-            </span>
-          </Link>
-        )}
-        {showLocation && !title && (
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1 text-text-tertiary text-[11px] font-medium uppercase tracking-widest">
-              <span className="material-icons-round text-[12px]">location_on</span>
-              Current Location
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[15px] font-bold text-text-primary truncate max-w-[200px]">
-                {locationName}
-              </span>
-              <span className="material-icons-round text-[16px] text-text-secondary shrink-0">
-                keyboard_arrow_down
-              </span>
-            </div>
-          </div>
-        )}
-        {title && (
-          <h1 className="text-lg font-bold text-text-primary">{title}</h1>
-        )}
-      </div>
+  const handleSelectLocation = (name: string, lat: string, lon: string) => {
+    setLocationName(name);
+    // Optionally close the modal automatically after selection
+    setIsLocationModalOpen(false);
+  };
 
-      <div className="flex items-center gap-2">
-        {showNotification && (
-          <Link
-            href="/notifications"
-            className="relative w-10 h-10 flex items-center justify-center rounded-full bg-surface-dim hover:bg-border-strong transition-colors"
-          >
-            <span className="material-icons-round text-[20px] text-text-primary">
-              notifications_none
-            </span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
-          </Link>
-        )}
-      </div>
-    </header>
+  return (
+    <>
+      <header
+        className={`sticky top-0 z-40 px-5 py-3 flex items-center justify-between ${
+          transparent
+            ? ""
+            : "bg-surface-card/90 backdrop-blur-xl border-b border-border"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          {showBack && (
+            <Link
+              href="/"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-dim hover:bg-border-strong transition-colors"
+            >
+              <span className="material-icons-round text-[20px] text-text-primary">
+                arrow_back
+              </span>
+            </Link>
+          )}
+          {showLocation && !title && (
+            <div 
+              className="flex flex-col cursor-pointer group"
+              onClick={() => setIsLocationModalOpen(true)}
+            >
+              <div className="flex items-center gap-1 text-text-tertiary text-[11px] font-medium uppercase tracking-widest group-hover:text-primary transition-colors">
+                <span className="material-icons-round text-[12px]">location_on</span>
+                Current Location
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[15px] font-bold text-text-primary truncate max-w-[200px]">
+                  {locationName}
+                </span>
+                <span className="material-icons-round text-[16px] text-text-secondary shrink-0 group-hover:translate-y-0.5 transition-transform">
+                  keyboard_arrow_down
+                </span>
+              </div>
+            </div>
+          )}
+          {title && (
+            <h1 className="text-lg font-bold text-text-primary">{title}</h1>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {showNotification && (
+            <Link
+              href="/notifications"
+              className="relative w-10 h-10 flex items-center justify-center rounded-full bg-surface-dim hover:bg-border-strong transition-colors"
+            >
+              <span className="material-icons-round text-[20px] text-text-primary">
+                notifications_none
+              </span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+            </Link>
+          )}
+        </div>
+      </header>
+
+      <LocationPickerModal 
+        isOpen={isLocationModalOpen} 
+        onClose={() => setIsLocationModalOpen(false)} 
+        currentLocationName={locationName}
+        onSelectLocation={handleSelectLocation}
+      />
+    </>
   );
 }
