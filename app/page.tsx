@@ -87,9 +87,8 @@ const femaleComboBanners = [
 
 /* ─── Membership Plans ─── */
 const membershipPlans = [
-  { id: "mp1", name: "Silver", price: 199, duration: "1 Month", benefits: ["10% off on all services", "Priority booking", "Free head massage"] },
-  { id: "mp2", name: "Gold", price: 499, duration: "3 Months", benefits: ["20% off on all services", "Priority booking", "Free haircut every month", "Free head massage"] },
-  { id: "mp3", name: "Platinum", price: 999, duration: "6 Months", benefits: ["30% off on all services", "VIP booking", "Free haircut every month", "Free facial monthly", "Free head massage"] },
+  { id: "gold", name: "GLIVAJI GOLD", duration: "(12 Months)", price: 299, discount: "15% off" },
+  { id: "silver", name: "GLIVAJI SILVER", duration: "(6 Months)", price: 199, discount: "15% off" },
 ];
 
 export default function HomePage() {
@@ -416,49 +415,65 @@ export default function HomePage() {
       {/* ─── Membership Plans ─── */}
       <div className="px-5 pb-8">
         <div className="border-t border-gray-100 pt-6">
-          <h3 className="text-base font-black text-text-primary mb-4">Membership Plans</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-            {membershipPlans.map((plan) => (
-              <div 
-                key={plan.id} 
-                className={`flex-shrink-0 w-[220px] p-4 rounded-2xl border-2 transition-all ${
-                  plan.name === "Gold" 
-                    ? "border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50" 
-                    : plan.name === "Platinum" 
-                      ? "border-violet-400 bg-gradient-to-br from-violet-50 to-purple-50"
-                      : "border-gray-200 bg-gradient-to-br from-gray-50 to-slate-50"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className={`text-base font-black ${
-                    plan.name === "Gold" ? "text-amber-600" : plan.name === "Platinum" ? "text-violet-600" : "text-gray-600"
-                  }`}>
-                    {plan.name}
-                  </h4>
-                  <span className="text-[11px] text-text-tertiary font-medium">{plan.duration}</span>
+          <h3 className="text-lg font-bold text-text-primary mb-4">Membership Plans</h3>
+          <div className="flex flex-col space-y-4">
+            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+              {membershipPlans.map((plan, idx) => (
+                <div key={plan.id} className={`p-4 ${idx === 0 ? "border-b border-gray-200" : ""}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="text-[15px] font-black" style={{ color: plan.name.includes("GOLD") ? "#C026D3" : "#C026D3" }}>
+                        {plan.name} <span className="text-text-primary font-bold">{plan.duration}</span>
+                      </h4>
+                    </div>
+                    <span className="text-[15px] font-bold text-teal-800">₹{plan.price}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-3">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-[#2D6A4F] text-white text-[11px] font-bold px-2 py-0.5 rounded flex items-center">
+                        {plan.discount}
+                      </span>
+                      <span className="text-[13px] text-text-secondary font-medium">On all bookings</span>
+                    </div>
+                    <Link href={`/membership/${plan.id}`} className="text-[13px] font-medium text-[#3B82F6] hover:underline flex items-center">
+                      View Details <span className="material-icons-round text-[14px] ml-0.5">keyboard_double_arrow_right</span>
+                    </Link>
+                  </div>
                 </div>
-                <div className="text-xl font-black text-text-primary mb-3">
-                  ₹{plan.price}<span className="text-xs font-medium text-text-tertiary">/{plan.duration.split(" ")[0]}mo</span>
-                </div>
-                <ul className="space-y-1.5 mb-4">
-                  {plan.benefits.map((b, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-text-secondary">
-                      <span className="material-icons-round text-green-500 text-[13px] mt-0.5">check_circle</span>
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <button className={`w-full py-2 rounded-full text-xs font-bold transition-all ${
-                  plan.name === "Gold"
-                    ? "bg-amber-500 text-white hover:bg-amber-600"
-                    : plan.name === "Platinum"
-                      ? "bg-violet-500 text-white hover:bg-violet-600"
-                      : "bg-gray-800 text-white hover:bg-gray-900"
-                }`}>
-                  Get {plan.name}
-                </button>
+              ))}
+            </div>
+
+            {/* Verified Experts Banner */}
+            <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-4 bg-white shadow-sm mt-4">
+              <div className="flex-1">
+                <h4 className="text-[15px] font-bold text-text-primary mb-1">Verified Experts</h4>
+                <p className="text-[12px] text-text-secondary leading-snug">
+                  Our experts are KYC-verified and background-checked.
+                </p>
               </div>
-            ))}
+              <div className="w-[60px] h-[60px] relative shrink-0">
+                <div className="absolute inset-0 bg-[#EEF2FF] rounded-full"></div>
+                {/* Simplified icon representation using material icons */}
+                <span className="material-icons-round text-[#3B82F6] absolute inset-0 flex items-center justify-center text-3xl">how_to_reg</span>
+              </div>
+            </div>
+            
+            {/* Dots Indicator (Decorative) */}
+            <div className="flex justify-center my-2 gap-1.5">
+              <div className="w-4 h-2 bg-gray-300 rounded-full"></div>
+              <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
+              <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
+            </div>
+
+            {/* Referral Banner */}
+            <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] p-4 flex items-center gap-4 shadow-md">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 border-2 border-white/40">
+                <span className="text-white font-black text-xl italic">B</span>
+              </div>
+              <p className="text-white text-[14px] font-medium">
+                Earn ₹ 100 for every referral
+              </p>
+            </div>
           </div>
         </div>
       </div>
