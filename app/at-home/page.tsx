@@ -75,9 +75,9 @@ export default function AtHomePage() {
         </div>
 
         <div className="absolute top-8 left-6 z-10 text-white">
-          <h1 className="text-2xl font-black leading-tight drop-shadow-md">
+          <h1 className="text-2xl font-black leading-tight drop-shadow-md animate-[pulse_2s_ease-in-out_infinite]">
             Salon At Home <br />
-            In <span className="text-4xl px-2 py-0.5 bg-white/20 rounded-xl border border-white/30 backdrop-blur-sm text-white">30</span> Minutes
+            In <span className="text-4xl px-2 py-0.5 bg-white/20 rounded-xl border border-white/30 backdrop-blur-sm text-white inline-block animate-[bounce_2s_infinite]">30</span> Minutes
           </h1>
           <button className="mt-4 bg-[#FFE87C] text-black px-4 py-1.5 rounded-md font-bold text-sm shadow-lg">
             Book Now
