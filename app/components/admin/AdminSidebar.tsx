@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAdminAuth } from "../../lib/adminAuth";
 
 const adminNav = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
+  { icon: "home", label: "Home Content", href: "/admin/home-content" },
+  { icon: "delivery_dining", label: "At Home Content", href: "/admin/at-home-content" },
+  { icon: "storefront", label: "Salons", href: "/admin/salons" },
+  { icon: "category", label: "Categories", href: "/admin/categories" },
+  { icon: "card_membership", label: "Membership", href: "/admin/membership" },
+  { icon: "featured_seasonal_and_gifts", label: "Banners & Trust", href: "/admin/banners" },
+  { icon: "settings", label: "Site Settings", href: "/admin/site-settings" },
   { icon: "event_note", label: "Appointments", href: "/admin/appointments" },
-  { icon: "people", label: "Staff", href: "/admin/staff" },
-  { icon: "account_balance_wallet", label: "Finance", href: "/admin/finance" },
-  { icon: "campaign", label: "Campaigns", href: "/admin/campaigns" },
   { icon: "group", label: "Users", href: "/admin/users" },
-  { icon: "settings", label: "Settings", href: "/admin/settings" },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { admin, logout } = useAdminAuth();
 
   return (
     <aside className="w-64 min-h-dvh bg-surface-card border-r border-border hidden lg:flex flex-col fixed left-0 top-0">
@@ -52,15 +57,23 @@ export default function AdminSidebar() {
 
       {/* User Area */}
       <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-dim cursor-pointer transition-colors">
+        <div className="flex items-center gap-3 p-2 rounded-xl">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-            M
+            {admin?.name?.charAt(0) || "A"}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-semibold text-text-primary truncate">Manager</div>
-            <div className="text-[12px] text-text-tertiary truncate">Aura Prestige</div>
+            <div className="text-[14px] font-semibold text-text-primary truncate">{admin?.name || "Admin"}</div>
+            <div className="text-[12px] text-text-tertiary truncate">{admin?.role || "super_admin"}</div>
           </div>
-          <span className="material-icons-round text-[18px] text-text-tertiary">unfold_more</span>
+          <button
+            onClick={logout}
+            className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors group"
+            title="Logout"
+          >
+            <span className="material-icons-round text-[18px] text-text-tertiary group-hover:text-red-500">
+              logout
+            </span>
+          </button>
         </div>
       </div>
     </aside>

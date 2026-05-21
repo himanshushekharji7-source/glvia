@@ -1,11 +1,35 @@
+"use client";
+
+import { useAdminAuth } from "../lib/adminAuth";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import AdminHeader from "../components/admin/AdminHeader";
+import AdminLoginPage from "../components/admin/AdminLoginPage";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { isAuthenticated, isLoading } = useAdminAuth();
+
+  // Show loading spinner while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh bg-surface flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <AdminLoginPage />;
+  }
+
+  // Authenticated — show admin dashboard
   return (
     <div className="min-h-dvh bg-surface flex flex-col lg:flex-row">
       <AdminSidebar />

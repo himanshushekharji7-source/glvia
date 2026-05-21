@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import ClientShell from "./components/ClientShell";
 import QueryProvider from "./components/QueryProvider";
+import { AdminAuthProvider } from "./lib/adminAuth";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -39,7 +40,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-dvh bg-surface">
         <QueryProvider>
-          <ClientShell>{children}</ClientShell>
+          <AdminAuthProvider>
+            <ClientShell>{children}</ClientShell>
+          </AdminAuthProvider>
         </QueryProvider>
       </body>
     </html>
