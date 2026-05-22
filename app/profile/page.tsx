@@ -10,6 +10,7 @@ const menuItems = [
   { icon: "favorite", label: "Wishlist", href: "/wishlist", badge: "" },
   { icon: "notifications", label: "Notifications", href: "/notifications", badge: "" },
   { icon: "account_balance_wallet", label: "Wallet", href: "/wallet", badge: "" },
+  { icon: "storefront", label: "Salon Owner Dashboard", href: "/salon-owner/dashboard", badge: "" },
   { icon: "card_membership", label: "Membership", href: "#", badge: "Gold" },
   { icon: "star", label: "Glow Rewards", href: "#", badge: "1,250 pts" },
   { icon: "payment", label: "Payment Methods", href: "#", badge: "" },
