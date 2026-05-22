@@ -10,6 +10,7 @@ import ConfirmDialog from "../../components/admin/ConfirmDialog";
 const fields = [
   { name: "name", label: "Salon Name", type: "text" as const, required: true },
   { name: "description", label: "Description", type: "textarea" as const },
+  { name: "images_string", label: "Image URLs (comma separated)", type: "textarea" as const, placeholder: "/uploads/media/salon1.jpg, /uploads/media/salon2.jpg" },
   { name: "address_street", label: "Street Address", type: "text" as const, required: true },
   { name: "address_city", label: "City", type: "text" as const, required: true },
   { name: "address_state", label: "State", type: "text" as const, placeholder: "e.g. DL" },
@@ -54,7 +55,7 @@ export default function SalonsPage() {
 
   const openEdit = (row: any) => {
     setEditing(row);
-    setForm({ ...row });
+    setForm({ ...row, images_string: row.images?.join(', ') || '' });
     setModalOpen(true);
   };
 
@@ -65,6 +66,12 @@ export default function SalonsPage() {
     }
     setSaving(true);
     const saveData: any = { ...form };
+    
+    if (saveData.images_string !== undefined) {
+      saveData.images = saveData.images_string.split(',').map((u: string) => u.trim()).filter(Boolean);
+      delete saveData.images_string;
+    }
+    
     delete saveData.id;
     delete saveData.created_at;
 
