@@ -65,7 +65,8 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
         facilities_string: salon.facilities?.join(', ') || '',
         tags_string: salon.tags?.join(', ') || '',
         featured: !!salon.featured,
-        is_active: !!salon.is_active
+        is_active: !!salon.is_active,
+        google_map_url: salon.google_map_url || ''
       });
     }
   }, [salon]);
@@ -196,7 +197,8 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
       images: salonForm.images || [],
       tags: tagsArray,
       featured: !!salonForm.featured,
-      is_active: !!salonForm.is_active
+      is_active: !!salonForm.is_active,
+      google_map_url: salonForm.google_map_url || null
     };
 
     const { error } = await supabase.from(TABLES.SALONS).update(updateData).eq("id", id);
@@ -301,6 +303,11 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">State</label>
               <input type="text" value={salonForm.address_state || ""} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, address_state: e.target.value }))} placeholder="e.g. DL" className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pink-500" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Google Map URL</label>
+              <input type="url" value={salonForm.google_map_url || ""} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, google_map_url: e.target.value }))} placeholder="e.g. https://maps.app.goo.gl/..." className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pink-500" />
             </div>
 
             <div>

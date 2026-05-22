@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS salons (
   contact_email TEXT,
   facilities TEXT[] DEFAULT '{}',
   timings TEXT,
+  google_map_url TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );

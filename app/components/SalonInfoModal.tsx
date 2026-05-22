@@ -113,7 +113,7 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
                   <span className="material-icons-round text-gray-400 text-[18px] mt-0.5 shrink-0">location_on</span>
                   <div>
                     <a 
-                      href={`https://maps.google.com/?q=${encodeURIComponent(`${salon.address_street || ''}, ${salon.address_city || ''}, ${salon.address_state || ''}`)}`} 
+                      href={salon.google_map_url || `https://maps.google.com/?q=${encodeURIComponent(`${salon.address_street || ''}, ${salon.address_city || ''}, ${salon.address_state || ''}`)}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="group block"
