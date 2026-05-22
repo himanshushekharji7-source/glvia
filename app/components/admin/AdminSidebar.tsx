@@ -6,6 +6,7 @@ import { useAdminAuth } from "../../lib/adminAuth";
 
 const adminNav = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
+  { icon: "perm_media", label: "Media Library", href: "/admin/media" },
   { icon: "home", label: "Home Content", href: "/admin/home-content" },
   { icon: "delivery_dining", label: "At Home Content", href: "/admin/at-home-content" },
   { icon: "storefront", label: "Salons", href: "/admin/salons" },
