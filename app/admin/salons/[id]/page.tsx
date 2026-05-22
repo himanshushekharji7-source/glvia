@@ -62,7 +62,10 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
     if (salon) {
       setSalonForm({
         ...salon,
-        facilities_string: salon.facilities?.join(', ') || ''
+        facilities_string: salon.facilities?.join(', ') || '',
+        tags_string: salon.tags?.join(', ') || '',
+        featured: !!salon.featured,
+        is_active: !!salon.is_active
       });
     }
   }, [salon]);
@@ -172,6 +175,10 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
       ? salonForm.facilities_string.split(',').map((u: string) => u.trim()).filter(Boolean)
       : [];
 
+    const tagsArray = salonForm.tags_string
+      ? salonForm.tags_string.split(',').map((u: string) => u.trim()).filter(Boolean)
+      : [];
+
     const updateData = {
       name: salonForm.name,
       description: salonForm.description || null,
@@ -186,7 +193,10 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
       total_reviews: parseInt(salonForm.total_reviews) || 0,
       facilities: facilitiesArray,
       timings: salonForm.timings || null,
-      images: salonForm.images || []
+      images: salonForm.images || [],
+      tags: tagsArray,
+      featured: !!salonForm.featured,
+      is_active: !!salonForm.is_active
     };
 
     const { error } = await supabase.from(TABLES.SALONS).update(updateData).eq("id", id);
@@ -316,6 +326,23 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Weekly Timings (e.g. 11:15 AM - 09:00 PM)</label>
               <input type="text" value={salonForm.timings || ""} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, timings: e.target.value }))} placeholder="e.g. 11:15 AM - 09:00 PM" className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pink-500" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Tags (comma separated)</label>
+              <input type="text" value={salonForm.tags_string || ""} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, tags_string: e.target.value }))} placeholder="e.g. Premium, Trending, Bridal" className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pink-500" />
+            </div>
+
+            <div className="flex gap-6 md:col-span-2 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={!!salonForm.featured} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, featured: e.target.checked }))} className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500" />
+                <span className="text-sm font-semibold text-gray-700">Featured Salon</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={!!salonForm.is_active} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, is_active: e.target.checked }))} className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500" />
+                <span className="text-sm font-semibold text-gray-700">Active (Visible on App)</span>
+              </label>
             </div>
           </div>
 

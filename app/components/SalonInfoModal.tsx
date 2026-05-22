@@ -112,11 +112,19 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
                 <div className="flex gap-3">
                   <span className="material-icons-round text-gray-400 text-[18px] mt-0.5 shrink-0">location_on</span>
                   <div>
-                    <p className="text-gray-600 text-[13px] leading-relaxed mb-2">
-                      {salon.address_street}, {salon.address_city}, {salon.address_state}
-                    </p>
-                    <a href={`https://maps.google.com/?q=${salon.address_street}, ${salon.address_city}`} target="_blank" rel="noreferrer" className="text-pink-600 text-xs font-bold underline underline-offset-2">
-                      View on maps
+                    <a 
+                      href={`https://maps.google.com/?q=${encodeURIComponent(`${salon.address_street || ''}, ${salon.address_city || ''}, ${salon.address_state || ''}`)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="group block"
+                    >
+                      <p className="text-[#c2185b] text-[13px] font-bold flex items-center gap-1 group-hover:underline">
+                        View on map
+                        <span className="material-icons-round text-[14px]">open_in_new</span>
+                      </p>
+                      <p className="text-gray-600 text-[13px] leading-relaxed mt-1">
+                        {salon.address_street}, {salon.address_city}{salon.address_state ? `, ${salon.address_state}` : ""}
+                      </p>
                     </a>
                   </div>
                 </div>
@@ -128,16 +136,6 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
                     <button onClick={() => setTimingsOpen(true)} className="text-pink-600 text-xs font-bold underline underline-offset-2">
                       See weekly timings
                     </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <span className="material-icons-round text-gray-400 text-[18px] mt-0.5 shrink-0">store</span>
-                  <div>
-                    <p className="text-gray-600 text-[13px] mb-1 font-bold">Salon Address</p>
-                    <p className="text-gray-500 text-[12px] leading-relaxed">
-                      {salon.address_street}, {salon.address_city}{salon.address_state ? `, ${salon.address_state}` : ""}
-                    </p>
                   </div>
                 </div>
               </div>
