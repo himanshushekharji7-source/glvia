@@ -72,59 +72,74 @@ export default function ServiceDetailModal({
             </button>
           </div>
 
-          <div className="mt-6">
-            <h3 className="text-lg font-bold text-text-primary mb-3">Overview</h3>
-            <ul className="space-y-2 text-text-secondary text-sm">
-              {service.overview ? (
-                service.overview.map((item: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" />
-                    {item}
-                  </li>
-                ))
-              ) : (
-                <>
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Sanitized tools.</li>
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Mess free.</li>
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Hygienic.</li>
-                  <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Experienced professionals</li>
-                </>
-              )}
-            </ul>
-          </div>
+          {/* Description Section */}
+          {service.description ? (
+            <div className="mt-6 bg-pink-50/50 rounded-2xl p-5 border border-pink-100/50">
+              <h3 className="text-base font-black text-gray-900 mb-2 flex items-center gap-2">
+                <span className="material-icons-round text-pink-500 text-[18px]">info</span>
+                Description
+              </h3>
+              <p className="text-gray-600 text-[14px] leading-relaxed whitespace-pre-line">
+                {service.description}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-text-primary mb-3">Overview</h3>
+                <ul className="space-y-2 text-text-secondary text-sm">
+                  {service.overview ? (
+                    service.overview.map((item: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" />
+                        {item}
+                      </li>
+                    ))
+                  ) : (
+                    <>
+                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Sanitized tools.</li>
+                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Mess free.</li>
+                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Hygienic.</li>
+                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Experienced professionals</li>
+                    </>
+                  )}
+                </ul>
+              </div>
 
-          <div className="mt-8">
-            <h3 className="text-lg font-bold text-text-primary mb-4">How it Works</h3>
-            <ul className="space-y-5 text-text-secondary text-sm">
-              {service.howItWorks ? (
-                service.howItWorks.map((item: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))
-              ) : (
-                <>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                    <span><strong className="text-text-primary">Consultation</strong> Professional understands customer needs and hair condition to suggest suitable options.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                    <span><strong className="text-text-primary">Set-up</strong> Sanitisation of tools and placement of cape, mirror, floor sheet.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                    <span><strong className="text-text-primary">Parting & sectioning</strong> Detangling of hair followed by dividing it into small sections.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                    <span><strong className="text-text-primary">Service</strong> Execution of the service as per desired style with high hygiene standards.</span>
-                  </li>
-                </>
-              )}
-            </ul>
-          </div>
+              <div className="mt-8">
+                <h3 className="text-lg font-bold text-text-primary mb-4">How it Works</h3>
+                <ul className="space-y-5 text-text-secondary text-sm">
+                  {service.howItWorks ? (
+                    service.howItWorks.map((item: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <>
+                      <li className="flex items-start gap-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
+                        <span><strong className="text-text-primary">Consultation</strong> Professional understands customer needs and hair condition to suggest suitable options.</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
+                        <span><strong className="text-text-primary">Set-up</strong> Sanitisation of tools and placement of cape, mirror, floor sheet.</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
+                        <span><strong className="text-text-primary">Parting & sectioning</strong> Detangling of hair followed by dividing it into small sections.</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
+                        <span><strong className="text-text-primary">Service</strong> Execution of the service as per desired style with high hygiene standards.</span>
+                      </li>
+                    </>
+                  )}
+                </ul>
+              </div>
+            </>
+          )}
         </div>
       </div>
       
