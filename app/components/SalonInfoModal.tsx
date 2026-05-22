@@ -130,6 +130,16 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
                     </button>
                   </div>
                 </div>
+
+                <div className="flex gap-3 pt-2">
+                  <span className="material-icons-round text-gray-400 text-[18px] mt-0.5 shrink-0">store</span>
+                  <div>
+                    <p className="text-gray-600 text-[13px] mb-1 font-bold">Salon Address</p>
+                    <p className="text-gray-500 text-[12px] leading-relaxed">
+                      {salon.address_street}, {salon.address_city}{salon.address_state ? `, ${salon.address_state}` : ""}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="w-full h-[1px] bg-gray-100" />
