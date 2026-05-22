@@ -32,6 +32,9 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
 
   const bgImage = salon.images && salon.images.length > 0 ? salon.images[0] : "";
   const facilities = salon.facilities || [];
+  const addressStreet = salon.address_street || salon.address?.street || "";
+  const addressCity = salon.address_city || salon.address?.city || "";
+  const addressState = salon.address_state || salon.address?.state || "";
 
   return (
     <>
@@ -62,7 +65,7 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
           <div className="absolute bottom-4 left-4 right-4 z-10">
             <h1 className="text-xl font-bold text-white mb-1.5 leading-tight shadow-sm">{salon.name}</h1>
             <p className="text-xs text-gray-200 line-clamp-1 mb-2">
-              {salon.address_street}, {salon.address_city}{salon.address_state ? `, ${salon.address_state}` : ""}
+              {addressStreet}, {addressCity}{addressState ? `, ${addressState}` : ""}
             </p>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
@@ -113,7 +116,7 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
                   <span className="material-icons-round text-gray-400 text-[18px] mt-0.5 shrink-0">location_on</span>
                   <div>
                     <a 
-                      href={salon.google_map_url || `https://maps.google.com/?q=${encodeURIComponent(`${salon.address_street || ''}, ${salon.address_city || ''}, ${salon.address_state || ''}`)}`} 
+                      href={salon.google_map_url || `https://maps.google.com/?q=${encodeURIComponent(`${addressStreet || ''}, ${addressCity || ''}, ${addressState || ''}`)}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="group block"
@@ -123,7 +126,7 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
                         <span className="material-icons-round text-[14px]">open_in_new</span>
                       </p>
                       <p className="text-gray-600 text-[13px] leading-relaxed mt-1">
-                        {salon.address_street}, {salon.address_city}{salon.address_state ? `, ${salon.address_state}` : ""}
+                        {addressStreet}, {addressCity}{addressState ? `, ${addressState}` : ""}
                       </p>
                     </a>
                   </div>
