@@ -106,36 +106,43 @@ export default function ServiceDetailModal({
       />
       
       {/* Bottom Sheet Modal */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl z-[101] max-h-[90vh] overflow-hidden flex flex-col animate-slideUp">
-        {/* Floating Close button */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-[32px] z-[101] max-h-[90vh] overflow-hidden flex flex-col animate-slideUp">
+        
+        {/* Floating Close button overlapping the top border */}
         <button 
           onClick={onClose}
-          className="absolute -top-12 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg z-[102]"
+          className="absolute -top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-200/80 z-[102] active:scale-90 transition-transform cursor-pointer"
         >
-          <span className="material-icons-round text-black text-xl">close</span>
+          <svg className="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
 
         {/* Top Drag Handle */}
-        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto my-3 shrink-0" />
+        <div className="w-14 h-1 bg-black rounded-full mx-auto mt-4 mb-2 shrink-0" />
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto px-6 pb-28 pt-2 flex-1 no-scrollbar">
+          
           {/* Service Header Card */}
           <div className="relative border border-pink-200 rounded-2xl p-5 mb-6 overflow-hidden bg-white">
-            {/* Decorative background circle */}
-            <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-24 h-24 bg-pink-100/30 rounded-full pointer-events-none" />
-            <div className="absolute right-4 bottom-2 w-12 h-12 bg-pink-50/20 rounded-full pointer-events-none" />
+            {/* Decorative background circle on the right side */}
+            <div className="absolute -right-6 -top-6 w-28 h-28 bg-pink-100/30 rounded-full pointer-events-none" />
             
             <h2 className="text-xl font-bold text-gray-900 leading-tight mb-4 relative z-10 pr-12">
               {service.name}
             </h2>
             
             <div className="flex items-center gap-3 relative z-10">
-              <div className="bg-pink-50 text-pink-500 text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1">
-                <span className="material-icons-round text-xs">access_time</span>
+              <div className="bg-pink-50 text-pink-500 text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1">
+                {/* SVG Clock Icon */}
+                <svg className="w-3.5 h-3.5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+                </svg>
                 {service.duration ? `${service.duration} min.` : "15 min."}
               </div>
-              <div className="text-primary font-extrabold text-lg">
+              <div className="text-primary font-black text-lg">
                 ₹{service.price}
               </div>
             </div>
@@ -144,8 +151,9 @@ export default function ServiceDetailModal({
           {/* Products Used Section */}
           {products.length > 0 && (
             <div className="mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xs font-extrabold tracking-wider text-gray-900 uppercase whitespace-nowrap">
+              {/* Header with line on the right */}
+              <div className="flex items-center gap-3 mb-4 mt-6">
+                <span className="text-xs font-black tracking-wider text-gray-900 uppercase shrink-0">
                   PRODUCTS USED
                 </span>
                 <div className="h-[1px] bg-gray-200 flex-1" />
@@ -155,11 +163,14 @@ export default function ServiceDetailModal({
                 {products.map((product, idx) => (
                   <div 
                     key={idx} 
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-pink-100 rounded-lg text-sm font-semibold text-gray-700 shadow-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-pink-200 rounded-lg text-sm font-semibold text-gray-700 shadow-sm"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
-                    <span>{product}</span>
-                    <span className="material-icons-round text-pink-500 text-[14px] ml-1">info</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0" />
+                    <span className="text-xs font-bold text-gray-800">{product}</span>
+                    {/* SVG Info Icon */}
+                    <svg className="w-4 h-4 text-pink-500 shrink-0 select-none ml-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
                   </div>
                 ))}
               </div>
@@ -167,27 +178,27 @@ export default function ServiceDetailModal({
           )}
 
           {/* About Service Section */}
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-xs font-extrabold tracking-wider text-gray-900 uppercase whitespace-nowrap">
+          <div className="mb-6">
+            {/* Header with line on the right */}
+            <div className="flex items-center gap-3 mb-4 mt-6">
+              <span className="text-xs font-black tracking-wider text-gray-900 uppercase shrink-0">
                 ABOUT SERVICE
               </span>
               <div className="h-[1px] bg-gray-200 flex-1" />
             </div>
 
-            <div className="bg-[#f9fafb] border border-gray-100 rounded-2xl p-5 space-y-2">
+            <div className="bg-[#f9fafb] rounded-2xl p-5 space-y-2">
               {descriptionLines.length > 0 ? (
                 descriptionLines.map((line: string, idx: number) => (
-                  <p key={idx} className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">
+                  <p key={idx} className="text-gray-800 text-[14px] leading-relaxed font-semibold">
                     {line}
                   </p>
                 ))
               ) : (
                 <>
-                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Sanitized tools.</p>
-                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Mess free.</p>
-                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Hygienic.</p>
-                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Experienced professionals.</p>
+                  <p className="text-gray-800 text-[14px] leading-relaxed font-semibold">Deep Nourishment & Hydration.</p>
+                  <p className="text-gray-800 text-[14px] leading-relaxed font-semibold">Hygienic.</p>
+                  <p className="text-gray-800 text-[14px] leading-relaxed font-semibold">Trained Professionals.</p>
                 </>
               )}
             </div>
@@ -195,20 +206,16 @@ export default function ServiceDetailModal({
         </div>
 
         {/* Sticky Action Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 flex gap-3 z-10">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white flex gap-3 z-10">
           <button
             onClick={onAdd}
-            className={`flex-1 py-3 text-[14px] font-bold rounded-lg transition-colors border ${
-              isAdded 
-                ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100" 
-                : "bg-black border-black text-white hover:bg-neutral-900"
-            }`}
+            className="flex-1 py-3 bg-black hover:bg-neutral-900 text-[14px] font-bold text-white rounded-lg border border-black transition-all active:scale-95 cursor-pointer"
           >
             {isAdded ? "Remove" : "Add To Cart"}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-black hover:bg-neutral-900 text-[14px] font-bold text-white rounded-lg border border-black transition-colors"
+            className="flex-1 py-3 bg-black hover:bg-neutral-900 text-[14px] font-bold text-white rounded-lg border border-black transition-all active:scale-95 cursor-pointer"
           >
             Done
           </button>
