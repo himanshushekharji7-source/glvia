@@ -32,6 +32,71 @@ export default function ServiceDetailModal({
 
   if (!isOpen || !service) return null;
 
+  // Extract description lines for formatting
+  const descriptionLines = service.description
+    ? service.description
+        .split("\n")
+        .map((l: string) => {
+          let clean = l.trim();
+          // Remove leading bullet/dash points if any
+          if (clean.startsWith("•") || clean.startsWith("*") || clean.startsWith("-")) {
+            clean = clean.substring(1).trim();
+          }
+          return clean;
+        })
+        .filter((l: string) => l.length > 0)
+    : [];
+
+  // Parse products used
+  let products: string[] = [];
+  if (service.products_used) {
+    if (Array.isArray(service.products_used)) {
+      products = service.products_used;
+    } else if (typeof service.products_used === "string") {
+      products = service.products_used
+        .split(",")
+        .map((p: string) => p.trim())
+        .filter((p: string) => p.length > 0);
+    }
+  }
+
+  // Fallback products used based on service name/category for premium visual experience
+  if (products.length === 0) {
+    const nameLower = (service.name || "").toLowerCase();
+    const catLower = (service.category || "").toLowerCase();
+    
+    if (
+      nameLower.includes("spa") ||
+      nameLower.includes("treatment") ||
+      catLower.includes("spa") ||
+      catLower.includes("treatment")
+    ) {
+      products = ["Shampoo", "Hair spa cream"];
+    } else if (nameLower.includes("color") || catLower.includes("color")) {
+      products = ["Hair Color Cream", "Developer", "Color Conditioner"];
+    } else if (
+      nameLower.includes("facial") ||
+      nameLower.includes("cleanup") ||
+      catLower.includes("skin") ||
+      nameLower.includes("detan")
+    ) {
+      products = ["Cleansing Gel", "Scrub", "Face Mask"];
+    } else if (
+      nameLower.includes("manicure") ||
+      nameLower.includes("pedicure") ||
+      catLower.includes("nail") ||
+      catLower.includes("hygiene")
+    ) {
+      products = ["Nail Cleanser", "Moisturizer", "Cuticle Oil"];
+    } else if (
+      nameLower.includes("shave") ||
+      nameLower.includes("beard") ||
+      catLower.includes("beard")
+    ) {
+      products = ["Shaving Cream", "Aftershave Lotion", "Beard Oil"];
+    }
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -41,119 +106,114 @@ export default function ServiceDetailModal({
       />
       
       {/* Bottom Sheet Modal */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl z-[101] max-h-[90vh] overflow-y-auto animate-slideUp">
-        {/* Close button outside the white box conceptually, but practically floating top right of the modal or screen */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl z-[101] max-h-[90vh] overflow-hidden flex flex-col animate-slideUp">
+        {/* Floating Close button */}
         <button 
           onClick={onClose}
-          className="absolute -top-12 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg"
+          className="absolute -top-12 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg z-[102]"
         >
           <span className="material-icons-round text-black text-xl">close</span>
         </button>
 
-        <div className="p-6 relative pb-24">
-          <div className="flex justify-between items-start gap-4 mb-2">
-            <div>
-              <h2 className="text-xl font-bold text-text-primary leading-tight">{service.name}</h2>
-              <div className="flex items-center gap-1 mt-1 text-sm">
-                <span className="material-icons-round text-primary text-[16px]">star</span>
-                <span className="text-primary font-semibold">{service.rating || "4.9"}</span>
-                <span className="text-text-secondary">({service.reviews || "14"} reviews)</span>
-              </div>
-              <div className="text-2xl font-bold text-success mt-2">₹{service.price}</div>
-            </div>
+        {/* Top Drag Handle */}
+        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto my-3 shrink-0" />
+
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto px-6 pb-28 pt-2 flex-1 no-scrollbar">
+          {/* Service Header Card */}
+          <div className="relative border border-pink-200 rounded-2xl p-5 mb-6 overflow-hidden bg-white">
+            {/* Decorative background circle */}
+            <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-24 h-24 bg-pink-100/30 rounded-full pointer-events-none" />
+            <div className="absolute right-4 bottom-2 w-12 h-12 bg-pink-50/20 rounded-full pointer-events-none" />
             
-            <button 
-              onClick={onAdd}
-              className={`px-5 py-2 rounded-lg font-bold text-sm shrink-0 transition-colors ${
-                isAdded ? "bg-error text-white" : "bg-black text-white"
-              }`}
-            >
-              {isAdded ? "Remove" : "Add"}
-            </button>
+            <h2 className="text-xl font-bold text-gray-900 leading-tight mb-4 relative z-10 pr-12">
+              {service.name}
+            </h2>
+            
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="bg-pink-50 text-pink-500 text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1">
+                <span className="material-icons-round text-xs">access_time</span>
+                {service.duration ? `${service.duration} min.` : "15 min."}
+              </div>
+              <div className="text-primary font-extrabold text-lg">
+                ₹{service.price}
+              </div>
+            </div>
           </div>
 
-          {/* Description Section */}
-          {service.description ? (
-            <div className="mt-6 bg-pink-50/50 rounded-2xl p-5 border border-pink-100/50">
-              <h3 className="text-base font-black text-gray-900 mb-2 flex items-center gap-2">
-                <span className="material-icons-round text-pink-500 text-[18px]">info</span>
-                Description
-              </h3>
-              <p className="text-gray-600 text-[14px] leading-relaxed whitespace-pre-line">
-                {service.description}
-              </p>
+          {/* Products Used Section */}
+          {products.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-extrabold tracking-wider text-gray-900 uppercase whitespace-nowrap">
+                  PRODUCTS USED
+                </span>
+                <div className="h-[1px] bg-gray-200 flex-1" />
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {products.map((product, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-pink-100 rounded-lg text-sm font-semibold text-gray-700 shadow-sm"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+                    <span>{product}</span>
+                    <span className="material-icons-round text-pink-500 text-[14px] ml-1">info</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : (
-            <>
-              <div className="mt-6">
-                <h3 className="text-lg font-bold text-text-primary mb-3">Overview</h3>
-                <ul className="space-y-2 text-text-secondary text-sm">
-                  {service.overview ? (
-                    service.overview.map((item: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" />
-                        {item}
-                      </li>
-                    ))
-                  ) : (
-                    <>
-                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Sanitized tools.</li>
-                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Mess free.</li>
-                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Hygienic.</li>
-                      <li className="flex items-start gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-secondary mt-1.5 shrink-0" /> Experienced professionals</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-
-              <div className="mt-8">
-                <h3 className="text-lg font-bold text-text-primary mb-4">How it Works</h3>
-                <ul className="space-y-5 text-text-secondary text-sm">
-                  {service.howItWorks ? (
-                    service.howItWorks.map((item: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))
-                  ) : (
-                    <>
-                      <li className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                        <span><strong className="text-text-primary">Consultation</strong> Professional understands customer needs and hair condition to suggest suitable options.</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                        <span><strong className="text-text-primary">Set-up</strong> Sanitisation of tools and placement of cape, mirror, floor sheet.</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                        <span><strong className="text-text-primary">Parting & sectioning</strong> Detangling of hair followed by dividing it into small sections.</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-text-tertiary mt-2 shrink-0" />
-                        <span><strong className="text-text-primary">Service</strong> Execution of the service as per desired style with high hygiene standards.</span>
-                      </li>
-                    </>
-                  )}
-                </ul>
-              </div>
-            </>
           )}
+
+          {/* About Service Section */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-xs font-extrabold tracking-wider text-gray-900 uppercase whitespace-nowrap">
+                ABOUT SERVICE
+              </span>
+              <div className="h-[1px] bg-gray-200 flex-1" />
+            </div>
+
+            <div className="bg-[#f9fafb] border border-gray-100 rounded-2xl p-5 space-y-2">
+              {descriptionLines.length > 0 ? (
+                descriptionLines.map((line: string, idx: number) => (
+                  <p key={idx} className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">
+                    {line}
+                  </p>
+                ))
+              ) : (
+                <>
+                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Sanitized tools.</p>
+                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Mess free.</p>
+                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Hygienic.</p>
+                  <p className="text-[#1f2937] text-[14px] leading-relaxed font-semibold">Experienced professionals.</p>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Floating Next Button */}
-      {isAdded && (
-        <div className="fixed bottom-6 right-4 z-[102] animate-bounceIn">
-          <button 
-            onClick={onNext}
-            className="w-16 h-16 bg-black text-white rounded-full flex flex-col items-center justify-center shadow-xl hover:bg-gray-900 transition-colors"
+
+        {/* Sticky Action Footer */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 flex gap-3 z-10">
+          <button
+            onClick={onAdd}
+            className={`flex-1 py-3 text-[14px] font-bold rounded-lg transition-colors border ${
+              isAdded 
+                ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100" 
+                : "bg-black border-black text-white hover:bg-neutral-900"
+            }`}
           >
-            <span className="text-sm font-bold">Next</span>
+            {isAdded ? "Remove" : "Add To Cart"}
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 bg-black hover:bg-neutral-900 text-[14px] font-bold text-white rounded-lg border border-black transition-colors"
+          >
+            Done
           </button>
         </div>
-      )}
+      </div>
     </>
   );
 }

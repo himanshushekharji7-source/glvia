@@ -12,6 +12,7 @@ type TabType = "services" | "categories";
 const serviceFields = [
   { name: "name", label: "Service Name", type: "text" as const, required: true },
   { name: "description", label: "Description", type: "textarea" as const },
+  { name: "products_used", label: "Products Used (comma-separated)", type: "text" as const, placeholder: "e.g. Shampoo, Hair spa cream" },
   { name: "duration", label: "Duration (min)", type: "text" as const, placeholder: "e.g. 30" },
   { name: "price", label: "Price (₹)", type: "number" as const, required: true },
   { name: "old_price", label: "Old Price (₹)", type: "number" as const },
