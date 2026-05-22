@@ -268,8 +268,28 @@ export const useUser = () => {
   return useQuery({
     queryKey: ['user'],
     queryFn: async () => {
-      await delay(500);
-      return dummyUser;
+      await delay(200);
+      if (typeof window === "undefined") return null;
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+      
+      const storedProfile = localStorage.getItem("glvia_user_profile");
+      if (storedProfile) {
+        try {
+          return JSON.parse(storedProfile);
+        } catch {
+          // fallback
+        }
+      }
+      return {
+        id: token,
+        firstName: "User",
+        lastName: "",
+        email: "user@glvia.com",
+        phoneNumber: "",
+        role: "customer",
+        walletBalance: 250
+      };
     },
     retry: false,
   });

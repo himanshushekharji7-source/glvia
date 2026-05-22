@@ -1,50 +1,163 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useLogin, useRegister } from "../lib/hooks";
+import { auth } from "../lib/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [fullName, setFullName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  const loginMutation = useLogin();
-  const registerMutation = useRegister();
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Initialize reCAPTCHA verifier on component mount
+    if (typeof window !== "undefined" && !recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          {
+            size: "invisible",
+            callback: () => {
+              // reCAPTCHA solved, will trigger signIn
+            },
+            "expired-callback": () => {
+              setErrorMessage("reCAPTCHA expired. Please try again.");
+            },
+          }
+        );
+      } catch (err: any) {
+        console.error("Error initializing recaptcha:", err);
+      }
+    }
+
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+          recaptchaVerifierRef.current = null;
+        } catch (e) {
+          // Ignore clean-up error if container not found
+        }
+      }
+    };
+  }, []);
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+    setIsLoading(true);
+
+    if (!phoneNumber.trim()) {
+      setErrorMessage("Please enter a valid phone number.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Format phone number with country code (+91 for India by default if not provided)
+    let formattedPhone = phoneNumber.trim();
+    if (!formattedPhone.startsWith("+")) {
+      if (formattedPhone.length === 10) {
+        formattedPhone = "+91" + formattedPhone;
+      } else {
+        setErrorMessage("Please enter 10-digit mobile number or specify country code (e.g. +91...)");
+        setIsLoading(false);
+        return;
+      }
+    }
 
     try {
-      if (isLogin) {
-        await loginMutation.mutateAsync({ email, password });
-        router.push("/");
-      } else {
-        const [firstName, ...lastNames] = fullName.split(" ");
-        await registerMutation.mutateAsync({
-          firstName: firstName || "",
-          lastName: lastNames.join(" ") || " ",
-          email,
-          password,
-        });
-        router.push("/verify");
+      if (!recaptchaVerifierRef.current) {
+        throw new Error("Recaptcha verifier is not initialized.");
       }
+
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        recaptchaVerifierRef.current
+      );
+
+      setConfirmationResult(confirmation);
+      setStep("otp");
     } catch (error: any) {
-      setErrorMessage(error.response?.data?.message || "Something went wrong. Please try again.");
+      console.error("Error sending SMS:", error);
+      setErrorMessage(error.message || "Failed to send OTP. Please check the number and try again.");
+      
+      // Reset reCAPTCHA on failure
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+          recaptchaVerifierRef.current = new RecaptchaVerifier(
+            auth,
+            "recaptcha-container",
+            { size: "invisible" }
+          );
+        } catch (e) {}
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const isLoading = loginMutation.isPending || registerMutation.isPending;
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setIsLoading(true);
+
+    if (!otp.trim() || otp.length < 6) {
+      setErrorMessage("Please enter a valid 6-digit OTP code.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!confirmationResult) {
+      setErrorMessage("No active login request found. Please request OTP again.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await confirmationResult.confirm(otp.trim());
+      const user = result.user;
+
+      // Save user login session token
+      localStorage.setItem("token", user.uid);
+      
+      // Save metadata locally to mimic user profiles
+      const userProfile = {
+        id: user.uid,
+        firstName: isSignUp ? fullName.split(" ")[0] || "User" : "User",
+        lastName: isSignUp ? fullName.split(" ").slice(1).join(" ") || "" : "",
+        email: user.email || `${user.phoneNumber}@glvia.com`,
+        phoneNumber: user.phoneNumber || phoneNumber,
+        role: "customer",
+        walletBalance: 250,
+      };
+      localStorage.setItem("glvia_user_profile", JSON.stringify(userProfile));
+
+      // Redirect to home/dashboard
+      router.push("/");
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error);
+      setErrorMessage("Invalid OTP code. Please enter the correct code.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-dvh bg-surface-card flex flex-col">
-      {/* Top Gradient */}
+      {/* Top Gradient Header */}
       <div
         className="relative h-[280px] flex flex-col items-center justify-end pb-8"
         style={{ background: "var(--gradient-primary)" }}
@@ -65,7 +178,7 @@ export default function LoginPage() {
             glvia
           </h1>
           <p className="text-white/70 text-sm mt-1.5">
-            {isLogin ? "Welcome back to beauty." : "Start your beauty journey."}
+            {isSignUp ? "Create account with your Mobile" : "Login with Mobile OTP"}
           </p>
         </div>
 
@@ -77,134 +190,145 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="flex-1 px-6 pt-2 pb-8 animate-fadeInUp" style={{ animationDelay: "150ms" }}>
+      {/* Hidden container required by Firebase reCAPTCHA */}
+      <div id="recaptcha-container"></div>
+
+      {/* Form Content */}
+      <div className="flex-1 px-6 pt-2 pb-8 animate-fadeInUp" style={{ animationDelay: "150ms" }}>
         {/* Tab Switcher */}
-        <div className="tab-bar mb-6">
-          <button
-            type="button"
-            onClick={() => { setIsLogin(true); setErrorMessage(""); }}
-            className={`tab-item ${isLogin ? "active" : ""}`}
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsLogin(false); setErrorMessage(""); }}
-            className={`tab-item ${!isLogin ? "active" : ""}`}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-error/10 text-error text-xs font-semibold rounded-lg">
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Input Fields */}
-        <div className="space-y-3.5">
-          {!isLogin && (
-            <div>
-              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 block">
-                Full Name
-              </label>
-              <input
-                type="text"
-                placeholder="Enter your name"
-                className="input"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required={!isLogin}
-              />
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 block">
-              Email Address
-            </label>
-            <input
-              type="email"
-              placeholder="hello@example.com"
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 block">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                className="input pr-12"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors"
-              >
-                <span className="material-icons-round text-[20px]">
-                  {showPassword ? "visibility_off" : "visibility"}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {isLogin && (
-          <div className="flex justify-end mt-2.5">
-            <button type="button" className="text-xs font-semibold text-primary hover:underline">
-              Forgot Password?
+        {step === "phone" && (
+          <div className="tab-bar mb-6">
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(false); setErrorMessage(""); }}
+              className={`tab-item ${!isSignUp ? "active" : ""}`}
+            >
+              Log In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(true); setErrorMessage(""); }}
+              className={`tab-item ${isSignUp ? "active" : ""}`}
+            >
+              Sign Up
             </button>
           </div>
         )}
 
-        {/* CTA */}
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          className="btn-primary w-full mt-6 py-4 text-base disabled:opacity-70 flex items-center justify-center"
-        >
-          {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            isLogin ? "Log In" : "Create Account"
-          )}
-        </button>
+        {errorMessage && (
+          <div className="mb-4 p-3.5 bg-error/10 text-error text-xs font-semibold rounded-2xl">
+            {errorMessage}
+          </div>
+        )}
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px bg-border-strong" />
-          <span className="text-xs text-text-tertiary font-medium">or continue with</span>
-          <div className="flex-1 h-px bg-border-strong" />
-        </div>
+        {step === "phone" ? (
+          <form onSubmit={handleSendOtp} className="space-y-4">
+            {isSignUp && (
+              <div>
+                <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 block">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter your full name"
+                  className="input"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required={isSignUp}
+                />
+              </div>
+            )}
 
-        {/* Social Buttons */}
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1 py-3">
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Google
-          </button>
-          <button className="btn-secondary flex-1 py-3">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-            </svg>
-            Apple
-          </button>
-        </div>
+            <div>
+              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 block">
+                Mobile Number
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-secondary font-semibold">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  placeholder="9876543210"
+                  className="input pl-12"
+                  value={phoneNumber.startsWith("+91") ? phoneNumber.slice(3) : phoneNumber}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setPhoneNumber(val);
+                  }}
+                  maxLength={10}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-primary w-full mt-6 py-4 text-base disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Sending OTP...</span>
+                </>
+              ) : (
+                <span>Send Verification OTP</span>
+              )}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 block">
+                Enter 6-Digit OTP
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="123456"
+                className="input text-center tracking-[0.5em] font-mono text-lg font-bold"
+                value={otp}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  setOtp(val);
+                }}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-primary w-full mt-6 py-4 text-base disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Verifying OTP...</span>
+                </>
+              ) : (
+                <span>Verify & Sign In</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep("phone");
+                setOtp("");
+                setErrorMessage("");
+              }}
+              className="w-full text-xs text-text-secondary hover:text-primary font-semibold transition-colors text-center mt-3 block"
+            >
+              Change Mobile Number
+            </button>
+          </form>
+        )}
 
         {/* Footer */}
         <p className="text-center text-xs text-text-tertiary mt-8">
@@ -212,7 +336,8 @@ export default function LoginPage() {
           <span className="text-primary font-medium">Terms of Service</span> and{" "}
           <span className="text-primary font-medium">Privacy Policy</span>
         </p>
-      </form>
+      </div>
     </div>
   );
 }
+
