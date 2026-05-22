@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-// Define local directory path for storing uploads
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "media");
+// Define local directory path for storing uploads (outside the repo to prevent git from wiping it)
+const UPLOAD_DIR = process.env.PERSISTENT_STORAGE_DIR || path.join(process.cwd(), "..", "glvia_persistent_uploads");
 
 // Helper to determine media type from filename extension
 function getMediaType(filename: string): "image" | "video" | "other" {
