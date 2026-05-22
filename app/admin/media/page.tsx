@@ -151,8 +151,7 @@ export default function MediaLibraryPage() {
 
   // Helper: Copy url to clipboard
   const handleCopyUrl = (url: string) => {
-    const absoluteUrl = `${window.location.origin}${url}`;
-    navigator.clipboard.writeText(absoluteUrl)
+    navigator.clipboard.writeText(url)
       .then(() => showToast("URL copied to clipboard!"))
       .catch(() => showToast("Failed to copy URL"));
   };

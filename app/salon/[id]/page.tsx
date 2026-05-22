@@ -220,11 +220,9 @@ export default function SalonDetailPage() {
                 <div className={`w-[68px] h-[68px] rounded-2xl overflow-hidden border-2 transition-all ${
                   isActive ? "border-primary shadow-[0_0_0_2px_rgba(236,72,153,0.2)]" : "border-transparent"
                 }`}>
-                  <Image
+                  <img
                     src={cat.image}
                     alt={cat.name}
-                    width={68}
-                    height={68}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -287,11 +285,9 @@ export default function SalonDetailPage() {
                       {/* Right: Image */}
                       {svc.image && (
                         <div className="w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
-                          <Image
+                          <img
                             src={svc.image}
                             alt={svc.name}
-                            width={90}
-                            height={90}
                             className="w-full h-full object-cover"
                           />
                         </div>
