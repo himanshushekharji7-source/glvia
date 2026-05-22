@@ -20,6 +20,8 @@ const fields = [
   { name: "distance", label: "Distance", type: "text" as const, placeholder: "e.g. 6.94 km" },
   { name: "rating", label: "Rating", type: "number" as const, placeholder: "0-5" },
   { name: "total_reviews", label: "Total Reviews", type: "number" as const },
+  { name: "facilities_string", label: "Facilities (comma separated)", type: "text" as const, placeholder: "e.g. Waiting Chair, Washed Towel" },
+  { name: "timings", label: "Weekly Timings", type: "text" as const, placeholder: "e.g. 11:15 AM - 09:00 PM" },
 ];
 
 export default function SalonsPage() {
@@ -55,7 +57,11 @@ export default function SalonsPage() {
 
   const openEdit = (row: any) => {
     setEditing(row);
-    setForm({ ...row, images_string: row.images?.join(', ') || '' });
+    setForm({ 
+      ...row, 
+      images_string: row.images?.join(', ') || '',
+      facilities_string: row.facilities?.join(', ') || ''
+    });
     setModalOpen(true);
   };
 
@@ -70,6 +76,11 @@ export default function SalonsPage() {
     if (saveData.images_string !== undefined) {
       saveData.images = saveData.images_string.split(',').map((u: string) => u.trim()).filter(Boolean);
       delete saveData.images_string;
+    }
+    
+    if (saveData.facilities_string !== undefined) {
+      saveData.facilities = saveData.facilities_string.split(',').map((u: string) => u.trim()).filter(Boolean);
+      delete saveData.facilities_string;
     }
     
     delete saveData.id;

@@ -146,7 +146,19 @@ CREATE TABLE IF NOT EXISTS salons (
   featured BOOLEAN DEFAULT false,
   contact_phone TEXT,
   contact_email TEXT,
+  facilities TEXT[] DEFAULT '{}',
+  timings TEXT,
   is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 11b. Reviews
+CREATE TABLE IF NOT EXISTS reviews (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  salon_id UUID NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  rating NUMERIC NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

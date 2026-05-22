@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useSalon } from "../../lib/hooks";
 import ServiceDetailModal from "../../components/ServiceDetailModal";
+import SalonInfoModal from "../../components/SalonInfoModal";
 
 export default function SalonDetailPage() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export default function SalonDetailPage() {
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedService, setSelectedService] = useState<any>(null);
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
 
   // Get services and categories based on gender
   const services = useMemo(() => {
@@ -145,7 +147,10 @@ export default function SalonDetailPage() {
           Service Starting from <span className="text-primary font-bold">₹{startingPrice}</span>
         </p>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-300 bg-white text-sm font-medium text-text-primary">
+          <button 
+            onClick={() => setInfoModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-300 bg-white text-sm font-medium text-text-primary active:bg-gray-50 transition-colors"
+          >
             <span className="material-icons-round text-[16px]">info</span>
             More Info
           </button>
@@ -345,6 +350,12 @@ export default function SalonDetailPage() {
         isAdded={selectedService ? isServiceAdded(selectedService._id) : false}
         onAdd={() => selectedService && handleServiceToggle(selectedService)}
         onNext={handleContinue}
+      />
+
+      <SalonInfoModal 
+        isOpen={infoModalOpen} 
+        onClose={() => setInfoModalOpen(false)} 
+        salon={salon} 
       />
     </div>
   );
