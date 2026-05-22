@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -10,6 +10,26 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase only on client side or once
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-export const auth = getAuth(app);
+// Check if credentials are valid and not default placeholders
+const isConfigValid = 
+  !!firebaseConfig.apiKey && 
+  firebaseConfig.apiKey !== "your_firebase_api_key" && 
+  !firebaseConfig.apiKey.startsWith("your_");
+
+let authInstance: Auth | null = null;
+
+if (isConfigValid) {
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    authInstance = getAuth(app);
+  } catch (error) {
+    console.error("Failed to initialize Firebase Auth:", error);
+  }
+} else {
+  if (typeof window !== "undefined") {
+    console.warn("Firebase Auth config is missing or invalid. OTP login features will not work.");
+  }
+}
+
+export const auth = authInstance as Auth;
+
