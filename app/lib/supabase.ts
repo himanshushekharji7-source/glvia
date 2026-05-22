@@ -48,4 +48,7 @@ export const TABLES = {
   MEMBERSHIP_PLANS: 'membership_plans',
   TRUST_BANNERS: 'trust_banners',
   SITE_SETTINGS: 'site_settings',
+  BOOKINGS: 'bookings',
+  STAFF: 'staff',
 } as const;
+

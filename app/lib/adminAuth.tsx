@@ -8,6 +8,7 @@ interface AdminUser {
   email: string;
   name: string;
   role: string;
+  salon_id?: string | null;
 }
 
 interface AdminAuthContextType {
@@ -16,6 +17,8 @@ interface AdminAuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
+  isSalonOwner: boolean;
+  isAdmin: boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType>({
@@ -24,6 +27,8 @@ const AdminAuthContext = createContext<AdminAuthContextType>({
   login: async () => ({ success: false }),
   logout: () => {},
   isAuthenticated: false,
+  isSalonOwner: false,
+  isAdmin: false,
 });
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
@@ -55,10 +60,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Email and password are required" };
       }
 
-      // Query Supabase to verify credentials using pgcrypto
+      // Query admin_users, now including salon_id
       const { data, error } = await supabase
         .from("admin_users")
-        .select("id, email, name, role, password_hash")
+        .select("id, email, name, role, salon_id, password_hash")
         .eq("email", email.toLowerCase().trim())
         .single();
 
@@ -82,6 +87,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         name: data.name,
         role: data.role,
+        salon_id: data.salon_id ?? null,
       };
 
       setAdmin(adminUser);
@@ -98,6 +104,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem("glvia_admin");
   };
 
+  const isSalonOwner = admin?.role === "salon_owner";
+  const isAdmin = admin?.role === "admin" || admin?.role === "super_admin";
+
   return (
     <AdminAuthContext.Provider
       value={{
@@ -106,6 +115,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         isAuthenticated: !!admin,
+        isSalonOwner,
+        isAdmin,
       }}
     >
       {children}

@@ -342,3 +342,108 @@ CREATE POLICY "Admin full access" ON membership_plans FOR ALL USING (true) WITH 
 DROP POLICY IF EXISTS "Admin full access" ON trust_banners;
 CREATE POLICY "Admin full access" ON trust_banners FOR ALL USING (true) WITH CHECK (true);
 
+-- ═══════════════════════════════════════════════════════════════
+-- SALON OWNER DASHBOARD — Additional Tables
+-- ═══════════════════════════════════════════════════════════════
+
+-- 16. Extend admin_users: link salon_owner to a specific salon
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS salon_id UUID REFERENCES salons(id) ON DELETE SET NULL;
+
+-- 17. Bookings Table — real appointment/booking tracking
+CREATE TABLE IF NOT EXISTS bookings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  salon_id UUID NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT,
+  customer_email TEXT,
+  services JSONB DEFAULT '[]'::jsonb,  -- [{id, name, price, duration}]
+  total_amount NUMERIC NOT NULL,
+  date TEXT NOT NULL,            -- Format: YYYY-MM-DD
+  time_slot TEXT NOT NULL,       -- e.g., "10:00 AM"
+  payment_method TEXT DEFAULT 'Pay at Salon',
+  status TEXT DEFAULT 'confirmed' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 18. Staff Table — salon employee management
+CREATE TABLE IF NOT EXISTS staff (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  salon_id UUID NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'Stylist',
+  is_available BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ─── Insert demo salon owner (change password after first login!) ───────────
+-- NOTE: Replace with a STRONG password before going live using Supabase Admin UI
+INSERT INTO admin_users (email, password_hash, name, role, salon_id)
+VALUES (
+  'owner@glvia.com',
+  crypt('Gl!v14@0wn3r#2026', gen_salt('bf', 12)),
+  'Salon Owner',
+  'salon_owner',
+  '40e4dd92-0a96-4e07-bf68-7ab3604bb279'
+)
+ON CONFLICT (email) DO UPDATE SET
+  password_hash = EXCLUDED.password_hash,
+  salon_id = EXCLUDED.salon_id,
+  role = EXCLUDED.role;
+
+-- ─── RLS: Bookings ────────────────────────────────────────────────────────────
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+
+-- Allow anon/anyone to INSERT bookings (customers book from the app)
+DROP POLICY IF EXISTS "Public insert bookings" ON bookings;
+CREATE POLICY "Public insert bookings" ON bookings
+  FOR INSERT WITH CHECK (true);
+
+-- Allow users to read their own salon bookings (app-level auth uses anon key;
+-- real row-level isolation is enforced by app logic using admin_users.salon_id)
+DROP POLICY IF EXISTS "Select bookings by salon" ON bookings;
+CREATE POLICY "Select bookings by salon" ON bookings
+  FOR SELECT USING (true);
+
+-- Allow updates (status changes) only if authenticated via app layer
+DROP POLICY IF EXISTS "Update bookings" ON bookings;
+CREATE POLICY "Update bookings" ON bookings
+  FOR UPDATE USING (true) WITH CHECK (true);
+
+-- Allow delete (admin/owner only via app layer)
+DROP POLICY IF EXISTS "Delete bookings" ON bookings;
+CREATE POLICY "Delete bookings" ON bookings
+  FOR DELETE USING (true);
+
+-- ─── RLS: Staff ───────────────────────────────────────────────────────────────
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+
+-- Salon owner can read staff for their own salon (enforced at app layer)
+DROP POLICY IF EXISTS "Select staff" ON staff;
+CREATE POLICY "Select staff" ON staff
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Manage staff" ON staff;
+CREATE POLICY "Manage staff" ON staff
+  FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── Helper function: verify if an admin_user is owner of a salon ────────────
+CREATE OR REPLACE FUNCTION verify_salon_owner(owner_email TEXT, target_salon_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  owner_salon_id UUID;
+  owner_role TEXT;
+BEGIN
+  SELECT salon_id, role INTO owner_salon_id, owner_role
+  FROM admin_users WHERE email = owner_email;
+
+  -- super_admin and admin can access any salon
+  IF owner_role IN ('super_admin', 'admin') THEN
+    RETURN TRUE;
+  END IF;
+
+  -- salon_owner can only access their own salon
+  RETURN owner_salon_id = target_salon_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
