@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { AdminAuthProvider, useAdminAuth } from "../lib/adminAuth";
 
 const ALLOWED_ROLES = ["salon_owner", "admin", "super_admin"];
@@ -9,9 +9,12 @@ const ALLOWED_ROLES = ["salon_owner", "admin", "super_admin"];
 function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
   const { admin, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isLoginPage = pathname === "/salon-owner/login";
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || isLoginPage) return;
 
     if (!isAuthenticated) {
       router.replace("/salon-owner/login");
@@ -21,7 +24,7 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
     if (admin && !ALLOWED_ROLES.includes(admin.role)) {
       router.replace("/salon-owner/login");
     }
-  }, [isLoading, isAuthenticated, admin, router]);
+  }, [isLoading, isAuthenticated, admin, router, isLoginPage]);
 
   if (isLoading) {
     return (
@@ -34,7 +37,7 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated || (admin && !ALLOWED_ROLES.includes(admin.role))) {
+  if (!isLoginPage && (!isAuthenticated || (admin && !ALLOWED_ROLES.includes(admin.role)))) {
     // Will redirect, show loading in the meantime
     return (
       <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
