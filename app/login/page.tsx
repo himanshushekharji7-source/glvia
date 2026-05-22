@@ -64,6 +64,13 @@ export default function LoginPage() {
       return;
     }
 
+    // Check if Firebase Auth is correctly configured
+    if (!auth) {
+      setErrorMessage("Firebase configuration is missing or invalid. Please configure the keys in the .env file and build/restart the server.");
+      setIsLoading(false);
+      return;
+    }
+
     // Format phone number with country code (+91 for India by default if not provided)
     let formattedPhone = phoneNumber.trim();
     if (!formattedPhone.startsWith("+")) {
@@ -77,8 +84,21 @@ export default function LoginPage() {
     }
 
     try {
+      // Dynamically initialize RecaptchaVerifier on submission if not already initialized
       if (!recaptchaVerifierRef.current) {
-        throw new Error("Recaptcha verifier is not initialized.");
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          {
+            size: "invisible",
+            callback: () => {
+              // reCAPTCHA solved
+            },
+            "expired-callback": () => {
+              setErrorMessage("reCAPTCHA expired. Please try again.");
+            },
+          }
+        );
       }
 
       const confirmation = await signInWithPhoneNumber(
@@ -97,11 +117,7 @@ export default function LoginPage() {
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
-          recaptchaVerifierRef.current = new RecaptchaVerifier(
-            auth,
-            "recaptcha-container",
-            { size: "invisible" }
-          );
+          recaptchaVerifierRef.current = null;
         } catch (e) {}
       }
     } finally {
