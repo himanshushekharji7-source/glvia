@@ -241,34 +241,91 @@ ALTER TABLE membership_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trust_banners ENABLE ROW LEVEL SECURITY;
 
 -- Allow anon to read all public content tables
+DROP POLICY IF EXISTS "Public read" ON categories;
 CREATE POLICY "Public read" ON categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON home_services;
 CREATE POLICY "Public read" ON home_services FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON home_combo_banners;
 CREATE POLICY "Public read" ON home_combo_banners FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON home_salon_deals;
 CREATE POLICY "Public read" ON home_salon_deals FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON home_categories;
 CREATE POLICY "Public read" ON home_categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON at_home_categories;
 CREATE POLICY "Public read" ON at_home_categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON at_home_packages;
 CREATE POLICY "Public read" ON at_home_packages FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON at_home_services;
 CREATE POLICY "Public read" ON at_home_services FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON salons;
 CREATE POLICY "Public read" ON salons FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON salon_categories;
 CREATE POLICY "Public read" ON salon_categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON salon_services;
 CREATE POLICY "Public read" ON salon_services FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON membership_plans;
 CREATE POLICY "Public read" ON membership_plans FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON trust_banners;
 CREATE POLICY "Public read" ON trust_banners FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read" ON site_settings;
 CREATE POLICY "Public read" ON site_settings FOR SELECT USING (true);
 
 -- Allow anon full access (since admin auth is handled at app level)
+DROP POLICY IF EXISTS "Admin full access" ON admin_users;
 CREATE POLICY "Admin full access" ON admin_users FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON site_settings;
 CREATE POLICY "Admin full access" ON site_settings FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON categories;
 CREATE POLICY "Admin full access" ON categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON home_services;
 CREATE POLICY "Admin full access" ON home_services FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON home_combo_banners;
 CREATE POLICY "Admin full access" ON home_combo_banners FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON home_salon_deals;
 CREATE POLICY "Admin full access" ON home_salon_deals FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON home_categories;
 CREATE POLICY "Admin full access" ON home_categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON at_home_categories;
 CREATE POLICY "Admin full access" ON at_home_categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON at_home_packages;
 CREATE POLICY "Admin full access" ON at_home_packages FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON at_home_services;
 CREATE POLICY "Admin full access" ON at_home_services FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON salons;
 CREATE POLICY "Admin full access" ON salons FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON salon_categories;
 CREATE POLICY "Admin full access" ON salon_categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON salon_services;
 CREATE POLICY "Admin full access" ON salon_services FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON membership_plans;
 CREATE POLICY "Admin full access" ON membership_plans FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access" ON trust_banners;
 CREATE POLICY "Admin full access" ON trust_banners FOR ALL USING (true) WITH CHECK (true);
+

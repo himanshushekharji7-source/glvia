@@ -1,13 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co').trim();
+const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key').trim();
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   console.warn('Supabase credentials not configured. CMS features will use fallback data.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Log warning if Stripe key is used as Supabase key
+if (typeof window !== 'undefined' && (supabaseAnonKey.startsWith('sb_publishable_') || supabaseAnonKey.startsWith('pk_'))) {
+  console.error(
+    'CRITICAL CONFIG ERROR: Your NEXT_PUBLIC_SUPABASE_ANON_KEY looks like a Stripe publishable key! ' +
+    'Please replace it with your actual Supabase Anon Key (a long JWT token) in your .env file.'
+  );
+}
+
+let supabaseInstance;
+try {
+  let sanitizedUrl = supabaseUrl;
+  if (sanitizedUrl && !sanitizedUrl.startsWith('http://') && !sanitizedUrl.startsWith('https://')) {
+    sanitizedUrl = 'https://' + sanitizedUrl;
+  }
+  supabaseInstance = createClient(sanitizedUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-anon-key');
+} catch (e: any) {
+  console.error("Failed to initialize Supabase client client-side:", e);
+  // Fallback to placeholder to prevent imports from crashing the application
+  supabaseInstance = createClient('https://placeholder.supabase.co', 'placeholder-anon-key');
+}
+
+export const supabase = supabaseInstance;
+
 
 /* ─── Database Table Names ─── */
 export const TABLES = {

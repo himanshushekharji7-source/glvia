@@ -32,16 +32,21 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   // Restore session from sessionStorage on mount
   useEffect(() => {
-    const stored = sessionStorage.getItem("glvia_admin");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setAdmin(parsed);
-      } catch {
-        sessionStorage.removeItem("glvia_admin");
+    try {
+      const stored = typeof window !== "undefined" ? sessionStorage.getItem("glvia_admin") : null;
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setAdmin(parsed);
+        } catch {
+          sessionStorage.removeItem("glvia_admin");
+        }
       }
+    } catch (err) {
+      console.warn("sessionStorage is not accessible:", err);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
