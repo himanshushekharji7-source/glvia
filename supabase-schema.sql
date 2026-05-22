@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS salon_services (
   salon_id UUID NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
+  products_used TEXT,
   duration TEXT,
   price NUMERIC NOT NULL,
   old_price NUMERIC,
