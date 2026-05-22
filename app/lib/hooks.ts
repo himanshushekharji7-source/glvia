@@ -312,7 +312,8 @@ export const useSalons = (keyword = '') => {
         const { data: dbSalons, error } = await supabase
           .from(TABLES.SALONS)
           .select('*')
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .eq('approval_status', 'approved');
         
         if (error) throw error;
         

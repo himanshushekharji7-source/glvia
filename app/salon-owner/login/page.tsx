@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAdminAuth } from "../../lib/adminAuth";
 
 export default function SalonOwnerLoginPage() {
@@ -162,6 +163,16 @@ export default function SalonOwnerLoginPage() {
             Protected by role-based authentication
           </div>
         </form>
+
+        {/* Register Link */}
+        <div className="text-center mt-8">
+          <p className="text-slate-400 text-sm">
+            Don't have a salon account?{" "}
+            <Link href="/salon-owner/register" className="text-pink-500 font-bold hover:text-pink-400 transition-colors">
+              Register your salon
+            </Link>
+          </p>
+        </div>
 
         {/* Back to main site */}
         <div className="text-center mt-6">

@@ -50,18 +50,16 @@ async function testConnection() {
       console.log('Successfully fetched site_settings:', settings);
     }
 
-    // 2. Try to call verify_admin_password
-    console.log('\n--- Testing verify_admin_password RPC ---');
-    const { data: authResult, error: authError } = await supabase
-      .rpc('verify_admin_password', {
-        input_email: 'admin@glvia.com',
-        input_password: 'admin123'
-      });
+    // 2. Try to fetch admin_users to see if owner exists
+    console.log('\n--- Fetching admin_users ---');
+    const { data: users, error: usersError } = await supabase
+      .from('admin_users')
+      .select('email');
 
-    if (authError) {
-      console.error('Error calling verify_admin_password RPC:', authError);
+    if (usersError) {
+      console.error('Error fetching admin_users:', usersError);
     } else {
-      console.log('Auth result for admin@glvia.com / admin123:', authResult);
+      console.log('Users found:', users);
     }
   } catch (err) {
     console.error('Unexpected error:', err);
