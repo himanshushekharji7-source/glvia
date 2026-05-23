@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAdminAuth } from "../lib/adminAuth";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import AdminHeader from "../components/admin/AdminHeader";
@@ -13,6 +15,14 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isAdmin, isPinVerified, isLoading, admin } = useAdminAuth();
+  const router = useRouter();
+
+  // Redirect salon owner to dashboard if they land here
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && admin && admin.role === "salon_owner") {
+      router.replace("/salon-owner/dashboard");
+    }
+  }, [isLoading, isAuthenticated, admin, router]);
 
   // Show loading spinner while checking auth
   if (isLoading) {

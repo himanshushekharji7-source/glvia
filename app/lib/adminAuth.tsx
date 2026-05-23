@@ -11,6 +11,32 @@ import {
   User as FirebaseUser 
 } from "firebase/auth";
 
+const formatAuthError = (err: any): string => {
+  const code = err?.code || "";
+  const message = err?.message || "";
+  
+  if (code === "auth/invalid-credential" || message.includes("invalid-credential")) {
+    return "Invalid email or password. If you registered using Google, please sign in with Google.";
+  }
+  if (code === "auth/user-not-found" || message.includes("user-not-found")) {
+    return "No account found with this email.";
+  }
+  if (code === "auth/wrong-password" || message.includes("wrong-password")) {
+    return "Incorrect password. Please try again.";
+  }
+  if (code === "auth/invalid-email" || message.includes("invalid-email")) {
+    return "Please enter a valid email address.";
+  }
+  if (code === "auth/too-many-requests" || message.includes("too-many-requests")) {
+    return "Too many failed login attempts. Please try again later.";
+  }
+  if (code === "auth/user-disabled" || message.includes("user-disabled")) {
+    return "This account has been disabled.";
+  }
+  
+  return message || "An error occurred during authentication.";
+};
+
 interface AdminUser {
   id: string;
   firebase_uid: string;
@@ -243,7 +269,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       console.error("Email Login error:", err);
-      return { success: false, error: err.message || "Invalid email or password" };
+      return { success: false, error: formatAuthError(err) };
     }
   };
 
@@ -300,7 +326,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       console.error("Google Login error:", err);
-      return { success: false, error: err.message || "Google sign-in failed" };
+      return { success: false, error: formatAuthError(err) };
     }
   };
 
