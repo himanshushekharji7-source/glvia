@@ -542,7 +542,7 @@ export const useWallet = () => {
     queryKey: ['wallet'],
     queryFn: async () => {
       await delay(500);
-      return dummyWallet;
+      return { balance: 0, cashback: 0, transactions: [] };
     },
   });
 };
@@ -552,7 +552,7 @@ export const useWishlist = () => {
     queryKey: ['wishlist'],
     queryFn: async () => {
       await delay(300);
-      return [dummySalons[0], dummySalons[1]]; // Return actual salon objects for wishlist
+      return [];
     },
   });
 };
@@ -794,7 +794,7 @@ export const useAdminUsers = () => {
         return [...mappedUsers, ...mappedAdminUsers];
       } catch (err) {
         console.error("Error fetching admin users from database:", err);
-        return [dummyUser, { ...dummyUser, _id: 'u2', id: 'u2', firstName: 'John', lastName: 'Smith', email: 'john@example.com', role: 'admin' }];
+        return [];
       }
     },
   });
