@@ -557,9 +557,9 @@ export const useCategories = () => {
 };
 
 // --- Booking Hooks ---
-export const useMyBookings = (salonId?: string) => {
+export const useMyBookings = (salonId?: string, isSuperAdmin = false) => {
   return useQuery({
-    queryKey: ['myBookings', salonId],
+    queryKey: ['myBookings', salonId, isSuperAdmin],
     queryFn: async () => {
       try {
         const firebaseUid = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -570,6 +570,8 @@ export const useMyBookings = (salonId?: string) => {
           
         if (salonId) {
           query = query.eq('salon_id', salonId);
+        } else if (isSuperAdmin) {
+          // Fetch all bookings for super admin!
         } else if (firebaseUid) {
           query = query.eq('firebase_uid', firebaseUid);
         }
@@ -719,8 +721,74 @@ export const useAdminStats = () => {
   return useQuery({
     queryKey: ['adminStats'],
     queryFn: async () => {
-      await delay(500);
-      return dummyAdminStats;
+      try {
+        const [usersCountRes, adminsCountRes, salonsCountRes, bookingsRes, salonsRes] = await Promise.all([
+          supabase.from(TABLES.USERS).select('id', { count: 'exact', head: true }),
+          supabase.from(TABLES.ADMIN_USERS).select('id', { count: 'exact', head: true }),
+          supabase.from(TABLES.SALONS).select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+          supabase.from(TABLES.BOOKINGS).select('total_amount, status, salon_id, salons(name, rating, total_reviews)'),
+          supabase.from(TABLES.SALONS).select('id, name, rating, total_reviews')
+        ]);
+
+        const totalCustomers = usersCountRes.count || 0;
+        const totalAdmins = adminsCountRes.count || 0;
+        const totalUsers = totalCustomers + totalAdmins;
+
+        const activeSalons = salonsCountRes.count || 0;
+
+        const bookings = bookingsRes.data || [];
+        const totalBookings = bookings.length;
+
+        const totalRevenue = bookings
+          .filter((b: any) => b.status !== 'cancelled')
+          .reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0);
+
+        const salonStatsMap: { [key: string]: { name: string; bookings: number; rating: number; revenue: number } } = {};
+        
+        const salonsList = salonsRes.data || [];
+        salonsList.forEach(s => {
+          salonStatsMap[s.id] = {
+            name: s.name,
+            bookings: 0,
+            rating: Number(s.rating) || 4.5,
+            revenue: 0
+          };
+        });
+
+        bookings.forEach((b: any) => {
+          const salonId = b.salon_id;
+          if (salonId) {
+            if (!salonStatsMap[salonId]) {
+              const salonName = b.salons?.name || 'Unknown Salon';
+              salonStatsMap[salonId] = {
+                name: salonName,
+                bookings: 0,
+                rating: Number(b.salons?.rating) || 4.5,
+                revenue: 0
+              };
+            }
+            salonStatsMap[salonId].bookings += 1;
+            if (b.status !== 'cancelled') {
+              salonStatsMap[salonId].revenue += Number(b.total_amount || 0);
+            }
+          }
+        });
+
+        const topSalons = Object.values(salonStatsMap)
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 3);
+
+        return {
+          totalUsers,
+          activeSalons,
+          totalBookings,
+          totalRevenue,
+          topSalons
+        };
+      } catch (err) {
+        console.error("Error fetching admin stats from database:", err);
+        return dummyAdminStats;
+      }
     },
   });
 };
@@ -953,8 +1021,47 @@ export const useAdminUsers = () => {
   return useQuery({
     queryKey: ['adminUsers'],
     queryFn: async () => {
-      await delay(500);
-      return [dummyUser, { ...dummyUser, _id: 'u2', id: 'u2', firstName: 'John', lastName: 'Smith', email: 'john@example.com', role: 'admin' }];
+      try {
+        const [usersRes, adminUsersRes] = await Promise.all([
+          supabase.from(TABLES.USERS).select('*'),
+          supabase.from(TABLES.ADMIN_USERS).select('*')
+        ]);
+
+        const mappedUsers = (usersRes.data || []).map((u: any) => ({
+          _id: u.id,
+          id: u.id,
+          firstName: u.first_name || 'Customer',
+          lastName: u.last_name || '',
+          email: u.email,
+          phoneNumber: u.phone_number || '',
+          role: 'customer',
+          walletBalance: Number(u.wallet_balance) || 0,
+          createdAt: u.created_at || new Date().toISOString(),
+        }));
+
+        const mappedAdminUsers = (adminUsersRes.data || []).map((au: any) => {
+          const names = (au.name || 'Admin User').trim().split(/\s+/);
+          const firstName = names[0];
+          const lastName = names.slice(1).join(' ');
+          
+          return {
+            _id: au.id,
+            id: au.id,
+            firstName: firstName,
+            lastName: lastName,
+            email: au.email,
+            phoneNumber: '',
+            role: au.role,
+            walletBalance: 0,
+            createdAt: au.created_at || new Date().toISOString(),
+          };
+        });
+
+        return [...mappedUsers, ...mappedAdminUsers];
+      } catch (err) {
+        console.error("Error fetching admin users from database:", err);
+        return [dummyUser, { ...dummyUser, _id: 'u2', id: 'u2', firstName: 'John', lastName: 'Smith', email: 'john@example.com', role: 'admin' }];
+      }
     },
   });
 };

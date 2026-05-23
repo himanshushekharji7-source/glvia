@@ -3,14 +3,14 @@
 import { useMyBookings } from "../../lib/hooks";
 
 const statusConfig: Record<string, { bg: string; label: string }> = {
-  Pending: { bg: "bg-amber-500/10 text-amber-600", label: "Pending" },
-  Confirmed: { bg: "bg-emerald-500/10 text-emerald-600", label: "Confirmed" },
-  Completed: { bg: "bg-pink-500/10 text-pink-600", label: "Completed" },
-  Cancelled: { bg: "bg-rose-500/10 text-rose-600", label: "Cancelled" },
+  pending: { bg: "bg-amber-500/10 text-amber-600", label: "Pending" },
+  confirmed: { bg: "bg-emerald-500/10 text-emerald-600", label: "Confirmed" },
+  completed: { bg: "bg-pink-500/10 text-pink-600", label: "Completed" },
+  cancelled: { bg: "bg-rose-500/10 text-rose-600", label: "Cancelled" },
 };
 
 export default function AppointmentsPage() {
-  const { data: bookings, isLoading, isError } = useMyBookings();
+  const { data: bookings, isLoading, isError } = useMyBookings(undefined, true);
 
   return (
     <div className="space-y-6">
@@ -41,7 +41,7 @@ export default function AppointmentsPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {bookings?.map((booking: any) => {
-                  const status = statusConfig[booking.status] || statusConfig.Pending;
+                  const status = statusConfig[booking.status?.toLowerCase()] || statusConfig.pending;
                   return (
                     <tr key={booking._id} className="hover:bg-surface-dim/30 transition-colors">
                       <td className="px-5 py-4 text-[13px] font-bold text-text-primary">
