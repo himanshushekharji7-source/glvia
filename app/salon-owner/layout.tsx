@@ -11,10 +11,19 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isLoginPage = pathname === "/salon-owner/login";
+  const isPublicPage = pathname === "/salon-owner/login" || pathname === "/salon-owner/register";
 
   useEffect(() => {
-    if (isLoading || isLoginPage) return;
+    if (isLoading) return;
+
+    if (isPublicPage) {
+      if (isAuthenticated && admin && ALLOWED_ROLES.includes(admin.role)) {
+        if (admin.approval_status !== "rejected" && admin.approval_status !== "suspended") {
+          router.replace("/salon-owner/dashboard");
+        }
+      }
+      return;
+    }
 
     if (!isAuthenticated) {
       router.replace("/salon-owner/login");
@@ -24,9 +33,12 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
     if (admin && !ALLOWED_ROLES.includes(admin.role)) {
       router.replace("/salon-owner/login");
     }
-  }, [isLoading, isAuthenticated, admin, router, isLoginPage]);
+  }, [isLoading, isAuthenticated, admin, router, isPublicPage]);
 
-  if (isLoading) {
+  const isRedirectingToDashboard = isPublicPage && isAuthenticated && admin && ALLOWED_ROLES.includes(admin.role) && admin.approval_status !== "rejected" && admin.approval_status !== "suspended";
+  const isRedirectingToLogin = !isPublicPage && (!isAuthenticated || (admin && !ALLOWED_ROLES.includes(admin.role)));
+
+  if (isLoading || isRedirectingToDashboard) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
@@ -37,7 +49,7 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isLoginPage && (!isAuthenticated || (admin && !ALLOWED_ROLES.includes(admin.role)))) {
+  if (isRedirectingToLogin) {
     // Will redirect, show loading in the meantime
     return (
       <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
