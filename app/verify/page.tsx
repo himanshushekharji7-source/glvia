@@ -253,13 +253,14 @@ function VerifyContent() {
                   New Password
                 </label>
                 <div className="relative flex items-center">
-                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899]">
+                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899] pointer-events-none select-none">
                     lock
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="input pl-11 pr-12 focus:bg-white"
+                    className="input focus:bg-white"
+                    style={{ paddingLeft: "44px", paddingRight: "48px" }}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -268,7 +269,7 @@ function VerifyContent() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 text-text-tertiary hover:text-text-secondary transition-colors"
+                    className="absolute right-4 text-text-tertiary hover:text-text-secondary transition-colors z-10"
                     tabIndex={-1}
                   >
                     <span className="material-icons-round text-[19px]">
@@ -284,13 +285,14 @@ function VerifyContent() {
                   Confirm New Password
                 </label>
                 <div className="relative flex items-center">
-                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899]">
+                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899] pointer-events-none select-none">
                     lock
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="input pl-11 pr-12 focus:bg-white"
+                    className="input focus:bg-white"
+                    style={{ paddingLeft: "44px" }}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required

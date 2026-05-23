@@ -185,7 +185,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-dvh bg-surface-card flex flex-col select-none overflow-x-hidden">
       {/* Top Gradient Header */}
-      <div className="relative h-[240px] flex flex-col items-center justify-end pb-7 bg-gradient-to-br from-[#ec4899] via-[#b546cc] to-[#8b5cf6] overflow-hidden">
+      <div className="relative h-[260px] flex flex-col items-center justify-end pb-10 bg-gradient-to-br from-[#ec4899] via-[#b546cc] to-[#8b5cf6] overflow-hidden">
         {/* Glow Spheres */}
         <div className="absolute -top-12 -left-12 w-44 h-44 rounded-full bg-white/10 blur-2xl animate-pulse" style={{ animationDuration: '4s' }} />
         <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5 blur-xl" />
@@ -266,7 +266,7 @@ export default function LoginPage() {
           >
             {/* ── LOG IN FORM ── */}
             <div 
-              className="w-1/2 pr-3 flex-shrink-0 transition-opacity duration-300 flex flex-col justify-between"
+              className="w-1/2 px-0 flex-shrink-0 transition-opacity duration-300 flex flex-col justify-between"
               style={{ opacity: isSignUp ? 0 : 1, pointerEvents: isSignUp ? "none" : "auto" }}
             >
               <form 
@@ -279,13 +279,14 @@ export default function LoginPage() {
                     Email Address
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899]">
+                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899] pointer-events-none select-none">
                       mail
                     </span>
                     <input
                       type="email"
                       placeholder="hello@example.com"
-                      className="input pl-11 focus:bg-white"
+                      className="input focus:bg-white"
+                      style={{ paddingLeft: "44px" }}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required={!isSignUp}
@@ -300,13 +301,14 @@ export default function LoginPage() {
                     Password
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899]">
+                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#ec4899] pointer-events-none select-none">
                       lock
                     </span>
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="input pl-11 pr-12 focus:bg-white"
+                      className="input focus:bg-white"
+                      style={{ paddingLeft: "44px", paddingRight: "48px" }}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required={!isSignUp}
@@ -315,7 +317,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 text-text-tertiary hover:text-text-secondary transition-colors"
+                      className="absolute right-4 text-text-tertiary hover:text-text-secondary transition-colors z-10"
                       tabIndex={-1}
                     >
                       <span className="material-icons-round text-[19px]">
@@ -357,7 +359,7 @@ export default function LoginPage() {
 
             {/* ── SIGN UP FORM ── */}
             <div 
-              className="w-1/2 pl-3 flex-shrink-0 transition-opacity duration-300 flex flex-col justify-between"
+              className="w-1/2 px-0 flex-shrink-0 transition-opacity duration-300 flex flex-col justify-between"
               style={{ opacity: isSignUp ? 1 : 0, pointerEvents: isSignUp ? "auto" : "none" }}
             >
               <form 
@@ -370,13 +372,14 @@ export default function LoginPage() {
                     Full Name
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#8b5cf6]">
+                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#8b5cf6] pointer-events-none select-none">
                       person
                     </span>
                     <input
                       type="text"
                       placeholder="John Doe"
-                      className="input pl-11 focus:bg-white"
+                      className="input focus:bg-white"
+                      style={{ paddingLeft: "44px" }}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required={isSignUp}
@@ -391,13 +394,14 @@ export default function LoginPage() {
                     Email Address
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#8b5cf6]">
+                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#8b5cf6] pointer-events-none select-none">
                       mail
                     </span>
                     <input
                       type="email"
                       placeholder="hello@example.com"
-                      className="input pl-11 focus:bg-white"
+                      className="input focus:bg-white"
+                      style={{ paddingLeft: "44px" }}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required={isSignUp}
@@ -412,13 +416,14 @@ export default function LoginPage() {
                     Create Password
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#8b5cf6]">
+                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary transition-colors group-focus-within:text-[#8b5cf6] pointer-events-none select-none">
                       lock
                     </span>
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="input pl-11 pr-12 focus:bg-white"
+                      className="input focus:bg-white"
+                      style={{ paddingLeft: "44px", paddingRight: "48px" }}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required={isSignUp}
@@ -427,7 +432,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 text-text-tertiary hover:text-text-secondary transition-colors"
+                      className="absolute right-4 text-text-tertiary hover:text-text-secondary transition-colors z-10"
                       tabIndex={-1}
                     >
                       <span className="material-icons-round text-[19px]">
