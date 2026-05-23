@@ -69,10 +69,14 @@ VALUES ('salon-kyc', 'salon-kyc', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Give public access to read salon images
+DROP POLICY IF EXISTS "Public Read Salon Images" ON storage.objects;
 CREATE POLICY "Public Read Salon Images" ON storage.objects FOR SELECT USING (bucket_id = 'salon-images');
 
 -- Give public access to upload images (for registration flow via anon key)
+DROP POLICY IF EXISTS "Anon Upload Salon Images" ON storage.objects;
 CREATE POLICY "Anon Upload Salon Images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'salon-images');
+
+DROP POLICY IF EXISTS "Anon Upload Salon KYC" ON storage.objects;
 CREATE POLICY "Anon Upload Salon KYC" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'salon-kyc');
 
 
