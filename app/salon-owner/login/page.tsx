@@ -18,8 +18,8 @@ export default function SalonOwnerLoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && admin) {
-      if (admin.approval_status !== "approved") {
-        setError("Your account is pending approval by an admin.");
+      if (admin.approval_status === "rejected" || admin.approval_status === "suspended") {
+        setError("Your account has been " + admin.approval_status + ".");
       } else {
         const allowedRoles = ["salon_owner", "admin", "super_admin"];
         if (allowedRoles.includes(admin.role)) {

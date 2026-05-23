@@ -81,10 +81,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           if (!data) {
             console.warn("User authenticated in Firebase but no admin_users record found.");
             setAdmin(null);
-          } else if (data.approval_status !== "approved") {
-            console.warn("User account is pending approval or rejected.");
+          } else if (data.approval_status === "rejected" || data.approval_status === "suspended") {
+            console.warn("User account is rejected or suspended.");
             setAdmin(null);
-            // Optionally, you could set a specific state here to show a "Pending Approval" screen
           } else {
             setAdmin({
               id: data.id,
@@ -138,9 +137,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "No salon owner account found for this email. Please register." };
       }
       
-      if (data.approval_status !== "approved") {
+      if (data.approval_status === "rejected" || data.approval_status === "suspended") {
         await firebaseSignOut(auth);
-        return { success: false, error: "Your account is currently pending approval by an administrator." };
+        return { success: false, error: "Your account has been " + data.approval_status + " by an administrator." };
       }
 
       return { success: true };
@@ -181,9 +180,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "No salon owner account found for this Google account. Please register." };
       }
       
-      if (data.approval_status !== "approved") {
+      if (data.approval_status === "rejected" || data.approval_status === "suspended") {
         await firebaseSignOut(auth);
-        return { success: false, error: "Your account is currently pending approval by an administrator." };
+        return { success: false, error: "Your account has been " + data.approval_status + " by an administrator." };
       }
 
       return { success: true };
