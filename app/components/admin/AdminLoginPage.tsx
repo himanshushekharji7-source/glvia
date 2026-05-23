@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAdminAuth } from "../../lib/adminAuth";
 
 export default function AdminLoginPage() {
-  const { login } = useAdminAuth();
+  const { loginWithEmail } = useAdminAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
     }
 
     setIsLoading(true);
-    const result = await login(email, password);
+    const result = await loginWithEmail(email, password);
     setIsLoading(false);
 
     if (!result.success) {
