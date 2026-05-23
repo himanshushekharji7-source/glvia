@@ -33,6 +33,7 @@ export const supabase = supabaseInstance;
 
 /* ─── Database Table Names ─── */
 export const TABLES = {
+  USERS: 'users',
   ADMIN_USERS: 'admin_users',
   HOME_SERVICES: 'home_services',
   HOME_COMBO_BANNERS: 'home_combo_banners',

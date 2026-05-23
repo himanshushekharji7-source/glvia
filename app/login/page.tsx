@@ -10,6 +10,7 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
 } from "firebase/auth";
+import { supabase, TABLES } from "../lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,32 +52,41 @@ export default function LoginPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
         user = userCredential.user;
 
-        // Save profile metadata locally
-        const userProfile = {
-          id: user.uid,
-          firstName: fullName.split(" ")[0] || "User",
-          lastName: fullName.split(" ").slice(1).join(" ") || "",
-          email: user.email || email.trim(),
-          phoneNumber: "",
-          role: "customer",
-          walletBalance: 250,
-        };
-        localStorage.setItem("glvia_user_profile", JSON.stringify(userProfile));
+        // Save profile in Supabase
+        const { data: existingUser } = await supabase
+          .from(TABLES.USERS)
+          .select("*")
+          .eq("firebase_uid", user.uid)
+          .single();
+
+        if (!existingUser) {
+          await supabase.from(TABLES.USERS).insert({
+            firebase_uid: user.uid,
+            first_name: fullName.split(" ")[0] || "User",
+            last_name: fullName.split(" ").slice(1).join(" ") || "",
+            email: user.email || email.trim(),
+          });
+        }
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
         user = userCredential.user;
 
-        // Fetch profile or set default
-        const userProfile = {
-          id: user.uid,
-          firstName: user.displayName?.split(" ")[0] || "User",
-          lastName: user.displayName?.split(" ").slice(1).join(" ") || "",
-          email: user.email || email.trim(),
-          phoneNumber: user.phoneNumber || "",
-          role: "customer",
-          walletBalance: 250,
-        };
-        localStorage.setItem("glvia_user_profile", JSON.stringify(userProfile));
+        // Fetch profile or set default in Supabase
+        const { data: existingUser } = await supabase
+          .from(TABLES.USERS)
+          .select("*")
+          .eq("firebase_uid", user.uid)
+          .single();
+
+        if (!existingUser) {
+          await supabase.from(TABLES.USERS).insert({
+            firebase_uid: user.uid,
+            first_name: user.displayName?.split(" ")[0] || "User",
+            last_name: user.displayName?.split(" ").slice(1).join(" ") || "",
+            email: user.email || email.trim(),
+            phone_number: user.phoneNumber || "",
+          });
+        }
       }
 
       // Save user session token
@@ -159,17 +169,22 @@ export default function LoginPage() {
       // Save user session token
       localStorage.setItem("token", user.uid);
 
-      // Create/Get profile
-      const userProfile = {
-        id: user.uid,
-        firstName: user.displayName?.split(" ")[0] || "User",
-        lastName: user.displayName?.split(" ").slice(1).join(" ") || "",
-        email: user.email || "",
-        phoneNumber: user.phoneNumber || "",
-        role: "customer",
-        walletBalance: 250,
-      };
-      localStorage.setItem("glvia_user_profile", JSON.stringify(userProfile));
+      // Create/Get profile in Supabase
+      const { data: existingUser } = await supabase
+        .from(TABLES.USERS)
+        .select("*")
+        .eq("firebase_uid", user.uid)
+        .single();
+
+      if (!existingUser) {
+        await supabase.from(TABLES.USERS).insert({
+          firebase_uid: user.uid,
+          first_name: user.displayName?.split(" ")[0] || "User",
+          last_name: user.displayName?.split(" ").slice(1).join(" ") || "",
+          email: user.email || "",
+          phone_number: user.phoneNumber || "",
+        });
+      }
 
       router.push("/");
     } catch (error: any) {

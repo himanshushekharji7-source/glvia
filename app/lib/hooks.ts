@@ -268,40 +268,44 @@ export const useUser = () => {
   return useQuery({
     queryKey: ['user'],
     queryFn: async () => {
-      await delay(200);
       if (typeof window === "undefined") return null;
-      const token = localStorage.getItem("token");
-      if (!token) return null;
+      const firebaseUid = localStorage.getItem("token");
+      if (!firebaseUid) return null;
       
-      const storedProfile = localStorage.getItem("glvia_user_profile");
-      if (storedProfile) {
-        try {
-          return JSON.parse(storedProfile);
-        } catch {
-          // fallback
+      try {
+        const { data, error } = await supabase
+          .from(TABLES.USERS)
+          .select("*")
+          .eq("firebase_uid", firebaseUid)
+          .single();
+        if (data && !error) {
+           return data;
         }
+      } catch (e) {
+        console.error("Failed to fetch user from Supabase", e);
       }
-      return {
-        id: token,
-        firstName: "User",
-        lastName: "",
-        email: "user@glvia.com",
-        phoneNumber: "",
-        role: "customer",
-        walletBalance: 250
-      };
+      return null;
     },
     retry: false,
   });
 };
 
-export const useLogin = () => {
+export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (credentials: any) => {
-      await delay(800);
-      localStorage.setItem('token', 'dummy-token');
-      return { user: dummyUser, token: 'dummy-token' };
+    mutationFn: async (updates: any) => {
+      const firebaseUid = localStorage.getItem("token");
+      if (!firebaseUid) throw new Error("No user logged in");
+      
+      const { data, error } = await supabase
+        .from(TABLES.USERS)
+        .update(updates)
+        .eq("firebase_uid", firebaseUid)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
@@ -309,17 +313,22 @@ export const useLogin = () => {
   });
 };
 
-export const useRegister = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (userData: any) => {
-      await delay(800);
-      localStorage.setItem('token', 'dummy-token');
-      return { user: dummyUser, token: 'dummy-token' };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-    },
+export const useMembershipPlans = () => {
+  return useQuery({
+    queryKey: ['membershipPlans'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from(TABLES.MEMBERSHIP_PLANS)
+          .select('*')
+          .order('sort_order', { ascending: true });
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.error("Error fetching memberships", err);
+        return [];
+      }
+    }
   });
 };
 
