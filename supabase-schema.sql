@@ -353,6 +353,8 @@ ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS salon_id UUID REFERENCES salons
 CREATE TABLE IF NOT EXISTS bookings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   salon_id UUID NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+  firebase_uid TEXT,
+  booking_reference TEXT UNIQUE,
   customer_name TEXT NOT NULL,
   customer_phone TEXT,
   customer_email TEXT,

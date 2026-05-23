@@ -563,17 +563,25 @@ export const useMyBookings = (salonId?: string) => {
     queryKey: ['myBookings', salonId],
     queryFn: async () => {
       try {
+        const firebaseUid = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         let query = supabase
           .from(TABLES.BOOKINGS)
-          .select('*')
+          .select('*, salons:salon_id(id, name, images, address_street, address_city)')
           .order('created_at', { ascending: false });
-        if (salonId) query = query.eq('salon_id', salonId);
+          
+        if (salonId) {
+          query = query.eq('salon_id', salonId);
+        } else if (firebaseUid) {
+          query = query.eq('firebase_uid', firebaseUid);
+        }
+
         const { data, error } = await query;
         if (error) throw error;
         return (data || []).map((b: any) => ({
           id: b.id,
           _id: b.id,
-          salonId: b.salon_id,
+          salonId: b.salons ? { _id: b.salons.id, name: b.salons.name, images: b.salons.images, address: b.salons.address_street } : b.salon_id,
+          bookingReference: b.booking_reference,
           customerName: b.customer_name,
           customerPhone: b.customer_phone,
           services: b.services || [],
@@ -606,10 +614,15 @@ export const useCreateBooking = () => {
           duration: '30',
         }));
 
+        const firebaseUid = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const refId = '#GLV-' + Math.floor(100000 + Math.random() * 900000);
+
         const { data, error } = await supabase
           .from(TABLES.BOOKINGS)
           .insert({
             salon_id: bookingData.salonId,
+            firebase_uid: firebaseUid,
+            booking_reference: refId,
             customer_name: bookingData.customerName || 'Guest',
             customer_phone: bookingData.customerPhone || '',
             customer_email: bookingData.customerEmail || '',
@@ -651,6 +664,52 @@ export const useUpdateBookingStatus = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['salonOwnerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['bookingDetails'] });
+    },
+  });
+};
+
+export const useBookingDetails = (id: string) => {
+  return useQuery({
+    queryKey: ['bookingDetails', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const firebaseUid = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      
+      const { data, error } = await supabase
+        .from(TABLES.BOOKINGS)
+        .select('*, salons:salon_id(id, name, images, address_street, address_city, contact_phone)')
+        .eq('id', id)
+        .single();
+        
+      if (error) throw error;
+      
+      // Basic security check: if it belongs to someone else, reject unless user is owner (simplified)
+      if (data.firebase_uid && firebaseUid && data.firebase_uid !== firebaseUid) {
+        throw new Error("Unauthorized");
+      }
+      
+      return data;
+    },
+    enabled: !!id,
+  });
+};
+
+export const useRescheduleBooking = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, date, timeSlot }: { id: string; date: string; timeSlot: string }) => {
+      const { error } = await supabase
+        .from(TABLES.BOOKINGS)
+        .update({ date, time_slot: timeSlot })
+        .eq('id', id);
+      if (error) throw error;
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookingDetails'] });
       queryClient.invalidateQueries({ queryKey: ['salonOwnerStats'] });
     },
   });
