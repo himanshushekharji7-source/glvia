@@ -67,14 +67,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               .eq("email", firebaseUser.email)
               .maybeSingle();
               
-            if (emailData && !emailData.firebase_uid) {
-               // Link the account!
-               await supabase
-                 .from("admin_users")
-                 .update({ firebase_uid: firebaseUser.uid })
-                 .eq("id", emailData.id);
-                 
-               data = { ...emailData, firebase_uid: firebaseUser.uid };
+            if (emailData) {
+               if (!emailData.firebase_uid) {
+                 // Link the account!
+                 await supabase
+                   .from("admin_users")
+                   .update({ firebase_uid: firebaseUser.uid })
+                   .eq("id", emailData.id);
+                   
+                 data = { ...emailData, firebase_uid: firebaseUser.uid };
+               } else if (emailData.firebase_uid === firebaseUser.uid) {
+                 // Already linked, possibly by concurrent login function
+                 data = emailData;
+               }
             }
           }
 
@@ -126,9 +131,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           .eq("email", email)
           .maybeSingle();
           
-        if (emailData && !emailData.firebase_uid) {
-           await supabase.from("admin_users").update({ firebase_uid: userCredential.user.uid }).eq("id", emailData.id);
-           data = { ...emailData, firebase_uid: userCredential.user.uid };
+        if (emailData) {
+           if (!emailData.firebase_uid) {
+             await supabase.from("admin_users").update({ firebase_uid: userCredential.user.uid }).eq("id", emailData.id);
+             data = { ...emailData, firebase_uid: userCredential.user.uid };
+           } else if (emailData.firebase_uid === userCredential.user.uid) {
+             data = emailData;
+           }
         }
       }
 
@@ -169,9 +178,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           .eq("email", result.user.email)
           .maybeSingle();
           
-        if (emailData && !emailData.firebase_uid) {
-           await supabase.from("admin_users").update({ firebase_uid: result.user.uid }).eq("id", emailData.id);
-           data = { ...emailData, firebase_uid: result.user.uid };
+        if (emailData) {
+           if (!emailData.firebase_uid) {
+             await supabase.from("admin_users").update({ firebase_uid: result.user.uid }).eq("id", emailData.id);
+             data = { ...emailData, firebase_uid: result.user.uid };
+           } else if (emailData.firebase_uid === result.user.uid) {
+             data = emailData;
+           }
         }
       }
 
