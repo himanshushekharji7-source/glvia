@@ -115,7 +115,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithEmail = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setIsLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       let { data } = await supabase
@@ -155,14 +154,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error("Email Login error:", err);
       return { success: false, error: err.message || "Invalid email or password" };
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       
       let { data } = await supabase
@@ -202,8 +198,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error("Google Login error:", err);
       return { success: false, error: err.message || "Google sign-in failed" };
-    } finally {
-      setIsLoading(false);
     }
   };
 
