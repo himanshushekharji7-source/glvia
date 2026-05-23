@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS users (
   avatar TEXT, -- URL or Base64 string
   wallet_balance NUMERIC DEFAULT 0,
   loyalty_points NUMERIC DEFAULT 0,
+  active_membership_id TEXT,
+  membership_start_date TIMESTAMPTZ,
+  membership_expiry_date TIMESTAMPTZ,
+  membership_status TEXT CHECK (membership_status IN ('active', 'expired', 'cancelled')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

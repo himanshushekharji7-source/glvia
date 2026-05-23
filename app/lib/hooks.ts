@@ -332,6 +332,42 @@ export const useMembershipPlans = () => {
   });
 };
 
+export const usePurchaseMembership = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (plan: any) => {
+      const firebaseUid = localStorage.getItem("token");
+      if (!firebaseUid) throw new Error("No user logged in");
+      
+      const startDate = new Date();
+      // Calculate expiry based on duration string (e.g., "12 Months")
+      const expiryDate = new Date();
+      const months = parseInt(plan.duration) || 12; // default to 12 if parsing fails
+      expiryDate.setMonth(startDate.getMonth() + months);
+
+      const updates = {
+        active_membership_id: plan.id,
+        membership_start_date: startDate.toISOString(),
+        membership_expiry_date: expiryDate.toISOString(),
+        membership_status: 'active'
+      };
+      
+      const { data, error } = await supabase
+        .from(TABLES.USERS)
+        .update(updates)
+        .eq("firebase_uid", firebaseUid)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+    },
+  });
+};
+
 // --- Salon Hooks ---
 export const useSalons = (keyword = '') => {
   return useQuery({

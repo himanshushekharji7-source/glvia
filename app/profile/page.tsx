@@ -40,7 +40,9 @@ export default function ProfilePage() {
     return null;
   }
 
-  const activeMembership = membershipPlans && membershipPlans.length > 0 ? membershipPlans[0] : null;
+  const activeMembership = user?.active_membership_id && membershipPlans 
+    ? membershipPlans.find((p: any) => p.id === user.active_membership_id) 
+    : null;
   const firstName = user.first_name || user.firstName || "User";
   const lastName = user.last_name || user.lastName || "";
   const initial = firstName.charAt(0) || user.email?.charAt(0) || "U";
@@ -96,7 +98,7 @@ export default function ProfilePage() {
 
       {/* Dynamic Membership Section */}
       <div className="px-5 mt-5">
-        <div className="relative rounded-2xl overflow-hidden p-4 shadow-sm" style={{ background: "linear-gradient(135deg, #f59e0b, #ef4444)" }}>
+        <Link href="/profile/membership" className="block relative rounded-2xl overflow-hidden p-4 shadow-sm active:scale-[0.98] transition-transform" style={{ background: "linear-gradient(135deg, #f59e0b, #ef4444)" }}>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-white/70 text-[10px] font-semibold uppercase tracking-widest">Active Membership</div>
@@ -110,7 +112,7 @@ export default function ProfilePage() {
               ) : (
                 <>
                   <div className="text-white text-xl font-bold mt-1">No Membership</div>
-                  <Link href="/at-the-salon" className="text-white/90 text-[12px] mt-0.5 underline">Explore Plans</Link>
+                  <div className="text-white/90 text-[12px] mt-0.5 underline">Explore Plans</div>
                 </>
               )}
             </div>
@@ -118,7 +120,7 @@ export default function ProfilePage() {
               <span className="material-icons-round text-[28px] text-white">workspace_premium</span>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       <div className="px-5 mt-6 space-y-1">

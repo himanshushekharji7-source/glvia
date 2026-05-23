@@ -4,54 +4,79 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-
-const membershipPlans = {
-  gold: {
-    name: "GLIVAJI GOLD",
-    duration: "12 Month",
-    price: 299,
-  },
-  silver: {
-    name: "GLIVAJI SILVER",
-    duration: "6 Month",
-    price: 199,
-  }
-};
+import { useMembershipPlans, usePurchaseMembership } from "../../lib/hooks";
 
 export default function MembershipDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  
+  const { data: dbPlans, isLoading } = useMembershipPlans();
+  const { mutateAsync: purchaseMembership, isPending: isPurchasing } = usePurchaseMembership();
 
-  const planKey = (id as string).toLowerCase();
-  const plan = membershipPlans[planKey as keyof typeof membershipPlans];
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-white">
+        <div className="w-10 h-10 border-4 border-[#ec4899]/30 border-t-[#ec4899] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Fallback in case DB hasn't been populated yet
+  const fallbackPlans = [
+    { id: "gold", name: "GLIVAJI GOLD", duration: "12 Month", price: 299, discount: "15%" },
+    { id: "silver", name: "GLIVAJI SILVER", duration: "6 Month", price: 199, discount: "15%" },
+  ];
+
+  const plans = dbPlans && dbPlans.length > 0 ? dbPlans : fallbackPlans;
+  const planId = (id as string).toLowerCase();
+  const plan = plans.find((p: any) => p.id.toLowerCase() === planId);
 
   if (!plan) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
         <span className="material-icons-round text-5xl text-gray-400 mb-4">error_outline</span>
         <h2 className="text-xl font-bold mb-2">Plan not found</h2>
-        <button onClick={() => router.back()} className="btn-primary px-6 py-2">Go Back</button>
+        <button onClick={() => router.back()} className="px-6 py-2 bg-black text-white rounded-xl">Go Back</button>
       </div>
     );
   }
+
+  const isGold = plan.name.toLowerCase().includes("gold");
+  const headerClasses = isGold 
+    ? "bg-gradient-to-r from-[#e11d48] via-[#ec4899] to-[#d946ef]" 
+    : "bg-gradient-to-r from-[#1e293b] via-[#0f172a] to-[#020617]";
+  const textColor = isGold ? "text-[#fde047]" : "text-[#e2e8f0]";
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
 
+  const handlePurchase = async () => {
+    // ⚠️ RAZORPAY/STRIPE INTEGRATION POINT ⚠️
+    // In the future, initialize payment gateway here.
+    // On payment success callback, trigger the purchaseMembership hook.
+    try {
+      await purchaseMembership(plan);
+      router.push("/profile");
+    } catch (err) {
+      console.error("Purchase failed", err);
+      alert("Failed to process payment. Please try again.");
+    }
+  };
+
   const faqs = [
     { question: "How can I purchase a Membership?", answer: "You can purchase a membership directly from this page by clicking the 'Buy Now' button." },
     { question: "What are the responsibilities of a member?", answer: "As a member, you simply need to show your active membership at the time of booking to avail discounts." },
-    { question: "What benefits are included in a Membership?", answer: "You get flat 15% off on all services at home and at the salon, priority support, and extra cash points." },
+    { question: "What benefits are included in a Membership?", answer: "You get flat discounts on all services at home and at the salon, priority support, and extra cash points." },
     { question: "What is a Membership?", answer: "A membership is a premium subscription that gives you exclusive discounts and perks on all our grooming services." }
   ];
 
   return (
     <div className="min-h-dvh bg-white pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-900 to-black p-4 pt-6 pb-8 relative overflow-hidden">
+      <div className={`${headerClasses} p-4 pt-6 pb-8 relative overflow-hidden`}>
         <button onClick={() => router.back()} className="absolute top-4 left-4 z-10 text-white">
           <span className="material-icons-round text-[28px]">chevron_left</span>
         </button>
@@ -66,11 +91,11 @@ export default function MembershipDetailPage() {
         
         <div className="mt-8 text-center px-4 relative z-10">
           {/* Sparkles effect */}
-          <div className="absolute left-4 top-2 text-white/70">✦</div>
-          <div className="absolute right-6 top-0 text-white/70 text-2xl">✦</div>
-          <div className="absolute right-2 bottom-2 text-white/70 text-sm">✦</div>
+          <div className="absolute left-4 top-2 text-[#fde047] opacity-80 animate-pulse">✦</div>
+          <div className="absolute right-6 top-0 text-[#fde047] opacity-60 text-2xl animate-pulse" style={{ animationDelay: '0.5s' }}>✧</div>
+          <div className="absolute right-2 bottom-2 text-[#fde047] opacity-80 text-sm animate-pulse" style={{ animationDelay: '1s' }}>✦</div>
           
-          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-400 to-yellow-600 drop-shadow-md tracking-wide">
+          <h1 className={`text-4xl font-black drop-shadow-md tracking-wide ${textColor}`} style={{ textShadow: isGold ? '0 2px 4px rgba(202, 138, 4, 0.5)' : '0 2px 4px rgba(0,0,0,0.5)' }}>
             {plan.name}
           </h1>
           <h2 className="text-xl font-extrabold text-white mt-1 tracking-widest uppercase">
@@ -78,24 +103,24 @@ export default function MembershipDetailPage() {
           </h2>
         </div>
         
-        {/* Pink overlay glow at bottom of header */}
-        <div className="absolute -bottom-10 left-0 right-0 h-20 bg-gradient-to-t from-pink-600/80 to-transparent blur-xl"></div>
+        {/* Glow overlay at bottom of header */}
+        <div className="absolute -bottom-10 left-0 right-0 h-20 bg-gradient-to-t from-white/20 to-transparent blur-xl"></div>
       </div>
 
       {/* Plan Cards Side-by-Side */}
       <div className="px-4 -mt-4 relative z-20 flex gap-3">
         {/* At Home Card */}
-        <div className="flex-1 rounded-xl overflow-hidden border border-pink-100 shadow-sm" style={{ background: "linear-gradient(to bottom, #FCE7F3, #FFF1F2)" }}>
+        <div className="flex-1 rounded-xl overflow-hidden border border-gray-100 shadow-sm" style={{ background: "linear-gradient(to bottom, #f8fafc, #ffffff)" }}>
           <div className="flex justify-center -mt-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-pink-100 border-4 border-white flex items-center justify-center shadow-sm">
-              <span className="material-icons-round text-pink-500 text-lg">home</span>
+            <div className="w-10 h-10 rounded-full bg-black border-4 border-white flex items-center justify-center shadow-sm">
+              <span className="material-icons-round text-white text-lg">home</span>
             </div>
           </div>
           <div className="text-center px-2 pb-3">
-            <h3 className="text-pink-600 font-bold text-sm mb-2">At Home</h3>
-            <p className="text-gray-800 font-bold text-[13px]">Flat 15% OFF</p>
+            <h3 className="text-black font-bold text-sm mb-2">At Home</h3>
+            <p className="text-gray-800 font-bold text-[13px]">Flat {plan.discount || "15%"} OFF</p>
             <p className="text-gray-900 font-black text-[13px] mb-3">On all services</p>
-            <div className="bg-pink-600 text-white text-[11px] font-bold py-1 w-full text-center">
+            <div className="bg-black text-white text-[11px] font-bold py-1 w-full text-center uppercase">
               Unisex PLAN
             </div>
             <div className="bg-white border-b border-gray-100 text-gray-800 text-[13px] font-bold py-2">
@@ -108,17 +133,17 @@ export default function MembershipDetailPage() {
         </div>
 
         {/* At the Salon Card */}
-        <div className="flex-1 rounded-xl overflow-hidden border border-pink-100 shadow-sm" style={{ background: "linear-gradient(to bottom, #FFF1F2, #FEF2F2)" }}>
+        <div className="flex-1 rounded-xl overflow-hidden border border-gray-100 shadow-sm" style={{ background: "linear-gradient(to bottom, #f8fafc, #ffffff)" }}>
            <div className="flex justify-center -mt-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-pink-100 border-4 border-white flex items-center justify-center shadow-sm">
-              <span className="material-icons-round text-pink-500 text-lg">storefront</span>
+            <div className="w-10 h-10 rounded-full bg-[#ec4899] border-4 border-white flex items-center justify-center shadow-sm">
+              <span className="material-icons-round text-white text-lg">storefront</span>
             </div>
           </div>
           <div className="text-center px-2 pb-3">
-            <h3 className="text-pink-600 font-bold text-sm mb-2">At the Salon</h3>
-            <p className="text-gray-800 font-bold text-[13px]">Flat 15% OFF</p>
+            <h3 className="text-[#ec4899] font-bold text-sm mb-2">At the Salon</h3>
+            <p className="text-gray-800 font-bold text-[13px]">Flat {plan.discount || "15%"} OFF</p>
             <p className="text-gray-900 font-black text-[13px] mb-3">On all services</p>
-            <div className="bg-pink-600 text-white text-[11px] font-bold py-1 w-full text-center">
+            <div className="bg-[#ec4899] text-white text-[11px] font-bold py-1 w-full text-center uppercase">
               Unisex PLAN
             </div>
             <div className="bg-white border-b border-gray-100 text-gray-800 text-[13px] font-bold py-2">
@@ -140,36 +165,33 @@ export default function MembershipDetailPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Benefit 1 */}
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center shrink-0">
-               <span className="material-icons-round text-pink-400 text-3xl">chair_alt</span>
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+               <span className="material-icons-round text-gray-600 text-3xl">chair_alt</span>
             </div>
             <div>
               <h4 className="text-[15px] font-black text-gray-900 mb-1">Salon At Home</h4>
               <p className="text-gray-500 text-sm leading-snug">
-                Unlock a flat 15% savings on all At home bookings with your membership.
+                Unlock a flat {plan.discount || "15%"} savings on all At home bookings with your membership.
               </p>
             </div>
           </div>
           
-          {/* Benefit 2 */}
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center shrink-0">
-               <span className="material-icons-round text-pink-400 text-3xl">store</span>
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+               <span className="material-icons-round text-gray-600 text-3xl">store</span>
             </div>
             <div>
               <h4 className="text-[15px] font-black text-gray-900 mb-1">At the Salon</h4>
               <p className="text-gray-500 text-sm leading-snug">
-                Unlock a flat 15% savings on all salon bookings with your membership.
+                Unlock a flat {plan.discount || "15%"} savings on all salon bookings with your membership.
               </p>
             </div>
           </div>
 
-          {/* Benefit 3 */}
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center shrink-0">
-               <span className="material-icons-round text-pink-400 text-3xl">support_agent</span>
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+               <span className="material-icons-round text-gray-600 text-3xl">support_agent</span>
             </div>
             <div>
               <h4 className="text-[15px] font-black text-gray-900 mb-1">Priority Support</h4>
@@ -179,10 +201,9 @@ export default function MembershipDetailPage() {
             </div>
           </div>
 
-           {/* Benefit 4 */}
            <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center shrink-0 border border-pink-200">
-               <span className="text-pink-500 font-black text-3xl italic">B</span>
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
+               <span className="text-gray-800 font-black text-3xl italic">B</span>
             </div>
             <div>
               <h4 className="text-[15px] font-black text-gray-900 mb-1">Extra BCP (Cash Points)</h4>
@@ -250,10 +271,15 @@ export default function MembershipDetailPage() {
       {/* Sticky Buy Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50 animate-slideUp">
         <button 
-          onClick={() => router.push("/checkout")}
-          className="w-full bg-black text-white font-bold text-lg py-4 rounded-xl shadow-lg"
+          onClick={handlePurchase}
+          disabled={isPurchasing}
+          className="w-full bg-black text-white font-bold text-[17px] py-4 rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
         >
-          Buy Now
+          {isPurchasing ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            `Pay ₹${plan.price} & Buy Now`
+          )}
         </button>
       </div>
     </div>
