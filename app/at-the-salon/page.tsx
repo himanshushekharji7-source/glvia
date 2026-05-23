@@ -20,12 +20,7 @@ const femaleCategories = [
   { id: "fc4", name: "Hair\nChemicals", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80" },
 ];
 
-const dummySalons = [
-  { id: "s1", name: "Dasho Salon Shalimar Bagh", distance: "5.5 Km", reviews: "No reviews", startingPrice: 199, image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=500&q=80" },
-  { id: "s2", name: "Dasho Salon Rajouri", distance: "6.9 Km", reviews: "No reviews", location: "Rohini", startingPrice: 199, image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=500&q=80" },
-  { id: "s3", name: "Dasho Salon Defence Colony", distance: "19.5 Km", reviews: "3.4 (5)", location: "Defence Colony", startingPrice: 59, image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=500&q=80" },
-  { id: "s4", name: "Dasho Salon Mayur Vihar", distance: "21.8 Km", reviews: "No reviews", location: "Mayur Vihar", startingPrice: 99, image: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=500&q=80" },
-];
+
 
 export default function AtTheSalonPage() {
   const [gender, setGender] = useState<"male" | "female">("male");
@@ -36,12 +31,10 @@ export default function AtTheSalonPage() {
   const categories = gender === "male" ? maleCategories : femaleCategories;
 
   const salonsList = useMemo(() => {
-    if (dbSalons && dbSalons.length > 0) return dbSalons;
-    
-    let list = dummySalons;
+    let list = dbSalons || [];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      list = list.filter(s => s.name.toLowerCase().includes(q));
+      list = list.filter((s: any) => s.name.toLowerCase().includes(q));
     }
     return list;
   }, [dbSalons, searchQuery]);
@@ -185,7 +178,13 @@ export default function AtTheSalonPage() {
             );
           })
         ) : (
-          <div className="text-center py-10 text-gray-500 text-sm">No salons found.</div>
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white border border-gray-100 rounded-2xl shadow-sm px-6">
+            <span className="material-icons-round text-5xl text-gray-300 mb-4">store_mall_directory</span>
+            <h3 className="text-lg font-bold text-gray-800 mb-2">No salons available right now</h3>
+            <p className="text-[13px] text-gray-500 max-w-[200px] leading-relaxed">
+              New premium salons are joining us soon. Check back later to book your appointment!
+            </p>
+          </div>
         )}
       </div>
 

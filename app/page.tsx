@@ -447,31 +447,39 @@ export default function HomePage() {
           <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-          {salons?.map((salon: any) => (
-            <Link key={salon._id} href={`/salon/${salon._id}`} className="flex-shrink-0 w-[160px] animate-fadeInUp group">
-              <div className="relative w-full h-[120px] rounded-2xl overflow-hidden bg-surface-dim mb-2">
-                <Image
-                  src={salon.images?.[0] || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80'}
-                  alt={salon.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <h4 className="text-[13px] font-bold text-text-primary mb-0.5 line-clamp-1">{salon.name}</h4>
-              <div className="flex items-center gap-2 text-[11px] text-text-tertiary">
-                <span>{salon.distance}</span>
-                {salon.rating && (
-                  <>
-                    <span>|</span>
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-icons-round text-amber-500 text-[11px]">star</span>
-                      {salon.rating}
-                    </span>
-                  </>
-                )}
-              </div>
-            </Link>
-          ))}
+          {(!salons || salons.length === 0) ? (
+            <div className="w-full flex flex-col items-center justify-center py-8 px-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-center mx-2">
+               <span className="material-icons-round text-4xl text-gray-300 mb-3">store_mall_directory</span>
+               <h4 className="text-[14px] font-bold text-gray-800 mb-1">No salons available right now</h4>
+               <p className="text-[12px] text-gray-500 max-w-[200px]">New premium salons coming soon in your area.</p>
+            </div>
+          ) : (
+            salons.map((salon: any) => (
+              <Link key={salon._id || salon.id} href={`/salon/${salon._id || salon.id}`} className="flex-shrink-0 w-[160px] animate-fadeInUp group">
+                <div className="relative w-full h-[120px] rounded-2xl overflow-hidden bg-surface-dim mb-2">
+                  <Image
+                    src={salon.images?.[0] || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80'}
+                    alt={salon.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <h4 className="text-[13px] font-bold text-text-primary mb-0.5 line-clamp-1">{salon.name}</h4>
+                <div className="flex items-center gap-2 text-[11px] text-text-tertiary">
+                  <span>{salon.distance || "Near you"}</span>
+                  {salon.rating && (
+                    <>
+                      <span>|</span>
+                      <span className="flex items-center gap-0.5">
+                        <span className="material-icons-round text-amber-500 text-[11px]">star</span>
+                        {salon.rating}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
