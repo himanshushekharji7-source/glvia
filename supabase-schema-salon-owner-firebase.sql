@@ -13,7 +13,7 @@ ADD COLUMN IF NOT EXISTS kyc_documents JSONB DEFAULT '{}'::jsonb;
 -- Linked to Firebase Authentication via firebase_uid
 CREATE TABLE IF NOT EXISTS admin_users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  firebase_uid TEXT NOT NULL UNIQUE,
+  firebase_uid TEXT UNIQUE,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'salon_owner' CHECK (role IN ('salon_owner', 'admin', 'super_admin')),
@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure columns exist if table was already created
+ALTER TABLE admin_users 
+ADD COLUMN IF NOT EXISTS firebase_uid TEXT UNIQUE,
+ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended'));
 
 -- 3. Staff Management Table
 CREATE TABLE IF NOT EXISTS staff (

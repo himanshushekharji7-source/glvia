@@ -52,14 +52,33 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
-          // Fetch the admin user record from Supabase
-          const { data, error } = await supabase
+          // 1. First try to find by firebase_uid
+          let { data, error } = await supabase
             .from("admin_users")
             .select("id, firebase_uid, email, name, role, salon_id, approval_status")
             .eq("firebase_uid", firebaseUser.uid)
             .maybeSingle();
 
-          if (error || !data) {
+          // 2. If not found by firebase_uid, try finding by email to link legacy accounts
+          if (!data && firebaseUser.email) {
+            const { data: emailData, error: emailError } = await supabase
+              .from("admin_users")
+              .select("id, firebase_uid, email, name, role, salon_id, approval_status")
+              .eq("email", firebaseUser.email)
+              .maybeSingle();
+              
+            if (emailData && !emailData.firebase_uid) {
+               // Link the account!
+               await supabase
+                 .from("admin_users")
+                 .update({ firebase_uid: firebaseUser.uid })
+                 .eq("id", emailData.id);
+                 
+               data = { ...emailData, firebase_uid: firebaseUser.uid };
+            }
+          }
+
+          if (!data) {
             console.warn("User authenticated in Firebase but no admin_users record found.");
             setAdmin(null);
           } else if (data.approval_status !== "approved") {
@@ -95,13 +114,26 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      const { data, error } = await supabase
+      let { data } = await supabase
         .from("admin_users")
-        .select("approval_status")
+        .select("id, firebase_uid, approval_status")
         .eq("firebase_uid", userCredential.user.uid)
         .maybeSingle();
 
-      if (error || !data) {
+      if (!data) {
+        const { data: emailData } = await supabase
+          .from("admin_users")
+          .select("id, firebase_uid, approval_status")
+          .eq("email", email)
+          .maybeSingle();
+          
+        if (emailData && !emailData.firebase_uid) {
+           await supabase.from("admin_users").update({ firebase_uid: userCredential.user.uid }).eq("id", emailData.id);
+           data = { ...emailData, firebase_uid: userCredential.user.uid };
+        }
+      }
+
+      if (!data) {
         await firebaseSignOut(auth);
         return { success: false, error: "No salon owner account found for this email. Please register." };
       }
@@ -125,13 +157,26 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       
-      const { data, error } = await supabase
+      let { data } = await supabase
         .from("admin_users")
-        .select("approval_status")
+        .select("id, firebase_uid, approval_status")
         .eq("firebase_uid", result.user.uid)
         .maybeSingle();
 
-      if (error || !data) {
+      if (!data && result.user.email) {
+        const { data: emailData } = await supabase
+          .from("admin_users")
+          .select("id, firebase_uid, approval_status")
+          .eq("email", result.user.email)
+          .maybeSingle();
+          
+        if (emailData && !emailData.firebase_uid) {
+           await supabase.from("admin_users").update({ firebase_uid: result.user.uid }).eq("id", emailData.id);
+           data = { ...emailData, firebase_uid: result.user.uid };
+        }
+      }
+
+      if (!data) {
         await firebaseSignOut(auth);
         return { success: false, error: "No salon owner account found for this Google account. Please register." };
       }
