@@ -28,6 +28,9 @@ ALTER TABLE admin_users
 ADD COLUMN IF NOT EXISTS firebase_uid TEXT UNIQUE,
 ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended'));
 
+-- Allow password_hash to be NULL since Firebase Auth handles password verification for salon owners
+ALTER TABLE admin_users ALTER COLUMN password_hash DROP NOT NULL;
+
 -- 3. Staff Management Table
 CREATE TABLE IF NOT EXISTS staff (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
