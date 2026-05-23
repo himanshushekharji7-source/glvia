@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
 ALTER TABLE admin_users 
 ADD COLUMN IF NOT EXISTS firebase_uid TEXT UNIQUE,
 ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended')),
-ADD COLUMN IF NOT EXISTS security_pin_hash TEXT;
+ADD COLUMN IF NOT EXISTS security_pin_hash TEXT,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- Drop old check constraint and add the new one that excludes 'admin'
 ALTER TABLE admin_users DROP CONSTRAINT IF EXISTS admin_users_role_check;

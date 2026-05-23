@@ -348,7 +348,9 @@ CREATE POLICY "Admin full access" ON trust_banners FOR ALL USING (true) WITH CHE
 -- ═══════════════════════════════════════════════════════════════
 
 -- 16. Extend admin_users: link salon_owner to a specific salon
-ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS salon_id UUID REFERENCES salons(id) ON DELETE SET NULL;
+ALTER TABLE admin_users 
+ADD COLUMN IF NOT EXISTS salon_id UUID REFERENCES salons(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- 17. Bookings Table — real appointment/booking tracking
 CREATE TABLE IF NOT EXISTS bookings (
