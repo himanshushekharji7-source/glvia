@@ -73,18 +73,30 @@ export default function BookingsPage() {
   };
 
   const isActionAllowed = (dateStr: string, timeStr: string) => {
-    const now = new Date();
-    // Parse time like "10:30 AM"
-    const [time, period] = timeStr.split(' ');
-    const [hours, minutes] = time.split(':');
-    let h = parseInt(hours);
-    if (period === 'PM' && h < 12) h += 12;
-    if (period === 'AM' && h === 12) h = 0;
-    
-    const bookingDate = new Date(`${dateStr}T${h.toString().padStart(2, '0')}:${minutes}:00`);
-    
-    // Check if current time is BEFORE the booking time
-    return now < bookingDate;
+    if (!dateStr || !timeStr) return false;
+    try {
+      const now = new Date();
+      // Parse time like "10:30 AM"
+      const parts = timeStr.split(' ');
+      if (parts.length !== 2) return false;
+      
+      const [time, period] = parts;
+      const timeParts = time.split(':');
+      if (timeParts.length !== 2) return false;
+      
+      const [hours, minutes] = timeParts;
+      let h = parseInt(hours);
+      if (period === 'PM' && h < 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      
+      const bookingDate = new Date(`${dateStr}T${h.toString().padStart(2, '0')}:${minutes}:00`);
+      if (isNaN(bookingDate.getTime())) return false;
+      
+      // Check if current time is BEFORE the booking time
+      return now < bookingDate;
+    } catch (e) {
+      return false;
+    }
   };
 
   return (
@@ -137,7 +149,7 @@ export default function BookingsPage() {
                     </span>
                   </div>
                   <p className="text-[12px] text-text-secondary mt-0.5 truncate">
-                    {booking.services?.map((s: any) => s.name).join(", ")}
+                    {Array.isArray(booking.services) ? booking.services.map((s: any) => s.name).join(", ") : "Salon Service"}
                   </p>
                   <div className="flex items-center gap-3 mt-2">
                     <span className="text-[12px] text-text-tertiary flex items-center gap-1">

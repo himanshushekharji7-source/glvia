@@ -566,7 +566,7 @@ export const useMyBookings = (salonId?: string) => {
         const firebaseUid = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         let query = supabase
           .from(TABLES.BOOKINGS)
-          .select('*, salons:salon_id(id, name, images, address_street, address_city)')
+          .select('*, salons(id, name, images, address_street, address_city)')
           .order('created_at', { ascending: false });
           
         if (salonId) {
@@ -679,7 +679,7 @@ export const useBookingDetails = (id: string) => {
       
       const { data, error } = await supabase
         .from(TABLES.BOOKINGS)
-        .select('*, salons:salon_id(id, name, images, address_street, address_city, contact_phone)')
+        .select('*, salons(id, name, images, address_street, address_city, contact_phone)')
         .eq('id', id)
         .single();
         
