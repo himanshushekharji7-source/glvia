@@ -16,7 +16,7 @@ export default function AdminApprovalsPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (!isAuthenticated || !["admin", "super_admin"].includes(admin?.role || "")) {
+      if (!isAuthenticated || admin?.role !== "super_admin") {
         router.replace("/");
         return;
       }

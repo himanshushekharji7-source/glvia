@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT,
   name TEXT NOT NULL DEFAULT 'Admin',
-  role TEXT NOT NULL DEFAULT 'super_admin',
+  role TEXT NOT NULL DEFAULT 'super_admin' CHECK (role IN ('salon_owner', 'super_admin')),
+  security_pin_hash TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -438,13 +439,62 @@ BEGIN
   SELECT salon_id, role INTO owner_salon_id, owner_role
   FROM admin_users WHERE email = owner_email;
 
-  -- super_admin and admin can access any salon
-  IF owner_role IN ('super_admin', 'admin') THEN
+  -- super_admin can access any salon
+  IF owner_role = 'super_admin' THEN
     RETURN TRUE;
   END IF;
 
   -- salon_owner can only access their own salon
   RETURN owner_salon_id = target_salon_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ═══════════════════════════════════════════════════════════════
+-- PIN MANAGEMENT RPC FUNCTIONS
+-- ═══════════════════════════════════════════════════════════════
+
+-- Verify if the PIN matches
+CREATE OR REPLACE FUNCTION verify_admin_pin(input_email TEXT, input_pin TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  stored_hash TEXT;
+BEGIN
+  SELECT security_pin_hash INTO stored_hash FROM admin_users WHERE email = input_email;
+  IF stored_hash IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  RETURN stored_hash = crypt(input_pin, stored_hash);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Setup initial PIN if it was null
+CREATE OR REPLACE FUNCTION setup_admin_pin(input_email TEXT, new_pin TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  UPDATE admin_users 
+  SET security_pin_hash = crypt(new_pin, gen_salt('bf', 12)),
+      updated_at = now()
+  WHERE email = input_email AND security_pin_hash IS NULL;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Change security PIN (requires verification of the old PIN)
+CREATE OR REPLACE FUNCTION change_admin_pin(input_email TEXT, old_pin TEXT, new_pin TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  stored_hash TEXT;
+BEGIN
+  SELECT security_pin_hash INTO stored_hash FROM admin_users WHERE email = input_email;
+  IF stored_hash IS NULL OR stored_hash != crypt(old_pin, stored_hash) THEN
+    RETURN FALSE;
+  END IF;
+  UPDATE admin_users 
+  SET security_pin_hash = crypt(new_pin, gen_salt('bf', 12)),
+      updated_at = now()
+  WHERE email = input_email;
+  RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

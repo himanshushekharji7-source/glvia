@@ -21,7 +21,7 @@ export default function SalonOwnerLoginPage() {
       if (admin.approval_status === "rejected" || admin.approval_status === "suspended") {
         setError("Your account has been " + admin.approval_status + ".");
       } else {
-        const allowedRoles = ["salon_owner", "admin", "super_admin"];
+        const allowedRoles = ["salon_owner", "super_admin"];
         if (allowedRoles.includes(admin.role)) {
           router.replace("/salon-owner/dashboard");
         }

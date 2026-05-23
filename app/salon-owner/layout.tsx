@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { AdminAuthProvider, useAdminAuth } from "../lib/adminAuth";
 
-const ALLOWED_ROLES = ["salon_owner", "admin", "super_admin"];
+const ALLOWED_ROLES = ["salon_owner", "super_admin"];
 
 function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
   const { admin, isLoading, isAuthenticated } = useAdminAuth();

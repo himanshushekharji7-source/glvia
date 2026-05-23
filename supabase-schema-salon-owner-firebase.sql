@@ -16,9 +16,10 @@ CREATE TABLE IF NOT EXISTS admin_users (
   firebase_uid TEXT UNIQUE,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'salon_owner' CHECK (role IN ('salon_owner', 'admin', 'super_admin')),
+  role TEXT NOT NULL DEFAULT 'salon_owner' CHECK (role IN ('salon_owner', 'super_admin')),
   salon_id UUID REFERENCES salons(id) ON DELETE SET NULL,
   approval_status TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended')),
+  security_pin_hash TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -26,7 +27,15 @@ CREATE TABLE IF NOT EXISTS admin_users (
 -- Ensure columns exist if table was already created
 ALTER TABLE admin_users 
 ADD COLUMN IF NOT EXISTS firebase_uid TEXT UNIQUE,
-ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended'));
+ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended')),
+ADD COLUMN IF NOT EXISTS security_pin_hash TEXT;
+
+-- Drop old check constraint and add the new one that excludes 'admin'
+ALTER TABLE admin_users DROP CONSTRAINT IF EXISTS admin_users_role_check;
+ALTER TABLE admin_users ADD CONSTRAINT admin_users_role_check CHECK (role IN ('salon_owner', 'super_admin'));
+
+-- Migrate any existing 'admin' role users to 'super_admin'
+UPDATE admin_users SET role = 'super_admin' WHERE role = 'admin';
 
 -- Allow password_hash to be NULL since Firebase Auth handles password verification for salon owners
 ALTER TABLE admin_users ALTER COLUMN password_hash DROP NOT NULL;
@@ -118,6 +127,55 @@ BEGIN
   );
 
   RETURN v_salon_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ═══════════════════════════════════════════════════════════════
+-- PIN MANAGEMENT RPC FUNCTIONS
+-- ═══════════════════════════════════════════════════════════════
+
+-- Verify if the PIN matches
+CREATE OR REPLACE FUNCTION verify_admin_pin(input_email TEXT, input_pin TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  stored_hash TEXT;
+BEGIN
+  SELECT security_pin_hash INTO stored_hash FROM admin_users WHERE email = input_email;
+  IF stored_hash IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  RETURN stored_hash = crypt(input_pin, stored_hash);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Setup initial PIN if it was null
+CREATE OR REPLACE FUNCTION setup_admin_pin(input_email TEXT, new_pin TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  UPDATE admin_users 
+  SET security_pin_hash = crypt(new_pin, gen_salt('bf', 12)),
+      updated_at = now()
+  WHERE email = input_email AND security_pin_hash IS NULL;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Change security PIN (requires verification of the old PIN)
+CREATE OR REPLACE FUNCTION change_admin_pin(input_email TEXT, old_pin TEXT, new_pin TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  stored_hash TEXT;
+BEGIN
+  SELECT security_pin_hash INTO stored_hash FROM admin_users WHERE email = input_email;
+  IF stored_hash IS NULL OR stored_hash != crypt(old_pin, stored_hash) THEN
+    RETURN FALSE;
+  END IF;
+  UPDATE admin_users 
+  SET security_pin_hash = crypt(new_pin, gen_salt('bf', 12)),
+      updated_at = now()
+  WHERE email = input_email;
+  RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

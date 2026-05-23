@@ -4,13 +4,15 @@ import { useAdminAuth } from "../lib/adminAuth";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import AdminHeader from "../components/admin/AdminHeader";
 import AdminLoginPage from "../components/admin/AdminLoginPage";
+import AdminPinSetupPage from "../components/admin/AdminPinSetupPage";
+import AdminPinVerificationPage from "../components/admin/AdminPinVerificationPage";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAdminAuth();
+  const { isAuthenticated, isAdmin, isPinVerified, isLoading, admin } = useAdminAuth();
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -24,12 +26,22 @@ export default function AdminLayout({
     );
   }
 
-  // Show login page if not authenticated
-  if (!isAuthenticated) {
+  // Show login page if not authenticated or not a super admin
+  if (!isAuthenticated || !isAdmin) {
     return <AdminLoginPage />;
   }
 
-  // Authenticated — show admin dashboard
+  // Force PIN setup if the super admin doesn't have one
+  if (admin && !admin.has_pin) {
+    return <AdminPinSetupPage />;
+  }
+
+  // Gate with PIN verification if not verified in current session
+  if (!isPinVerified) {
+    return <AdminPinVerificationPage />;
+  }
+
+  // Authenticated & PIN Verified — show admin dashboard
   return (
     <div className="min-h-dvh bg-surface flex flex-col lg:flex-row">
       <AdminSidebar />

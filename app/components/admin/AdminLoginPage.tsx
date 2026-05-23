@@ -7,6 +7,7 @@ export default function AdminLoginPage() {
   const { loginWithEmail } = useAdminAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +26,7 @@ export default function AdminLoginPage() {
     }
 
     setIsLoading(true);
-    const result = await loginWithEmail(email, password);
+    const result = await loginWithEmail(email, password, pin || undefined);
     setIsLoading(false);
 
     if (!result.success) {
@@ -103,6 +104,28 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-semibold text-gray-300">Security PIN</label>
+              <span className="text-[10px] text-gray-500 font-medium">Leave blank for first login</span>
+            </div>
+            <div className="relative">
+              <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[20px]">
+                security
+              </span>
+              <input
+                type="password"
+                maxLength={4}
+                pattern="[0-9]*"
+                inputMode="numeric"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="4-digit PIN"
+                className="w-full pl-10 pr-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/10 transition-all text-center tracking-[0.5em] font-bold text-lg"
+              />
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={isLoading}
@@ -120,10 +143,6 @@ export default function AdminLoginPage() {
               </>
             )}
           </button>
-
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Default: admin@glvia.com / admin123
-          </p>
         </form>
       </div>
     </div>
