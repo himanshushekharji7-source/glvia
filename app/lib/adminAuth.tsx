@@ -57,7 +57,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
             .from("admin_users")
             .select("id, firebase_uid, email, name, role, salon_id, approval_status")
             .eq("firebase_uid", firebaseUser.uid)
-            .single();
+            .maybeSingle();
 
           if (error || !data) {
             console.warn("User authenticated in Firebase but no admin_users record found.");
@@ -93,8 +93,24 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const loginWithEmail = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      // State is handled by onAuthStateChanged
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("approval_status")
+        .eq("firebase_uid", userCredential.user.uid)
+        .maybeSingle();
+
+      if (error || !data) {
+        await firebaseSignOut(auth);
+        return { success: false, error: "No salon owner account found for this email. Please register." };
+      }
+      
+      if (data.approval_status !== "approved") {
+        await firebaseSignOut(auth);
+        return { success: false, error: "Your account is currently pending approval by an administrator." };
+      }
+
       return { success: true };
     } catch (err: any) {
       console.error("Email Login error:", err);
@@ -107,7 +123,24 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("approval_status")
+        .eq("firebase_uid", result.user.uid)
+        .maybeSingle();
+
+      if (error || !data) {
+        await firebaseSignOut(auth);
+        return { success: false, error: "No salon owner account found for this Google account. Please register." };
+      }
+      
+      if (data.approval_status !== "approved") {
+        await firebaseSignOut(auth);
+        return { success: false, error: "Your account is currently pending approval by an administrator." };
+      }
+
       return { success: true };
     } catch (err: any) {
       console.error("Google Login error:", err);

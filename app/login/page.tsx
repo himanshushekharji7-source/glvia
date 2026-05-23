@@ -57,7 +57,7 @@ export default function LoginPage() {
           .from(TABLES.USERS)
           .select("*")
           .eq("firebase_uid", user.uid)
-          .single();
+          .maybeSingle();
 
         if (!existingUser) {
           await supabase.from(TABLES.USERS).insert({
@@ -76,7 +76,7 @@ export default function LoginPage() {
           .from(TABLES.USERS)
           .select("*")
           .eq("firebase_uid", user.uid)
-          .single();
+          .maybeSingle();
 
         if (!existingUser) {
           await supabase.from(TABLES.USERS).insert({
