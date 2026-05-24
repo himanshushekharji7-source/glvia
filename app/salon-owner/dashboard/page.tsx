@@ -778,11 +778,27 @@ function DashboardContent() {
 
   if (!salonId) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="text-center p-8">
-          <span className="material-icons-round text-6xl text-slate-600 mb-4 block">store_mall_directory</span>
-          <h2 className="text-xl font-bold text-white mb-2">No Salon Linked</h2>
-          <p className="text-slate-400 text-sm">Your account is not linked to any salon yet. Please contact the administrator.</p>
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-5">
+        <div className="text-center p-8 max-w-sm w-full bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl">
+          <span className="material-icons-round text-6xl text-slate-600 mb-5 block">store_mall_directory</span>
+          <h2 className="text-xl font-bold text-white mb-3">
+            {isAdmin ? "Admin Preview Mode" : "No Salon Linked"}
+          </h2>
+          <p className="text-slate-400 text-sm mb-6">
+            {isAdmin 
+              ? "Please select a salon from the Admin Panel to access its full dashboard." 
+              : "Your account is not linked to any salon yet. Please complete registration or contact support."}
+          </p>
+          {isAdmin ? (
+            <a href="/admin/salons" className="inline-flex items-center justify-center gap-2 w-full py-3 bg-pink-500 hover:bg-pink-400 text-white rounded-xl font-bold text-sm transition-colors">
+              <span className="material-icons-round text-[18px]">admin_panel_settings</span>
+              Go to Admin Panel
+            </a>
+          ) : (
+            <a href="/salon-owner/register" className="inline-flex items-center justify-center gap-2 w-full py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl font-bold text-sm transition-colors border border-white/10">
+              Complete Registration
+            </a>
+          )}
         </div>
       </div>
     );

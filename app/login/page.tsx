@@ -9,6 +9,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult
 } from "firebase/auth";
 import { supabase, TABLES } from "../lib/supabase";
 import { useAdminAuth } from "../lib/adminAuth";
@@ -17,30 +20,188 @@ import Image from "next/image";
 
 type Persona = null | "customer" | "owner";
 
+declare global {
+  interface Window {
+    recaptchaVerifier: RecaptchaVerifier | null;
+  }
+}
+
 export default function UnifiedLoginPage() {
   const router = useRouter();
   const { loginWithGoogle: ownerLoginWithGoogle, isAuthenticated, admin } = useAdminAuth();
   
   const [persona, setPersona] = useState<Persona>(null);
   
-  // Customer Auth State
+  // Auth State
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Phone OTP State
+  const [phoneNumber, setPhoneNumber] = useState("+91 ");
+  const [otpCode, setOtpCode] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [timer, setTimer] = useState(0);
+
+  // Status
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // If already authenticated as owner, go to dashboard
+  // If already authenticated, route correctly
   useEffect(() => {
-    if (isAuthenticated && admin && admin.role === "salon_owner") {
-      router.replace("/salon-owner/dashboard");
+    if (isAuthenticated && admin) {
+      if (admin.role === "super_admin") {
+        router.replace("/admin");
+      } else if (admin.role === "salon_owner") {
+        router.replace("/salon-owner/dashboard");
+      }
     }
   }, [isAuthenticated, admin, router]);
 
-  // --- Customer Auth Logic ---
+  // Timer for OTP Resend
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const cleanupRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {
+        console.error("Recaptcha clear error", e);
+      }
+      window.recaptchaVerifier = null;
+    }
+    const container = document.getElementById("recaptcha-container");
+    if (container) container.innerHTML = "";
+  };
+
+  // --- Phone OTP Logic ---
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    
+    // Format and validate phone
+    const formattedPhone = phoneNumber.replace(/\s+/g, '');
+    if (formattedPhone.length < 11 || !formattedPhone.startsWith("+")) {
+      setErrorMessage("Please enter a valid phone number with country code (e.g. +91).");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      cleanupRecaptcha();
+      
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+      });
+
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      setConfirmationResult(confirmation);
+      setIsOtpSent(true);
+      setTimer(30);
+      setSuccessMessage(`OTP sent successfully to ${phoneNumber}`);
+    } catch (err: any) {
+      console.error("OTP send error:", err);
+      cleanupRecaptcha();
+      
+      if (err.code === "auth/too-many-requests") {
+        setErrorMessage("Too many requests. Please try again later.");
+      } else if (err.code === "auth/invalid-phone-number") {
+        setErrorMessage("Invalid phone number format.");
+      } else {
+        setErrorMessage(err.message || "Failed to send OTP. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    
+    if (otpCode.length < 6) {
+      setErrorMessage("Please enter the 6-digit OTP.");
+      return;
+    }
+
+    if (!confirmationResult) {
+      setErrorMessage("OTP session expired. Please request a new one.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await confirmationResult.confirm(otpCode);
+      const user = result.user;
+      localStorage.setItem("token", user.uid);
+
+      if (persona === "customer") {
+        // Sync Customer
+        const { data: existingUser } = await supabase
+          .from(TABLES.USERS)
+          .select("*")
+          .eq("firebase_uid", user.uid)
+          .maybeSingle();
+
+        if (!existingUser) {
+          await supabase.from(TABLES.USERS).insert({
+            firebase_uid: user.uid,
+            phone_number: user.phoneNumber || phoneNumber.replace(/\s+/g, ''),
+            first_name: "Customer",
+          });
+        }
+        router.push("/");
+      } else if (persona === "owner") {
+        // Sync Owner
+        const { data: existingOwner } = await supabase
+          .from("admin_users")
+          .select("id, role, approval_status")
+          .eq("firebase_uid", user.uid)
+          .maybeSingle();
+
+        if (!existingOwner) {
+          // New owner -> must register
+          router.push("/salon-owner/register");
+        } else {
+          if (existingOwner.approval_status === "rejected" || existingOwner.approval_status === "suspended") {
+            setErrorMessage(`Your account is ${existingOwner.approval_status}.`);
+          } else {
+            router.push(existingOwner.role === "super_admin" ? "/admin" : "/salon-owner/dashboard");
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("OTP verify error:", err);
+      setErrorMessage("Invalid OTP code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPhoneFlow = () => {
+    setIsOtpSent(false);
+    setOtpCode("");
+    setTimer(0);
+    setErrorMessage("");
+    setSuccessMessage("");
+    cleanupRecaptcha();
+  };
+
+  // --- Customer Email Logic ---
   const executeCustomerAuth = async (signUpMode: boolean) => {
     setErrorMessage("");
     setSuccessMessage("");
@@ -143,10 +304,31 @@ export default function UnifiedLoginPage() {
     }
   };
 
-  const handleCustomerGoogleSignIn = async () => {
+  // --- Google Auth Logic ---
+  const handleGoogleSignIn = async (isOwner: boolean = false) => {
     setErrorMessage("");
     setSuccessMessage("");
     setIsLoading(true);
+
+    if (isOwner) {
+      const result = await ownerLoginWithGoogle();
+      setIsLoading(false);
+      
+      if (!result.success) {
+        if (result.error?.includes("No account found")) {
+          router.push("/salon-owner/register");
+        } else {
+          setErrorMessage(result.error || "Google login failed");
+        }
+      } else {
+        if (admin?.role === "super_admin") {
+          router.push("/admin");
+        } else {
+          router.push("/salon-owner/dashboard");
+        }
+      }
+      return;
+    }
 
     try {
       const provider = new GoogleAuthProvider();
@@ -181,32 +363,13 @@ export default function UnifiedLoginPage() {
     }
   };
 
-  // --- Owner Auth Logic ---
-  const handleOwnerGoogleSignIn = async () => {
-    setErrorMessage("");
-    setIsLoading(true);
-    const result = await ownerLoginWithGoogle();
-    setIsLoading(false);
-    
-    if (!result.success) {
-      if (result.error?.includes("No account found")) {
-        // Not registered as a salon owner yet
-        router.push("/salon-owner/register");
-      } else {
-        setErrorMessage(result.error || "Google login failed");
-      }
-    } else {
-      router.push("/salon-owner/dashboard");
-    }
-  };
-
   // --- Render Persona Selection ---
   if (persona === null) {
     return (
       <div className="min-h-dvh flex flex-col md:flex-row bg-slate-950 overflow-hidden">
         {/* Customer Side */}
         <div 
-          onClick={() => setPersona("customer")}
+          onClick={() => { setPersona("customer"); setAuthMethod("phone"); }}
           className="relative flex-1 group cursor-pointer overflow-hidden transition-all duration-700 hover:flex-[1.2]"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-[#ec4899] to-[#8b5cf6] opacity-90 transition-opacity group-hover:opacity-100 z-10" />
@@ -234,7 +397,7 @@ export default function UnifiedLoginPage() {
 
         {/* Owner Side */}
         <div 
-          onClick={() => setPersona("owner")}
+          onClick={() => { setPersona("owner"); setAuthMethod("phone"); }}
           className="relative flex-1 group cursor-pointer overflow-hidden transition-all duration-700 hover:flex-[1.2]"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 opacity-95 transition-opacity group-hover:opacity-100 z-10" />
@@ -257,44 +420,43 @@ export default function UnifiedLoginPage() {
     );
   }
 
-  // --- Render Customer / Owner Flows ---
+  // --- Main Auth UI ---
+  const isOwner = persona === "owner";
+  
   return (
-    <div className={`min-h-dvh flex flex-col select-none overflow-x-hidden transition-colors duration-500 ${persona === "owner" ? "bg-slate-950" : "bg-surface-card"}`}>
+    <div className={`min-h-dvh flex flex-col select-none overflow-x-hidden transition-colors duration-500 ${isOwner ? "bg-slate-950" : "bg-surface-card"}`}>
+      <div id="recaptcha-container"></div>
       
       {/* Header Background */}
-      <div className={`relative h-[260px] flex flex-col items-center justify-end pb-10 overflow-hidden transition-colors duration-500 ${persona === "owner" ? "bg-gradient-to-br from-slate-900 to-slate-950 border-b border-white/5" : "bg-gradient-to-br from-[#ec4899] via-[#b546cc] to-[#8b5cf6]"}`}>
-        {/* Glow Spheres */}
-        <div className={`absolute -top-12 -left-12 w-44 h-44 rounded-full blur-2xl animate-pulse ${persona === "owner" ? "bg-pink-500/20" : "bg-white/10"}`} style={{ animationDuration: '4s' }} />
-        <div className={`absolute -top-6 -right-6 w-32 h-32 rounded-full blur-xl ${persona === "owner" ? "bg-purple-500/10" : "bg-white/5"}`} />
+      <div className={`relative h-[260px] flex flex-col items-center justify-end pb-10 overflow-hidden transition-colors duration-500 ${isOwner ? "bg-gradient-to-br from-slate-900 to-slate-950 border-b border-white/5" : "bg-gradient-to-br from-[#ec4899] via-[#b546cc] to-[#8b5cf6]"}`}>
+        <div className={`absolute -top-12 -left-12 w-44 h-44 rounded-full blur-2xl animate-pulse ${isOwner ? "bg-pink-500/20" : "bg-white/10"}`} style={{ animationDuration: '4s' }} />
+        <div className={`absolute -top-6 -right-6 w-32 h-32 rounded-full blur-xl ${isOwner ? "bg-purple-500/10" : "bg-white/5"}`} />
         
-        {/* Back Button */}
         <button 
-          onClick={() => { setPersona(null); setErrorMessage(""); }}
-          className={`absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm backdrop-blur-md transition-all ${persona === "owner" ? "bg-white/5 text-slate-300 hover:bg-white/10" : "bg-black/20 text-white hover:bg-black/30"}`}
+          onClick={() => { setPersona(null); setErrorMessage(""); resetPhoneFlow(); }}
+          className={`absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm backdrop-blur-md transition-all ${isOwner ? "bg-white/5 text-slate-300 hover:bg-white/10" : "bg-black/20 text-white hover:bg-black/30"}`}
         >
           <span className="material-icons-round text-[16px]">arrow_back</span>
           Back
         </button>
 
-        {/* Brand Content */}
         <div className="relative z-10 text-center flex flex-col items-center">
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-2xl backdrop-blur-md ${persona === "owner" ? "bg-pink-500/20 border border-pink-500/30" : "bg-white/15 border border-white/25"}`}>
-            <span className={`material-icons-round text-[30px] ${persona === "owner" ? "text-pink-400" : "text-white"}`}>
-              {persona === "owner" ? "storefront" : (isSignUp ? "person_add" : "lock")}
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-2xl backdrop-blur-md ${isOwner ? "bg-pink-500/20 border border-pink-500/30" : "bg-white/15 border border-white/25"}`}>
+            <span className={`material-icons-round text-[30px] ${isOwner ? "text-pink-400" : "text-white"}`}>
+              {isOwner ? "storefront" : (authMethod === "phone" ? "phone_iphone" : "face")}
             </span>
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-sm">
-            {persona === "owner" ? "Salon Manager" : "glvia"}
+            {isOwner ? "Salon Manager" : "glvia"}
           </h1>
-          <p className={`text-[13px] mt-1 font-medium ${persona === "owner" ? "text-slate-400" : "text-white/80"}`}>
-            {persona === "owner" ? "Partner Portal Access" : (isSignUp ? "Create a premium account" : "Welcome back to your beauty space")}
+          <p className={`text-[13px] mt-1 font-medium ${isOwner ? "text-slate-400" : "text-white/80"}`}>
+            {isOwner ? "Partner Portal Access" : "Welcome to your beauty space"}
           </p>
         </div>
       </div>
 
       <div className="flex-1 px-6 pt-6 pb-12 flex flex-col max-w-md w-full mx-auto">
         
-        {/* Alerts */}
         {errorMessage && (
           <div className="mb-6 p-4 bg-red-500/10 text-red-500 text-[13px] font-bold rounded-2xl border border-red-500/20 flex items-start gap-3 shadow-lg">
             <span className="material-icons-round text-[18px]">error_outline</span>
@@ -308,111 +470,176 @@ export default function UnifiedLoginPage() {
           </div>
         )}
 
-        {/* ======================= CUSTOMER FLOW ======================= */}
-        {persona === "customer" && (
-          <>
-            <div className="relative flex bg-surface-dim p-1.5 rounded-2xl w-full mb-6 border border-border/40 shadow-inner">
-              <div 
-                className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-[0_3px_10px_rgba(0,0,0,0.06)] transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)"
-                style={{ transform: isSignUp ? "translateX(100%)" : "translateX(0%)" }}
-              />
-              <button type="button" onClick={() => { setIsSignUp(false); setErrorMessage(""); }} className={`relative z-10 flex-1 py-2.5 text-center text-[13.5px] font-bold transition-colors duration-300 ${!isSignUp ? "text-text-primary" : "text-text-secondary"}`}>Log In</button>
-              <button type="button" onClick={() => { setIsSignUp(true); setErrorMessage(""); }} className={`relative z-10 flex-1 py-2.5 text-center text-[13.5px] font-bold transition-colors duration-300 ${isSignUp ? "text-text-primary" : "text-text-secondary"}`}>Sign Up</button>
-            </div>
-
-            {/* Google Quick Sign In for Customer */}
-            <button type="button" onClick={handleCustomerGoogleSignIn} disabled={isLoading} className="w-full py-3.5 mb-6 bg-white text-slate-800 rounded-2xl font-bold text-[14px] border border-gray-200 hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-sm">
-              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-              Continue with Google
-            </button>
-
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px bg-border"></div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Or with Email</span>
-              <div className="flex-1 h-px bg-border"></div>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); executeCustomerAuth(isSignUp); }} className="space-y-4">
-              {isSignUp && (
-                <div className="group">
-                  <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Full Name</label>
-                  <div className="relative flex items-center">
-                    <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">person</span>
-                    <input type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px" }} />
-                  </div>
-                </div>
-              )}
-
-              <div className="group">
-                <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Email Address</label>
-                <div className="relative flex items-center">
-                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">mail</span>
-                  <input type="email" placeholder="hello@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px" }} />
-                </div>
-              </div>
-
-              <div className="group">
-                <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Password</label>
-                <div className="relative flex items-center">
-                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">lock</span>
-                  <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px", paddingRight: "48px" }} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 text-text-tertiary hover:text-text-secondary">
-                    <span className="material-icons-round text-[19px]">{showPassword ? "visibility_off" : "visibility"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {!isSignUp && (
-                <div className="flex justify-end">
-                  <button type="button" onClick={handleCustomerForgotPassword} disabled={isLoading} className="text-[12px] font-bold text-[#ec4899] hover:underline">Forgot Password?</button>
-                </div>
-              )}
-
-              <button type="submit" disabled={isLoading} className={`w-full py-4 mt-4 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 ${isSignUp ? "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] shadow-[0_6px_20px_-3px_rgba(139,92,246,0.35)]" : "bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] shadow-[0_6px_20px_-3px_rgba(236,72,153,0.35)]"}`}>
-                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>{isSignUp ? "Sign Up" : "Log In"}</span>}
-              </button>
-            </form>
-          </>
+        {/* Method Switcher */}
+        {!isOtpSent && (
+          <div className={`relative flex p-1.5 rounded-2xl w-full mb-6 border shadow-inner ${isOwner ? "bg-slate-900 border-white/5" : "bg-surface-dim border-border/40"}`}>
+            <div 
+              className={`absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] rounded-xl shadow-[0_3px_10px_rgba(0,0,0,0.06)] transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${isOwner ? "bg-slate-800" : "bg-white"}`}
+              style={{ transform: authMethod === "email" ? "translateX(100%)" : "translateX(0%)" }}
+            />
+            <button type="button" onClick={() => { setAuthMethod("phone"); setErrorMessage(""); }} className={`relative z-10 flex-1 py-2.5 text-center text-[13.5px] font-bold transition-colors duration-300 ${authMethod === "phone" ? (isOwner ? "text-white" : "text-text-primary") : (isOwner ? "text-slate-500" : "text-text-secondary")}`}>Phone OTP</button>
+            <button type="button" onClick={() => { setAuthMethod("email"); setErrorMessage(""); }} className={`relative z-10 flex-1 py-2.5 text-center text-[13.5px] font-bold transition-colors duration-300 ${authMethod === "email" ? (isOwner ? "text-white" : "text-text-primary") : (isOwner ? "text-slate-500" : "text-text-secondary")}`}>Email Login</button>
+          </div>
         )}
 
-        {/* ======================= OWNER FLOW ======================= */}
-        {persona === "owner" && (
-          <div className="space-y-4 pt-4">
-            {/* Google Login for Owner */}
-            <button type="button" onClick={handleOwnerGoogleSignIn} disabled={isLoading} className="w-full py-4 bg-white text-slate-900 rounded-2xl font-bold text-[14.5px] hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl shadow-white/5">
-              {isLoading ? (
-                 <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-              ) : (
-                <>
-                  <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                  Sign in with Google
-                </>
-              )}
+        {/* ======================= PHONE OTP FLOW ======================= */}
+        {authMethod === "phone" && (
+          <div className="space-y-4">
+            {!isOtpSent ? (
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div className="group">
+                  <label className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 block ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Mobile Number</label>
+                  <div className="relative flex items-center">
+                    <span className={`material-icons-round absolute left-4 text-[19px] ${isOwner ? "text-slate-500" : "text-text-tertiary"}`}>phone</span>
+                    <input 
+                      type="tel" 
+                      placeholder="+91 9876543210" 
+                      value={phoneNumber} 
+                      onChange={(e) => setPhoneNumber(e.target.value)} 
+                      required 
+                      disabled={isLoading} 
+                      className={`w-full pl-11 pr-4 py-4 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 ${isOwner ? "bg-white/[0.05] border border-white/10 text-white placeholder-slate-600 focus:border-pink-500/60 focus:ring-pink-500/15" : "input focus:bg-white focus:border-[#ec4899] focus:ring-[#ec4899]/20"}`} 
+                    />
+                  </div>
+                </div>
+                <button type="submit" disabled={isLoading} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isOwner ? "bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 shadow-pink-500/20" : "bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] shadow-[#ec4899]/30"}`}>
+                  {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Send OTP via SMS</span>}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="space-y-4 animate-scaleIn">
+                <div className={`p-4 rounded-2xl mb-4 border flex items-center justify-between ${isOwner ? "bg-white/5 border-white/10" : "bg-surface-dim border-border/50"}`}>
+                  <div>
+                    <p className={`text-[11px] font-bold uppercase ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Sending to</p>
+                    <p className={`font-medium ${isOwner ? "text-white" : "text-text-primary"}`}>{phoneNumber}</p>
+                  </div>
+                  <button type="button" onClick={resetPhoneFlow} disabled={isLoading} className={`text-[12px] font-bold ${isOwner ? "text-pink-400 hover:text-pink-300" : "text-[#ec4899] hover:text-[#db2777]"}`}>Change</button>
+                </div>
+
+                <div className="group">
+                  <label className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 block text-center ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Enter 6-Digit Code</label>
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    placeholder="• • • • • •" 
+                    value={otpCode} 
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
+                    required 
+                    disabled={isLoading} 
+                    className={`w-full text-center tracking-[1em] text-2xl font-bold py-4 rounded-xl transition-all focus:outline-none focus:ring-2 ${isOwner ? "bg-white/[0.05] border border-white/10 text-white placeholder-slate-600 focus:border-pink-500/60 focus:ring-pink-500/15" : "input focus:bg-white focus:border-[#ec4899] focus:ring-[#ec4899]/20"}`} 
+                  />
+                </div>
+
+                <button type="submit" disabled={isLoading || otpCode.length < 6} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isOwner ? "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-500/20" : "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] shadow-[#8b5cf6]/30"}`}>
+                  {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Verify & Continue</span>}
+                </button>
+
+                <div className="text-center mt-4">
+                  <button 
+                    type="button" 
+                    onClick={handleSendOtp} 
+                    disabled={timer > 0 || isLoading} 
+                    className={`text-[12px] font-bold transition-colors ${timer > 0 ? (isOwner ? "text-slate-600" : "text-text-tertiary") : (isOwner ? "text-pink-400 hover:text-pink-300" : "text-[#ec4899] hover:text-[#db2777]")}`}
+                  >
+                    {timer > 0 ? `Resend Code in ${timer}s` : "Resend OTP Code"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* ======================= EMAIL FLOW ======================= */}
+        {authMethod === "email" && !isOwner && (
+          <form onSubmit={(e) => { e.preventDefault(); executeCustomerAuth(isSignUp); }} className="space-y-4 animate-scaleIn">
+            <div className="flex justify-end mb-2">
+              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-[12px] font-bold text-[#ec4899] hover:underline">
+                {isSignUp ? "Already have an account? Log In" : "Need an account? Sign Up"}
+              </button>
+            </div>
+            
+            {isSignUp && (
+              <div className="group">
+                <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Full Name</label>
+                <div className="relative flex items-center">
+                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">person</span>
+                  <input type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px" }} />
+                </div>
+              </div>
+            )}
+
+            <div className="group">
+              <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Email Address</label>
+              <div className="relative flex items-center">
+                <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">mail</span>
+                <input type="email" placeholder="hello@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px" }} />
+              </div>
+            </div>
+
+            <div className="group">
+              <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Password</label>
+              <div className="relative flex items-center">
+                <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">lock</span>
+                <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px", paddingRight: "48px" }} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 text-text-tertiary hover:text-text-secondary">
+                  <span className="material-icons-round text-[19px]">{showPassword ? "visibility_off" : "visibility"}</span>
+                </button>
+              </div>
+            </div>
+
+            {!isSignUp && (
+              <div className="flex justify-end">
+                <button type="button" onClick={handleCustomerForgotPassword} disabled={isLoading} className="text-[12px] font-bold text-[#ec4899] hover:underline">Forgot Password?</button>
+              </div>
+            )}
+
+            <button type="submit" disabled={isLoading} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isSignUp ? "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] shadow-[#8b5cf6]/30" : "bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] shadow-[#ec4899]/30"}`}>
+              {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>{isSignUp ? "Sign Up" : "Log In"}</span>}
             </button>
+          </form>
+        )}
 
-            <Link href="/salon-owner/login" className="w-full py-4 bg-white/[0.05] border border-white/10 text-white rounded-2xl font-bold text-[14.5px] hover:bg-white/[0.08] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-              <span className="material-icons-round text-[18px] text-slate-400">mail</span>
-              Sign in with Email
+        {authMethod === "email" && isOwner && (
+          <div className="space-y-4 animate-scaleIn">
+            <Link href="/salon-owner/login" className="w-full py-4 mt-2 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white rounded-2xl font-bold text-[14.5px] hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-pink-500/20">
+              <span className="material-icons-round text-[18px]">mail</span>
+              Proceed to Email Login
             </Link>
-
+            
             <div className="flex items-center gap-3 py-4">
               <div className="flex-1 h-px bg-white/10"></div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">New to glvia?</span>
               <div className="flex-1 h-px bg-white/10"></div>
             </div>
 
-            <Link href="/salon-owner/register" className="w-full py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white rounded-2xl font-bold text-[14.5px] hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-pink-500/20">
-              <span className="material-icons-round text-[18px]">storefront</span>
+            <Link href="/salon-owner/register" className="w-full py-4 bg-white/[0.05] border border-white/10 text-white rounded-2xl font-bold text-[14.5px] hover:bg-white/[0.08] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+              <span className="material-icons-round text-[18px] text-slate-400">storefront</span>
               Register New Salon
             </Link>
           </div>
         )}
 
-        <p className={`text-center text-[11px] mt-8 leading-normal ${persona === "owner" ? "text-slate-500" : "text-text-tertiary"}`}>
+        {/* ======================= GOOGLE AUTH ======================= */}
+        {!isOtpSent && (
+          <>
+            <div className="flex items-center gap-3 my-6">
+              <div className={`flex-1 h-px ${isOwner ? "bg-white/10" : "bg-border"}`}></div>
+              <span className={`text-[11px] font-bold uppercase tracking-wider ${isOwner ? "text-slate-500" : "text-text-tertiary"}`}>Or Sign in with</span>
+              <div className={`flex-1 h-px ${isOwner ? "bg-white/10" : "bg-border"}`}></div>
+            </div>
+
+            <button type="button" onClick={() => handleGoogleSignIn(isOwner)} disabled={isLoading} className={`w-full py-4 rounded-2xl font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-md ${isOwner ? "bg-white text-slate-900 hover:bg-gray-100" : "bg-white text-slate-800 border border-gray-200 hover:bg-gray-50"}`}>
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Google
+            </button>
+          </>
+        )}
+
+        <p className={`text-center text-[11px] mt-8 leading-normal ${isOwner ? "text-slate-500" : "text-text-tertiary"}`}>
           By continuing, you agree to glvia's{" "}
-          <span className="text-pink-500 font-semibold hover:underline cursor-pointer">Terms of Service</span>
+          <span className={`${isOwner ? "text-pink-400" : "text-[#ec4899]"} font-semibold hover:underline cursor-pointer`}>Terms of Service</span>
           {" "}and{" "}
-          <span className="text-pink-500 font-semibold hover:underline cursor-pointer">Privacy Policy</span>
+          <span className={`${isOwner ? "text-pink-400" : "text-[#ec4899]"} font-semibold hover:underline cursor-pointer`}>Privacy Policy</span>
         </p>
 
       </div>
