@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import WeeklyTimingsModal from "./WeeklyTimingsModal";
 
 interface SalonInfoModalProps {
@@ -48,7 +49,7 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
         {/* Top Header with Image */}
         <div className="relative h-[250px] shrink-0 bg-gray-200">
           {bgImage && (
-            <img src={bgImage} alt={salon.name} className="absolute inset-0 w-full h-full object-cover" />
+            <Image src={bgImage} alt={salon.name} fill className="object-cover" />
           )}
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
@@ -242,7 +243,9 @@ export default function SalonInfoModal({ isOpen, onClose, salon }: SalonInfoModa
               {salon.images && salon.images.length > 0 ? (
                 <div className="columns-2 gap-3 space-y-3">
                   {salon.images.map((img: string, i: number) => (
-                    <img key={i} src={img} alt="" className="w-full rounded-xl object-cover" />
+                    <div key={i} className="relative w-full h-48 rounded-xl overflow-hidden mb-3 inline-block">
+                      <Image src={img} alt="" fill className="object-cover" />
+                    </div>
                   ))}
                 </div>
               ) : (

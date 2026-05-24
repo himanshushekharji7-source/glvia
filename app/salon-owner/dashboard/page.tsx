@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useAdminAuth } from "../../lib/adminAuth";
 import {
@@ -9,6 +11,7 @@ import {
   useSalonServices, useAddService, useUpdateService, useDeleteService,
   useSalon, useUpdateSalonProfile,
 } from "../../lib/hooks";
+import SalonOnboardingWizard from "../../components/admin/SalonOnboardingWizard";
 
 type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -74,12 +77,323 @@ function Input({ label, ...props }: { label: string; [key: string]: any }) {
   );
 }
 
+// ─── Gamification & Psychology Components ─────────────────────────────────────
+function HealthScoreCard({ score, isComplete, salon, stats }: { score: number, isComplete: boolean, salon: any, stats: any }) {
+  // Logic for smart growth suggestions
+  const suggestions = [];
+  if (salon?.images?.length < 3) {
+    suggestions.push("Add 5 more service photos to increase profile clicks by 32%");
+  }
+  if (!salon?.timings?.toLowerCase().includes("sun")) {
+    suggestions.push("Enable weekend timings to get more bookings");
+  }
+  if (salon?.services?.length < 5) {
+    suggestions.push("Add top services trending in your area");
+  }
+  if (suggestions.length === 0) {
+    suggestions.push("Offer a first-time discount to double your conversion rate");
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+      <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+        <span className="material-icons-round text-[160px] text-pink-500">health_and_safety</span>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8 relative z-10">
+        <div className="relative w-24 h-24 flex-shrink-0">
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.1)" strokeWidth="8" fill="none" />
+            <motion.circle 
+              cx="50" cy="50" r="40" stroke="url(#score-gradient)" strokeWidth="8" fill="none" 
+              strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * score) / 100}
+              strokeLinecap="round"
+              initial={{ strokeDashoffset: 251.2 }}
+              animate={{ strokeDashoffset: 251.2 - (251.2 * score) / 100 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+            />
+            <defs>
+              <linearGradient id="score-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ec4899" />
+                <stop offset="100%" stopColor="#8b5cf6" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-black text-white leading-none">{score}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/100</span>
+          </div>
+        </div>
+        
+        <div>
+          <h2 className="text-2xl font-black text-white mb-1">Salon Health Score</h2>
+          <p className="text-slate-400 text-sm max-w-sm">
+            Based on profile completion, photos, reviews, response time, and active booking status.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 relative z-10">
+        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <span className="material-icons-round text-[18px] text-pink-400">auto_awesome</span>
+          Smart Growth Suggestions
+        </h3>
+        <ul className="space-y-3">
+          {suggestions.slice(0, 2).map((sugg, i) => (
+            <li key={i} className="flex items-start gap-3 group">
+              <div className="w-6 h-6 rounded-full bg-pink-500/10 text-pink-400 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-pink-500/20 transition-colors">
+                <span className="material-icons-round text-[14px]">insights</span>
+              </div>
+              <p className="text-sm text-slate-300 font-medium leading-relaxed">{sugg}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function FirstBookingMotivation({ salon, onTabSwitch }: { salon: any, onTabSwitch: (t: Tab) => void }) {
+  const tasks = [
+    { label: "Add 5 photos", done: salon?.images?.length > 4 },
+    { label: "Add 10 services", done: salon?.services?.length > 9 },
+    { label: "Enable instant booking", done: true }, // Mocked for psychology
+    { label: "Add opening offers", done: false } // Mocked for psychology
+  ];
+  return (
+    <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-3xl p-6 relative overflow-hidden shadow-xl">
+      <div className="flex items-center gap-4 mb-5">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg shadow-pink-500/30">
+          <span className="material-icons-round text-white text-[24px]">rocket_launch</span>
+        </div>
+        <div>
+          <h3 className="text-lg font-black text-white">Get your first booking faster</h3>
+          <p className="text-pink-400 text-xs font-bold">87% chance to rank higher on GLVIA</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        {tasks.map((task, idx) => (
+          <div key={idx} className="flex items-center gap-3">
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${task.done ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-500'}`}>
+              {task.done ? <span className="material-icons-round text-[12px]">check</span> : null}
+            </div>
+            <span className={`text-sm ${task.done ? 'text-slate-300 line-through opacity-70' : 'text-slate-200 font-medium'}`}>{task.label}</span>
+          </div>
+        ))}
+      </div>
+      <button onClick={() => onTabSwitch("services")} className="w-full py-3.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-bold transition-colors border border-white/10">
+        Review Checklist
+      </button>
+    </div>
+  );
+}
+
+function AchievementsCard({ salon, stats }: { salon: any, stats: any }) {
+  const badges = [
+    { id: 'verified', label: "Verified Salon", icon: "verified", active: salon?.status === "approved", color: "from-emerald-400 to-teal-500", shadow: "shadow-emerald-500/30" },
+    { id: 'top_rated', label: "Top Rated", icon: "star", active: salon?.rating >= 4.5, color: "from-amber-400 to-orange-500", shadow: "shadow-amber-500/30" },
+    { id: 'fast_response', label: "Fast Response", icon: "bolt", active: true, color: "from-blue-400 to-indigo-500", shadow: "shadow-blue-500/30" }, // Mock active
+    { id: 'premium', label: "Premium Partner", icon: "diamond", active: stats?.totalBookings > 20, color: "from-fuchsia-400 to-pink-500", shadow: "shadow-pink-500/30" }
+  ];
+
+  return (
+    <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 shadow-xl">
+      <h3 className="text-lg font-bold text-white mb-1">Achievement Badges</h3>
+      <p className="text-slate-400 text-xs mb-6">Unlock badges to increase customer trust.</p>
+      
+      <div className="grid grid-cols-2 gap-4">
+        {badges.map(b => (
+          <div key={b.id} className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all ${b.active ? 'bg-white/[0.05] border-white/10' : 'bg-white/[0.02] border-white/5 opacity-50 grayscale'}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${b.active ? `bg-gradient-to-br ${b.color} shadow-lg ${b.shadow} text-white` : 'bg-white/10 text-slate-500'}`}>
+              <span className="material-icons-round text-[24px]">{b.icon}</span>
+            </div>
+            <span className="text-xs font-bold text-center text-slate-300">{b.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SocialProofCard() {
+  return (
+    <div className="bg-gradient-to-br from-indigo-500/10 to-blue-600/10 border border-indigo-500/20 rounded-3xl p-6 relative overflow-hidden group hover:border-indigo-500/40 transition-colors shadow-xl">
+      <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 transition-transform">
+        <span className="material-icons-round text-[20px]">groups</span>
+      </div>
+      <h4 className="font-bold text-white mb-3">Community Growth</h4>
+      <div className="space-y-3 mb-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-400">Joined this week</span>
+          <span className="text-white font-bold">+12 Salons</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-400">Top city earners</span>
+          <span className="text-emerald-400 font-bold">₹45,000/mo</span>
+        </div>
+      </div>
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <p className="text-xs text-indigo-300 font-medium">You're in the top 30% of new salons! Keep it up.</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
-function OverviewTab({ salonId, stats, statsLoading, onTabSwitch }: {
-  salonId: string; stats: any; statsLoading: boolean; onTabSwitch: (t: Tab) => void;
+function OverviewTab({ salon, salonId, stats, statsLoading, onStartWizard, onTabSwitch }: {
+  salon: any; salonId: string; stats: any; statsLoading: boolean; onStartWizard?: () => void; onTabSwitch: (t: Tab) => void;
 }) {
+  const steps = [
+    { label: "Salon details", done: !!(salon?.name && salon.name !== "My Salon" && salon?.address_city) },
+    { label: "Services", done: salon?.services && salon.services.length > 0 },
+    { label: "Timings", done: !!salon?.timings },
+    { label: "Photos", done: salon?.images && salon.images.length > 0 && !salon.images[0].includes("1521590832167") },
+    { label: "Branding", done: !!salon?.description },
+    { label: "Verification", done: salon?.status === "approved" }
+  ];
+  const completedCount = steps.filter(s => s.done).length;
+  const percentage = Math.round((completedCount / steps.length) * 100);
+  const isComplete = completedCount === steps.length;
+
+  if (!isComplete) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Progress & Checklist Column */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-2xl">
+             <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+              <span className="material-icons-round text-[160px] text-pink-500">trending_up</span>
+            </div>
+            
+            <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 tracking-tight">Setup Completion Progress</h2>
+            <p className="text-pink-400 font-bold mb-6 text-sm sm:text-base">Your Salon Profile is {percentage}% Complete</p>
+            
+            <div className="w-full bg-white/5 rounded-full h-3 mb-10 overflow-hidden shadow-inner">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${percentage}%` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="bg-gradient-to-r from-pink-500 to-purple-500 h-full rounded-full relative"
+              >
+                <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]" />
+              </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10 relative z-10">
+              {steps.map((item, idx) => (
+                <div key={idx} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${item.done ? 'bg-white/[0.02] border-white/10 shadow-inner' : 'bg-white/[0.05] border-white/5 opacity-70'}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white/10 text-slate-500'}`}>
+                    {item.done ? <span className="material-icons-round text-[14px]">check</span> : <span className="text-[10px] font-bold">{idx + 1}</span>}
+                  </div>
+                  <span className={`font-semibold text-sm ${item.done ? 'text-white' : 'text-slate-400'}`}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={onStartWizard} className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl text-white font-bold text-sm shadow-xl shadow-pink-500/20 hover:opacity-90 transition-all flex items-center justify-center gap-2 group">
+              Continue Setup <span className="material-icons-round text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Unlock Psychology Column */}
+        <div className="space-y-6">
+          <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-white mb-1">Complete setup to unlock:</h3>
+            <p className="text-slate-400 text-xs mb-6">Get these premium features instantly.</p>
+            
+            <ul className="space-y-4">
+              {[
+                "Receive Bookings",
+                "Appear in Search",
+                "Premium Visibility",
+                "Staff Management",
+                "Earnings Dashboard"
+              ].map((feat, i) => (
+                <li key={i} className="flex items-center gap-3 group">
+                  <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-slate-500 shadow-inner group-hover:bg-slate-700 transition-colors">
+                    <span className="material-icons-round text-[14px]">lock</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-400">{feat}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Smart Reminder Card */}
+          <div className="bg-gradient-to-br from-pink-500/10 to-purple-600/10 border border-pink-500/20 rounded-3xl p-6 relative overflow-hidden group hover:border-pink-500/40 transition-colors shadow-xl">
+            <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400 mb-4 group-hover:scale-110 transition-transform">
+              <span className="material-icons-round text-[20px]">notifications_active</span>
+            </div>
+            <h4 className="font-bold text-white mb-2">Start receiving bookings</h4>
+            <ul className="space-y-2 mb-6">
+              <li className="flex gap-2 text-xs text-slate-300"><span className="text-pink-400">✓</span> Get discovered by nearby customers</li>
+              <li className="flex gap-2 text-xs text-slate-300"><span className="text-pink-400">✓</span> Receive automatic appointments</li>
+              <li className="flex gap-2 text-xs text-slate-300"><span className="text-pink-400">✓</span> Build trust with reviews</li>
+            </ul>
+            <button onClick={onStartWizard} className="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors border border-white/10">
+              Complete Setup →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If complete, show normal overview BUT with a "Success Psychology" header at the top
+  const getHealthScore = () => {
+    let score = 20; // Base score for being complete
+    if (salon?.images?.length > 1) score += 20;
+    if (salon?.services?.length > 3) score += 20;
+    if (stats?.totalReviews > 0) score += 10;
+    if (stats?.activeStaff > 0) score += 10;
+    if (stats?.totalBookings > 0) score += 20;
+    return Math.min(score, 100);
+  };
+  const healthScore = getHealthScore();
+
   return (
     <div className="space-y-6">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl"
+      >
+        <div className="absolute -top-10 -right-10 opacity-10 blur-2xl w-40 h-40 bg-emerald-500 rounded-full pointer-events-none" />
+        
+        <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-xl shadow-emerald-500/30 flex-shrink-0 relative">
+            <span className="material-icons-round text-[40px] text-white">verified</span>
+            <div className="absolute -bottom-2 -right-2 bg-slate-900 border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center text-[10px] font-bold text-emerald-400">100%</div>
+          </div>
+          
+          <div className="text-center sm:text-left flex-1">
+            <h2 className="text-2xl font-black text-white mb-1">Your salon is now LIVE on GLVIA ✨</h2>
+            <p className="text-emerald-400 text-sm font-bold mb-3">Profile Completion: 100% — Estimated Visibility Boost: 3x</p>
+            <p className="text-slate-400 text-xs max-w-lg">Next recommended action: Add your top staff members and set up your full service menu to attract more customers.</p>
+          </div>
+
+          <div className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+             <button onClick={() => onTabSwitch("services")} className="w-full sm:w-auto px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-sm transition-colors border border-white/10 group flex justify-center items-center gap-2">
+               Start Growing <span className="material-icons-round text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+             </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Gamification & Growth Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         <div className="lg:col-span-2 space-y-6">
+            <HealthScoreCard score={healthScore} isComplete={isComplete} salon={salon} stats={stats} />
+            {(stats?.totalBookings === 0 || !stats) && <FirstBookingMotivation salon={salon} onTabSwitch={onTabSwitch} />}
+         </div>
+         <div className="space-y-6">
+            <AchievementsCard salon={salon} stats={stats} />
+            <SocialProofCard />
+         </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Bookings" value={statsLoading ? "—" : stats?.totalBookings ?? 0} icon="calendar_month" gradient="bg-gradient-to-br from-blue-500 to-indigo-600" />
@@ -408,7 +722,7 @@ function ServicesTab({ salonId }: { salonId: string }) {
             <div key={svc.id} className="bg-white/[0.03] border border-white/8 rounded-3xl p-4 flex gap-3 hover:bg-white/[0.06] transition-all group">
               <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 bg-slate-800">
                 {svc.image ? (
-                  <img src={svc.image} alt={svc.name} className="w-full h-full object-cover" />
+                  <div className="relative w-full h-full"><Image src={svc.image} alt={svc.name} fill className="object-cover" /></div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="material-icons-round text-slate-600">spa</span>
@@ -765,7 +1079,15 @@ function DashboardContent() {
   // Only allow Super Admins to use query params. 
   // Salon Owners MUST use their linked salon_id.
   const salonId = (isSalonOwner ? admin?.salon_id : (isAdmin ? querySalonId || admin?.salon_id : "")) ?? "";
+  const { data: salon, isLoading: salonLoading } = useSalon(salonId);
   const { data: stats, isLoading: statsLoading } = useSalonOwnerStats(salonId || undefined);
+  const [showWizard, setShowWizard] = useState(false);
+  const isSalonIncomplete = !!salon && (salon.name === "My Salon" || !salon.address_city);
+
+  if (showWizard) {
+    return <SalonOnboardingWizard salonId={salonId} initialData={salon} onComplete={() => setShowWizard(false)} />;
+  }
+
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "overview", label: "Overview", icon: "dashboard" },
@@ -867,9 +1189,7 @@ function DashboardContent() {
           </div>
         )}
 
-        {activeTab === "overview" && (
-          <OverviewTab salonId={salonId} stats={stats} statsLoading={statsLoading} onTabSwitch={setActiveTab} />
-        )}
+        {activeTab === "overview" && <OverviewTab salon={salon} salonId={salonId} stats={stats} statsLoading={statsLoading} onStartWizard={() => setShowWizard(true)} onTabSwitch={setActiveTab} />}
         {activeTab === "bookings" && <BookingsTab salonId={salonId} />}
         {activeTab === "services" && <ServicesTab salonId={salonId} />}
         {activeTab === "staff" && <StaffTab salonId={salonId} />}

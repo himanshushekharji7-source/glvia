@@ -288,7 +288,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-dvh bg-surface-card pb-20 overflow-x-hidden">
+    <div className="min-h-dvh bg-surface-card pb-nav overflow-x-hidden">
       {/* Header with M/F toggle + Cart */}
       <Header
         showBack={false}
@@ -377,7 +377,7 @@ export default function HomePage() {
               🏍️ Arriving in <span className="text-primary font-bold">30 mins</span>
             </p>
           </div>
-          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
+          <Link href="/search" className="text-xs font-bold text-primary hover:underline p-2 -m-2">See all</Link>
         </div>
 
         {/* Horizontal Service Cards */}
@@ -444,7 +444,7 @@ export default function HomePage() {
       <div className="px-5 pb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-black text-text-primary">At the Salon Deals</h3>
-          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
+          <Link href="/search" className="text-xs font-bold text-primary hover:underline p-2 -m-2">See all</Link>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
           {(!salons || salons.length === 0) ? (
@@ -487,7 +487,7 @@ export default function HomePage() {
       <div className="px-5 pb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-black text-text-primary">Popular At Home Services</h3>
-          <Link href="/search" className="text-xs font-bold text-primary hover:underline">See all</Link>
+          <Link href="/search" className="text-xs font-bold text-primary hover:underline p-2 -m-2">See all</Link>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
           {popularServices.map((svc) => (

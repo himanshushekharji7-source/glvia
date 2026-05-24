@@ -11,7 +11,7 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublicPage = pathname === "/salon-owner/login" || pathname === "/salon-owner/register";
+  const isPublicPage = pathname === "/salon-owner/login";
 
   useEffect(() => {
     if (isLoading) return;

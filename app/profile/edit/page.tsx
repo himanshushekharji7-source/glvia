@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useUser, useUpdateUser } from "../../lib/hooks";
 
 export default function EditProfilePage() {
@@ -88,7 +89,9 @@ export default function EditProfilePage() {
             <div className="w-28 h-28 rounded-3xl bg-white p-1 shadow-lg overflow-hidden">
               <div className="w-full h-full rounded-2xl bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center overflow-hidden">
                 {formData.avatar ? (
-                  <img src={formData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  <div className="relative w-full h-full">
+                    <Image src={formData.avatar} alt="Profile" fill className="object-cover" />
+                  </div>
                 ) : (
                   <span className="text-white text-4xl font-bold uppercase">{initial}</span>
                 )}

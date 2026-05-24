@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import { useUser, useMembershipPlans } from "../lib/hooks";
@@ -64,7 +65,9 @@ export default function ProfilePage() {
             <div className="w-24 h-24 rounded-2xl bg-white p-1 shadow-lg shrink-0">
               <div className="w-full h-full rounded-xl gradient-primary flex items-center justify-center overflow-hidden">
                 {user.avatar ? (
-                  <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  <div className="relative w-full h-full">
+                    <Image src={user.avatar} alt="Avatar" fill className="object-cover" />
+                  </div>
                 ) : (
                   <span className="text-white text-3xl font-bold uppercase">{initial}</span>
                 )}

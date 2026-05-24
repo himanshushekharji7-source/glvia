@@ -222,13 +222,14 @@ export default function SalonDetailPage() {
                 onClick={() => setSelectedCategory(cat.name)}
                 className="flex flex-col items-center gap-1.5 shrink-0 w-[72px] group"
               >
-                <div className={`w-[68px] h-[68px] rounded-2xl overflow-hidden border-2 transition-all ${
+                <div className={`relative w-[68px] h-[68px] rounded-2xl overflow-hidden border-2 transition-all ${
                   isActive ? "border-primary shadow-[0_0_0_2px_rgba(236,72,153,0.2)]" : "border-transparent"
                 }`}>
-                  <img
-                    src={cat.image}
+                  <Image
+                    src={cat.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80'}
                     alt={cat.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <span className={`text-[10px] font-bold text-center leading-tight transition-colors ${
@@ -289,11 +290,12 @@ export default function SalonDetailPage() {
                       </div>
                       {/* Right: Image */}
                       {svc.image && (
-                        <div className="w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
-                          <img
+                        <div className="relative w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
+                          <Image
                             src={svc.image}
                             alt={svc.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         </div>
                       )}

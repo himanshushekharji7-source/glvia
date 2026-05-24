@@ -45,10 +45,11 @@ export default function AtTheSalonPage() {
       <div className="relative w-full h-[180px]">
         {/* Placeholder for the real image */}
         <div className="absolute inset-0 bg-blue-600">
-          <img 
+          <Image 
             src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80"
             alt="Go Go Free Haircut"
-            className="w-full h-full object-cover opacity-80 mix-blend-overlay"
+            fill
+            className="object-cover opacity-80 mix-blend-overlay"
           />
         </div>
         <div className="absolute inset-0 p-5 flex flex-col justify-center items-end text-white">
@@ -87,7 +88,7 @@ export default function AtTheSalonPage() {
           {categories.map((cat) => (
             <div key={cat.id} className="flex flex-col items-center gap-2 cursor-pointer">
               <div className="w-full aspect-square relative rounded-xl overflow-hidden bg-[#F3E8FF]">
-                <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                <Image src={cat.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80'} alt={cat.name} fill className="object-cover" />
               </div>
               <span className="text-[11px] text-center font-medium leading-tight text-gray-700 whitespace-pre-line">
                 {cat.name}
@@ -146,10 +147,11 @@ export default function AtTheSalonPage() {
                 className="block border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:border-pink-200 transition-all cursor-pointer"
               >
                 <div className="w-full h-[160px] relative">
-                  <img 
+                  <Image 
                     src={salon.images?.[0] || salon.image || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80'} 
                     alt={salon.name} 
-                    className="w-full h-full object-cover" 
+                    fill
+                    className="object-cover" 
                   />
                 </div>
                 <div className="p-4 bg-white">

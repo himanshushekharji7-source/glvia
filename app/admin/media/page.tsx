@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import axios from "axios";
 import ConfirmDialog from "../../components/admin/ConfirmDialog";
 
@@ -301,10 +302,11 @@ export default function MediaLibraryPage() {
               <div className="relative aspect-square w-full bg-surface-dim overflow-hidden border-b border-border flex items-center justify-center cursor-pointer"
                    onClick={() => setPreviewMedia(file)}>
                 {file.type === "image" ? (
-                  <img
+                  <Image
                     src={file.url}
                     alt={file.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : file.type === "video" ? (
                   <div className="relative w-full h-full">
@@ -380,12 +382,13 @@ export default function MediaLibraryPage() {
             </button>
 
             {/* Media Display View */}
-            <div className="flex-1 bg-black flex items-center justify-center p-4 min-h-[300px] md:min-h-0">
+            <div className="relative flex-1 bg-black flex items-center justify-center p-4 min-h-[300px] md:min-h-0">
               {previewMedia.type === "image" ? (
-                <img
+                <Image
                   src={previewMedia.url}
                   alt={previewMedia.name}
-                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                  fill
+                  className="object-contain p-4"
                 />
               ) : previewMedia.type === "video" ? (
                 <video

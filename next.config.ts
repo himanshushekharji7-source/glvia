@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/salon-owner/register",
+        destination: "/login?persona=owner",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

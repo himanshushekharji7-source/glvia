@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import Image from "next/image";
 
 interface FormField {
   name: string;
@@ -102,13 +103,11 @@ export default function AdminFormModal({
 
               {field.type === "url" && values[field.name] && (
                 <div className="mt-2 w-16 h-16 rounded-lg bg-gray-100 overflow-hidden relative">
-                  <img
+                  <Image
                     src={values[field.name]}
                     alt="Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
+                    fill
+                    className="object-cover"
                   />
                 </div>
               )}

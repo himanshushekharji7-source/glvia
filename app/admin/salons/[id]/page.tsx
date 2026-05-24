@@ -2,6 +2,8 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import axios from "axios";
 import { supabase, TABLES } from "../../../lib/supabase";
 import AdminTable from "../../../components/admin/AdminTable";
@@ -214,7 +216,7 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
   };
 
   const serviceColumns = [
-    { key: "image", label: "Image", width: "60px", render: (v: string) => v ? <img src={v} alt="" className="w-10 h-10 rounded-lg object-cover" /> : "—" },
+    { key: "image", label: "Image", width: "60px", render: (v: string) => v ? <div className="relative w-10 h-10 rounded-lg overflow-hidden"><Image src={v} alt="" fill className="object-cover" /></div> : "—" },
     { key: "name", label: "Name" },
     { key: "category", label: "Category" },
     { key: "price", label: "Price", render: (v: number) => `₹${v}` },
@@ -223,7 +225,7 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
   ];
 
   const catColumns = [
-    { key: "image", label: "Image", width: "60px", render: (v: string) => v ? <img src={v} alt="" className="w-10 h-10 rounded-lg object-cover" /> : "—" },
+    { key: "image", label: "Image", width: "60px", render: (v: string) => v ? <div className="relative w-10 h-10 rounded-lg overflow-hidden"><Image src={v} alt="" fill className="object-cover" /></div> : "—" },
     { key: "name", label: "Name" },
   ];
 
@@ -377,7 +379,7 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
               {salonForm.images?.map((url: string, index: number) => (
                 <div key={index} className="relative group aspect-video bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <Image src={url} alt="" fill className="object-cover" />
                   <button type="button" onClick={() => handleRemoveGalleryImage(index)} className="absolute top-2 right-2 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform">
                     <span className="material-icons-round text-sm">delete</span>
                   </button>

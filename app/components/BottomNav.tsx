@@ -55,9 +55,8 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-white"
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-white/85 backdrop-blur-xl border-t border-gray-200/50 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]"
       style={{
-        borderTop: "1px solid rgba(243, 244, 246, 1)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >

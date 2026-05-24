@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase, TABLES } from "../../lib/supabase";
 import AdminTable from "../../components/admin/AdminTable";
 import AdminFormModal from "../../components/admin/AdminFormModal";
@@ -99,7 +100,7 @@ export default function HomeContentPage() {
             key: "image",
             label: "Image",
             width: "60px",
-            render: (v: string) => v ? <img src={v} alt="" className="w-10 h-10 rounded-lg object-cover" /> : "—",
+            render: (v: string) => v ? <div className="relative w-10 h-10 rounded-lg overflow-hidden"><Image src={v} alt="" fill className="object-cover" /></div> : "—",
           },
         ];
       case "combos":

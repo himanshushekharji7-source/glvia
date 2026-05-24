@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "../lib/firebase";
 import {
   GoogleAuthProvider,
@@ -41,7 +41,6 @@ const PremiumButton = ({
     whileTap={{ scale: 0.97 }}
     className={`relative overflow-hidden w-full py-4 rounded-2xl font-bold text-[14px] shadow-xl disabled:opacity-70 transition-all flex items-center justify-center gap-2 group ${className}`}
   >
-    {/* Shimmer Effect */}
     <motion.div 
       initial={{ x: "-100%" }}
       animate={{ x: "200%" }}
@@ -58,12 +57,15 @@ const PremiumButton = ({
   </motion.button>
 );
 
-export default function UnifiedLoginPage() {
+function UnifiedLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryPersona = searchParams.get("persona");
+  
   const { loginWithGoogle: ownerLoginWithGoogle, isAuthenticated, admin } = useAdminAuth();
   
-  const [persona, setPersona] = useState<Persona>(null);
-  const [view, setView] = useState<ViewState>("role-selection");
+  const [persona, setPersona] = useState<Persona>(queryPersona === "owner" ? "owner" : (queryPersona === "customer" ? "customer" : null));
+  const [view, setView] = useState<ViewState>(queryPersona ? "login" : "role-selection");
   
   const [phoneNumber, setPhoneNumber] = useState("+91 ");
   const [otpCode, setOtpCode] = useState("");
@@ -156,8 +158,20 @@ export default function UnifiedLoginPage() {
               return false;
             }
           } else {
-            router.push("/salon-owner/register");
-            return false;
+            // NEW FLOW: Auto-create minimal salon account instantly
+            const dummyEmail = user.email || `${sanitizedPhone.replace("+", "")}@glvia.com`;
+            const { error: rpcError } = await supabase.rpc("auto_create_salon_account", {
+              p_firebase_uid: user.uid,
+              p_owner_name: user.displayName || "Salon Owner",
+              p_email: dummyEmail,
+              p_salon_name: "My Salon",
+              p_phone: sanitizedPhone,
+              p_city: "",
+              p_address_street: "",
+              p_salon_images: [],
+              p_kyc_documents: {}
+            });
+            if (rpcError) throw new Error(rpcError.message || "Failed to create partner account.");
           }
         } else {
           if (existingOwner.approval_status === "rejected" || existingOwner.approval_status === "suspended") {
@@ -200,7 +214,19 @@ export default function UnifiedLoginPage() {
       const result = await ownerLoginWithGoogle();
       setIsLoading(false);
       if (!result.success) {
-        if (result.error?.includes("No account found")) router.push("/salon-owner/register");
+        if (result.error?.includes("No account found")) {
+          // If the auth hook says no account found, it means they clicked google but aren't in admin_users.
+          // In the new flow, we intercept Google Auth here before calling the hook, OR we modify the hook.
+          // Since the hook throws if not found, we will just manually popup and auto-create here.
+          try {
+            const provider = new GoogleAuthProvider();
+            const gResult = await signInWithPopup(auth, provider);
+            const isSuccess = await processSuccessfulLogin(gResult.user);
+            if (isSuccess) setView("success");
+          } catch (gErr: any) {
+             if (gErr.code !== "auth/popup-closed-by-user") setErrorMessage(gErr.message || "Failed to sign in with Google.");
+          }
+        }
         else setErrorMessage(result.error || "Google login failed");
       } else {
         if (admin?.role === "super_admin") router.push("/admin");
@@ -231,7 +257,7 @@ export default function UnifiedLoginPage() {
     setErrorMessage("");
   };
 
-  const backgroundVariants = {
+  const backgroundVariants: any = {
     "role-selection": { filter: "brightness(1.0) blur(0px)", scale: 1 },
     "login": { filter: "brightness(0.5) blur(6px)", scale: 1.05 },
     "otp": { filter: "brightness(0.4) blur(10px)", scale: 1.1 },
@@ -271,7 +297,6 @@ export default function UnifiedLoginPage() {
           className="object-cover opacity-90"
           priority
         />
-        {/* Luxury Vignette & Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-transparent mix-blend-multiply" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.6)_100%)]" />
       </motion.div>
@@ -372,7 +397,7 @@ export default function UnifiedLoginPage() {
                   {persona === "owner" ? "Salon Partner Login" : "Customer Login"}
                 </h2>
                 <p className="text-[13px] text-slate-500 font-medium">
-                  {persona === "owner" ? "Manage your bookings and grow your business." : "Enter your phone number to continue."}
+                  {persona === "owner" ? "Enter your phone number to access your dashboard." : "Enter your phone number to continue."}
                 </p>
               </motion.div>
 
@@ -401,7 +426,6 @@ export default function UnifiedLoginPage() {
                     required 
                     className="w-full pl-[50px] pr-5 py-4.5 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-2xl text-[15px] font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 focus:bg-white transition-all shadow-sm" 
                   />
-                  {/* Subtle input glow */}
                   <div className="absolute inset-0 -z-10 rounded-2xl opacity-0 group-focus-within:opacity-100 blur-md bg-pink-500/20 transition-opacity duration-500" />
                 </motion.div>
                 
@@ -479,7 +503,6 @@ export default function UnifiedLoginPage() {
 
               <form onSubmit={handleVerifyOtp} className="space-y-8">
                 <motion.div variants={itemVariants} className="relative group">
-                  {/* Premium OTP Input styling */}
                   <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition-opacity duration-500" />
                   <input 
                     ref={otpInputRef}
@@ -526,7 +549,6 @@ export default function UnifiedLoginPage() {
             className="relative z-10 w-full px-4 fixed bottom-6 sm:static sm:max-w-[400px] sm:bottom-auto"
           >
             <div className="bg-white/95 backdrop-blur-3xl rounded-[36px] p-10 shadow-[0_40px_80px_rgba(0,0,0,0.25)] border border-white/20 text-center relative overflow-hidden">
-              {/* Confetti / Glow effects in background */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-[200px] bg-gradient-to-b from-pink-500/20 to-transparent blur-3xl pointer-events-none" />
               
               <motion.div 
@@ -561,7 +583,7 @@ export default function UnifiedLoginPage() {
 
               <motion.div variants={itemVariants}>
                 <PremiumButton onClick={handleSuccessRedirect} className="bg-slate-900 text-white shadow-slate-900/20">
-                  Get Started <span className="material-icons-round text-[18px]">arrow_forward</span>
+                  {persona === "owner" ? "Go to Dashboard" : "Get Started"} <span className="material-icons-round text-[18px]">arrow_forward</span>
                 </PremiumButton>
               </motion.div>
             </div>
@@ -569,5 +591,17 @@ export default function UnifiedLoginPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function UnifiedLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-dvh flex items-center justify-center bg-slate-950">
+        <div className="w-10 h-10 border-4 border-slate-800 border-t-pink-500 rounded-full animate-spin" />
+      </div>
+    }>
+      <UnifiedLoginContent />
+    </Suspense>
   );
 }
