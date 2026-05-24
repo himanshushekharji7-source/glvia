@@ -221,6 +221,16 @@ export default function UnifiedLoginPage() {
     }
   };
 
+  const handleSuccessRedirect = () => {
+    if (persona === "customer") router.push("/");
+    else if (persona === "owner") router.push("/salon-owner/dashboard");
+  };
+
+  const switchPersona = () => {
+    setPersona(persona === "customer" ? "owner" : "customer");
+    setErrorMessage("");
+  };
+
   const backgroundVariants = {
     "role-selection": { filter: "brightness(1.0) blur(0px)", scale: 1 },
     "login": { filter: "brightness(0.5) blur(6px)", scale: 1.05 },
@@ -228,7 +238,7 @@ export default function UnifiedLoginPage() {
     "success": { filter: "brightness(0.7) blur(4px)", scale: 1.02 }
   };
 
-  const containerVariants = {
+  const containerVariants: any = {
     hidden: { opacity: 0, y: 40, scale: 0.95 },
     visible: { 
       opacity: 1, 
@@ -239,7 +249,7 @@ export default function UnifiedLoginPage() {
     exit: { opacity: 0, y: -20, scale: 0.95, filter: "blur(8px)", transition: { duration: 0.4 } }
   };
 
-  const itemVariants = {
+  const itemVariants: any = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } }
   };

@@ -207,13 +207,17 @@ export default function SalonOwnerRegisterPage() {
     if (e.target.files) setFiles(Array.from(e.target.files));
   };
 
-  const containerVariants = {
+  const handleSuccessRedirect = () => {
+    router.push("/salon-owner/dashboard");
+  };
+
+  const containerVariants: any = {
     hidden: { opacity: 0, y: 40, scale: 0.95 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0.3, duration: 0.8, staggerChildren: 0.08, delayChildren: 0.1 } },
     exit: { opacity: 0, y: -20, scale: 0.95, filter: "blur(8px)", transition: { duration: 0.4 } }
   };
 
-  const itemVariants = {
+  const itemVariants: any = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } }
   };
