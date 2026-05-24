@@ -685,3 +685,69 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ─── Stitch Dashboard Theme ─── */
+.stitch-dashboard {
+  --color-surface-container-lowest: #ffffff;
+  --color-on-tertiary-container: #fffbff;
+  --color-tertiary-container: #c0488a;
+  --color-on-secondary-container: #fffbff;
+  --color-surface-bright: #f8f9fa;
+  --color-secondary-fixed-dim: #d0bcff;
+  --color-on-error-container: #93000a;
+  --color-surface-container-low: #f3f4f5;
+  --color-on-surface: #191c1d;
+  --color-on-tertiary: #ffffff;
+  --color-secondary-fixed: #e9ddff;
+  --color-on-tertiary-fixed: #3d0026;
+  --color-inverse-primary: #ffb0cd;
+  --color-surface-container-highest: #e1e3e4;
+  --color-outline: #8b7079;
+  --color-tertiary-fixed-dim: #ffafd3;
+  --color-surface-container: #edeeef;
+  --color-on-secondary-fixed: #23005c;
+  --color-surface-dim: #d9dadb;
+  --color-error-container: #ffdad6;
+  --color-primary-fixed-dim: #ffb0cd;
+  --color-outline-variant: #debec8;
+  --color-background: #f8f9fa;
+  --color-on-primary-fixed: #3e0022;
+  --color-inverse-on-surface: #f0f1f2;
+  --color-secondary-container: #8455ef;
+  --color-secondary: #6b38d4;
+  --color-on-tertiary-fixed-variant: #85145a;
+  --color-on-error: #ffffff;
+  --color-surface-variant: #e1e3e4;
+  --color-on-secondary-fixed-variant: #5516be;
+  --color-primary-fixed: #ffd9e4;
+  --color-on-secondary: #ffffff;
+  --color-surface: #f8f9fa;
+  --color-surface-tint: #b4136d;
+  --color-error: #ba1a1a;
+  --color-tertiary: #a12e70;
+  --color-primary-container: #d23284;
+  --color-on-surface-variant: #574048;
+  --color-on-primary: #ffffff;
+  --color-inverse-surface: #2e3132;
+  --color-tertiary-fixed: #ffd8e7;
+  --color-on-primary-fixed-variant: #8c0053;
+  --color-on-primary-container: #fffbff;
+  --color-surface-container-high: #e7e8e9;
+  --color-on-background: #191c1d;
+  --color-primary: #b10e6b;
+
+  --shadow-ambient: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
+  --shadow-ambient-primary: 0 10px 30px -5px rgba(177, 14, 107, 0.08);
+
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  min-height: 100dvh;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
