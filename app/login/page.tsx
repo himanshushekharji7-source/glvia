@@ -4,11 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase";
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult
@@ -31,14 +28,6 @@ export default function UnifiedLoginPage() {
   const { loginWithGoogle: ownerLoginWithGoogle, isAuthenticated, admin } = useAdminAuth();
   
   const [persona, setPersona] = useState<Persona>(null);
-  
-  // Auth State
-  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   
   // Phone OTP State
   const [phoneNumber, setPhoneNumber] = useState("+91 ");
@@ -148,6 +137,8 @@ export default function UnifiedLoginPage() {
       const result = await confirmationResult.confirm(otpCode);
       const user = result.user;
       localStorage.setItem("token", user.uid);
+      
+      const sanitizedPhone = user.phoneNumber || phoneNumber.replace(/\s+/g, '');
 
       if (persona === "customer") {
         // Sync Customer
@@ -158,11 +149,19 @@ export default function UnifiedLoginPage() {
           .maybeSingle();
 
         if (!existingUser) {
-          await supabase.from(TABLES.USERS).insert({
+          // Provide a dummy email because the database schema requires email NOT NULL
+          const dummyEmail = `${sanitizedPhone.replace("+", "")}@glvia.com`;
+          const { error: insertError } = await supabase.from(TABLES.USERS).insert({
             firebase_uid: user.uid,
-            phone_number: user.phoneNumber || phoneNumber.replace(/\s+/g, ''),
+            phone_number: sanitizedPhone,
             first_name: "Customer",
+            email: dummyEmail
           });
+          
+          if (insertError) {
+             console.error("Supabase Customer Sync Error:", insertError);
+             throw new Error("Failed to create customer profile.");
+          }
         }
         router.push("/");
       } else if (persona === "owner") {
@@ -174,8 +173,25 @@ export default function UnifiedLoginPage() {
           .maybeSingle();
 
         if (!existingOwner) {
-          // New owner -> must register
-          router.push("/salon-owner/register");
+          // Check if they exist by phone number in case they were added by super admin manually
+          const { data: byPhone } = await supabase
+            .from("admin_users")
+            .select("id, role, approval_status")
+            .eq("phone", sanitizedPhone)
+            .maybeSingle();
+            
+          if (byPhone) {
+            // Link firebase_uid to the existing owner account
+            await supabase.from("admin_users").update({ firebase_uid: user.uid }).eq("id", byPhone.id);
+            if (byPhone.approval_status === "rejected" || byPhone.approval_status === "suspended") {
+              setErrorMessage(`Your account is ${byPhone.approval_status}.`);
+              return;
+            }
+            router.push(byPhone.role === "super_admin" ? "/admin" : "/salon-owner/dashboard");
+          } else {
+            // New owner -> must register
+            router.push("/salon-owner/register");
+          }
         } else {
           if (existingOwner.approval_status === "rejected" || existingOwner.approval_status === "suspended") {
             setErrorMessage(`Your account is ${existingOwner.approval_status}.`);
@@ -186,7 +202,7 @@ export default function UnifiedLoginPage() {
       }
     } catch (err: any) {
       console.error("OTP verify error:", err);
-      setErrorMessage("Invalid OTP code. Please try again.");
+      setErrorMessage(err.message || "Invalid OTP code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -199,109 +215,6 @@ export default function UnifiedLoginPage() {
     setErrorMessage("");
     setSuccessMessage("");
     cleanupRecaptcha();
-  };
-
-  // --- Customer Email Logic ---
-  const executeCustomerAuth = async (signUpMode: boolean) => {
-    setErrorMessage("");
-    setSuccessMessage("");
-    setIsLoading(true);
-
-    if (!email.trim() || !password) {
-      setErrorMessage("Please fill in all required fields.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (signUpMode && !fullName.trim()) {
-      setErrorMessage("Please enter your full name.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      let user;
-      if (signUpMode) {
-        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        user = userCredential.user;
-
-        const { data: existingUser } = await supabase
-          .from(TABLES.USERS)
-          .select("*")
-          .eq("firebase_uid", user.uid)
-          .maybeSingle();
-
-        if (!existingUser) {
-          await supabase.from(TABLES.USERS).insert({
-            firebase_uid: user.uid,
-            first_name: fullName.split(" ")[0] || "User",
-            last_name: fullName.split(" ").slice(1).join(" ") || "",
-            email: user.email || email.trim(),
-          });
-        }
-      } else {
-        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-        user = userCredential.user;
-
-        const { data: existingUser } = await supabase
-          .from(TABLES.USERS)
-          .select("*")
-          .eq("firebase_uid", user.uid)
-          .maybeSingle();
-
-        if (!existingUser) {
-          await supabase.from(TABLES.USERS).insert({
-            firebase_uid: user.uid,
-            first_name: user.displayName?.split(" ")[0] || "User",
-            last_name: user.displayName?.split(" ").slice(1).join(" ") || "",
-            email: user.email || email.trim(),
-            phone_number: user.phoneNumber || "",
-          });
-        }
-      }
-
-      localStorage.setItem("token", user.uid);
-
-      if (signUpMode) {
-        router.push(`/verify?type=email&email=${encodeURIComponent(email.trim())}`);
-      } else {
-        router.push("/");
-      }
-    } catch (error: any) {
-      console.error("Error with customer authentication:", error);
-      let friendlyMessage = "Failed to authenticate. Please try again.";
-      if (error.code === "auth/email-already-in-use") {
-        friendlyMessage = "This email is already in use. Please log in instead.";
-      } else if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
-        friendlyMessage = "Incorrect email or password.";
-      } else if (error.code === "auth/user-not-found") {
-        friendlyMessage = "No user found with this email.";
-      }
-      setErrorMessage(friendlyMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCustomerForgotPassword = async () => {
-    if (!email.trim()) {
-      setErrorMessage("Please enter your email address to reset password.");
-      return;
-    }
-    setErrorMessage("");
-    setSuccessMessage("");
-    setIsLoading(true);
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setSuccessMessage("Password reset link sent! Check your inbox.");
-      setTimeout(() => {
-        router.push(`/verify?type=reset&email=${encodeURIComponent(email.trim())}`);
-      }, 1500);
-    } catch (err: any) {
-      setErrorMessage("Failed to send reset email.");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // --- Google Auth Logic ---
@@ -348,7 +261,7 @@ export default function UnifiedLoginPage() {
           firebase_uid: user.uid,
           first_name: user.displayName?.split(" ")[0] || "User",
           last_name: user.displayName?.split(" ").slice(1).join(" ") || "",
-          email: user.email || "",
+          email: user.email || `${user.uid}@glvia.com`,
           phone_number: user.phoneNumber || "",
         });
       }
@@ -369,7 +282,7 @@ export default function UnifiedLoginPage() {
       <div className="min-h-dvh flex flex-col md:flex-row bg-slate-950 overflow-hidden">
         {/* Customer Side */}
         <div 
-          onClick={() => { setPersona("customer"); setAuthMethod("phone"); }}
+          onClick={() => setPersona("customer")}
           className="relative flex-1 group cursor-pointer overflow-hidden transition-all duration-700 hover:flex-[1.2]"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-[#ec4899] to-[#8b5cf6] opacity-90 transition-opacity group-hover:opacity-100 z-10" />
@@ -397,7 +310,7 @@ export default function UnifiedLoginPage() {
 
         {/* Owner Side */}
         <div 
-          onClick={() => { setPersona("owner"); setAuthMethod("phone"); }}
+          onClick={() => setPersona("owner")}
           className="relative flex-1 group cursor-pointer overflow-hidden transition-all duration-700 hover:flex-[1.2]"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 opacity-95 transition-opacity group-hover:opacity-100 z-10" />
@@ -443,7 +356,7 @@ export default function UnifiedLoginPage() {
         <div className="relative z-10 text-center flex flex-col items-center">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-2xl backdrop-blur-md ${isOwner ? "bg-pink-500/20 border border-pink-500/30" : "bg-white/15 border border-white/25"}`}>
             <span className={`material-icons-round text-[30px] ${isOwner ? "text-pink-400" : "text-white"}`}>
-              {isOwner ? "storefront" : (authMethod === "phone" ? "phone_iphone" : "face")}
+              {isOwner ? "storefront" : "phone_iphone"}
             </span>
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-sm">
@@ -470,154 +383,85 @@ export default function UnifiedLoginPage() {
           </div>
         )}
 
-        {/* Method Switcher */}
-        {!isOtpSent && (
-          <div className={`relative flex p-1.5 rounded-2xl w-full mb-6 border shadow-inner ${isOwner ? "bg-slate-900 border-white/5" : "bg-surface-dim border-border/40"}`}>
-            <div 
-              className={`absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] rounded-xl shadow-[0_3px_10px_rgba(0,0,0,0.06)] transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${isOwner ? "bg-slate-800" : "bg-white"}`}
-              style={{ transform: authMethod === "email" ? "translateX(100%)" : "translateX(0%)" }}
-            />
-            <button type="button" onClick={() => { setAuthMethod("phone"); setErrorMessage(""); }} className={`relative z-10 flex-1 py-2.5 text-center text-[13.5px] font-bold transition-colors duration-300 ${authMethod === "phone" ? (isOwner ? "text-white" : "text-text-primary") : (isOwner ? "text-slate-500" : "text-text-secondary")}`}>Phone OTP</button>
-            <button type="button" onClick={() => { setAuthMethod("email"); setErrorMessage(""); }} className={`relative z-10 flex-1 py-2.5 text-center text-[13.5px] font-bold transition-colors duration-300 ${authMethod === "email" ? (isOwner ? "text-white" : "text-text-primary") : (isOwner ? "text-slate-500" : "text-text-secondary")}`}>Email Login</button>
-          </div>
-        )}
-
         {/* ======================= PHONE OTP FLOW ======================= */}
-        {authMethod === "phone" && (
-          <div className="space-y-4">
-            {!isOtpSent ? (
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                <div className="group">
-                  <label className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 block ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Mobile Number</label>
-                  <div className="relative flex items-center">
-                    <span className={`material-icons-round absolute left-4 text-[19px] ${isOwner ? "text-slate-500" : "text-text-tertiary"}`}>phone</span>
-                    <input 
-                      type="tel" 
-                      placeholder="+91 9876543210" 
-                      value={phoneNumber} 
-                      onChange={(e) => setPhoneNumber(e.target.value)} 
-                      required 
-                      disabled={isLoading} 
-                      className={`w-full pl-11 pr-4 py-4 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 ${isOwner ? "bg-white/[0.05] border border-white/10 text-white placeholder-slate-600 focus:border-pink-500/60 focus:ring-pink-500/15" : "input focus:bg-white focus:border-[#ec4899] focus:ring-[#ec4899]/20"}`} 
-                    />
-                  </div>
-                </div>
-                <button type="submit" disabled={isLoading} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isOwner ? "bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 shadow-pink-500/20" : "bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] shadow-[#ec4899]/30"}`}>
-                  {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Send OTP via SMS</span>}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp} className="space-y-4 animate-scaleIn">
-                <div className={`p-4 rounded-2xl mb-4 border flex items-center justify-between ${isOwner ? "bg-white/5 border-white/10" : "bg-surface-dim border-border/50"}`}>
-                  <div>
-                    <p className={`text-[11px] font-bold uppercase ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Sending to</p>
-                    <p className={`font-medium ${isOwner ? "text-white" : "text-text-primary"}`}>{phoneNumber}</p>
-                  </div>
-                  <button type="button" onClick={resetPhoneFlow} disabled={isLoading} className={`text-[12px] font-bold ${isOwner ? "text-pink-400 hover:text-pink-300" : "text-[#ec4899] hover:text-[#db2777]"}`}>Change</button>
-                </div>
-
-                <div className="group">
-                  <label className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 block text-center ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Enter 6-Digit Code</label>
+        <div className="space-y-4">
+          {!isOtpSent ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div className="group">
+                <label className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 block ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Mobile Number</label>
+                <div className="relative flex items-center">
+                  <span className={`material-icons-round absolute left-4 text-[19px] ${isOwner ? "text-slate-500" : "text-text-tertiary"}`}>phone</span>
                   <input 
-                    type="text" 
-                    maxLength={6}
-                    placeholder="• • • • • •" 
-                    value={otpCode} 
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
+                    type="tel" 
+                    placeholder="+91 9876543210" 
+                    value={phoneNumber} 
+                    onChange={(e) => setPhoneNumber(e.target.value)} 
                     required 
                     disabled={isLoading} 
-                    className={`w-full text-center tracking-[1em] text-2xl font-bold py-4 rounded-xl transition-all focus:outline-none focus:ring-2 ${isOwner ? "bg-white/[0.05] border border-white/10 text-white placeholder-slate-600 focus:border-pink-500/60 focus:ring-pink-500/15" : "input focus:bg-white focus:border-[#ec4899] focus:ring-[#ec4899]/20"}`} 
+                    className={`w-full pl-11 pr-4 py-4 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 ${isOwner ? "bg-white/[0.05] border border-white/10 text-white placeholder-slate-600 focus:border-pink-500/60 focus:ring-pink-500/15" : "input focus:bg-white focus:border-[#ec4899] focus:ring-[#ec4899]/20"}`} 
                   />
                 </div>
-
-                <button type="submit" disabled={isLoading || otpCode.length < 6} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isOwner ? "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-500/20" : "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] shadow-[#8b5cf6]/30"}`}>
-                  {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Verify & Continue</span>}
-                </button>
-
-                <div className="text-center mt-4">
-                  <button 
-                    type="button" 
-                    onClick={handleSendOtp} 
-                    disabled={timer > 0 || isLoading} 
-                    className={`text-[12px] font-bold transition-colors ${timer > 0 ? (isOwner ? "text-slate-600" : "text-text-tertiary") : (isOwner ? "text-pink-400 hover:text-pink-300" : "text-[#ec4899] hover:text-[#db2777]")}`}
-                  >
-                    {timer > 0 ? `Resend Code in ${timer}s` : "Resend OTP Code"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
-
-        {/* ======================= EMAIL FLOW ======================= */}
-        {authMethod === "email" && !isOwner && (
-          <form onSubmit={(e) => { e.preventDefault(); executeCustomerAuth(isSignUp); }} className="space-y-4 animate-scaleIn">
-            <div className="flex justify-end mb-2">
-              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-[12px] font-bold text-[#ec4899] hover:underline">
-                {isSignUp ? "Already have an account? Log In" : "Need an account? Sign Up"}
+              </div>
+              <button type="submit" disabled={isLoading} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isOwner ? "bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 shadow-pink-500/20" : "bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] shadow-[#ec4899]/30"}`}>
+                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Send OTP via SMS</span>}
               </button>
-            </div>
-            
-            {isSignUp && (
-              <div className="group">
-                <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Full Name</label>
-                <div className="relative flex items-center">
-                  <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">person</span>
-                  <input type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px" }} />
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4 animate-scaleIn">
+              <div className={`p-4 rounded-2xl mb-4 border flex items-center justify-between ${isOwner ? "bg-white/5 border-white/10" : "bg-surface-dim border-border/50"}`}>
+                <div>
+                  <p className={`text-[11px] font-bold uppercase ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Sending to</p>
+                  <p className={`font-medium ${isOwner ? "text-white" : "text-text-primary"}`}>{phoneNumber}</p>
                 </div>
+                <button type="button" onClick={resetPhoneFlow} disabled={isLoading} className={`text-[12px] font-bold ${isOwner ? "text-pink-400 hover:text-pink-300" : "text-[#ec4899] hover:text-[#db2777]"}`}>Change</button>
               </div>
-            )}
 
-            <div className="group">
-              <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Email Address</label>
-              <div className="relative flex items-center">
-                <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">mail</span>
-                <input type="email" placeholder="hello@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px" }} />
+              <div className="group">
+                <label className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 block text-center ${isOwner ? "text-slate-400" : "text-text-secondary"}`}>Enter 6-Digit Code</label>
+                <input 
+                  type="text" 
+                  maxLength={6}
+                  placeholder="• • • • • •" 
+                  value={otpCode} 
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
+                  required 
+                  disabled={isLoading} 
+                  className={`w-full text-center tracking-[1em] text-2xl font-bold py-4 rounded-xl transition-all focus:outline-none focus:ring-2 ${isOwner ? "bg-white/[0.05] border border-white/10 text-white placeholder-slate-600 focus:border-pink-500/60 focus:ring-pink-500/15" : "input focus:bg-white focus:border-[#ec4899] focus:ring-[#ec4899]/20"}`} 
+                />
               </div>
-            </div>
 
-            <div className="group">
-              <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5 block">Password</label>
-              <div className="relative flex items-center">
-                <span className="material-icons-round absolute left-4 text-[19px] text-text-tertiary">lock</span>
-                <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} className="input focus:bg-white" style={{ paddingLeft: "44px", paddingRight: "48px" }} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 text-text-tertiary hover:text-text-secondary">
-                  <span className="material-icons-round text-[19px]">{showPassword ? "visibility_off" : "visibility"}</span>
+              <button type="submit" disabled={isLoading || otpCode.length < 6} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isOwner ? "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-500/20" : "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] shadow-[#8b5cf6]/30"}`}>
+                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Verify & Continue</span>}
+              </button>
+
+              <div className="text-center mt-4">
+                <button 
+                  type="button" 
+                  onClick={handleSendOtp} 
+                  disabled={timer > 0 || isLoading} 
+                  className={`text-[12px] font-bold transition-colors ${timer > 0 ? (isOwner ? "text-slate-600" : "text-text-tertiary") : (isOwner ? "text-pink-400 hover:text-pink-300" : "text-[#ec4899] hover:text-[#db2777]")}`}
+                >
+                  {timer > 0 ? `Resend Code in ${timer}s` : "Resend OTP Code"}
                 </button>
               </div>
-            </div>
+            </form>
+          )}
 
-            {!isSignUp && (
-              <div className="flex justify-end">
-                <button type="button" onClick={handleCustomerForgotPassword} disabled={isLoading} className="text-[12px] font-bold text-[#ec4899] hover:underline">Forgot Password?</button>
+          {isOwner && (
+            <div className="mt-8 animate-scaleIn">
+              <div className="flex items-center gap-3 py-4">
+                <div className="flex-1 h-px bg-white/10"></div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">New to glvia?</span>
+                <div className="flex-1 h-px bg-white/10"></div>
               </div>
-            )}
 
-            <button type="submit" disabled={isLoading} className={`w-full py-4 mt-2 rounded-2xl text-white font-bold text-[14.5px] active:scale-[0.98] disabled:opacity-75 transition-all flex items-center justify-center gap-2 shadow-xl ${isSignUp ? "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] shadow-[#8b5cf6]/30" : "bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] shadow-[#ec4899]/30"}`}>
-              {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>{isSignUp ? "Sign Up" : "Log In"}</span>}
-            </button>
-          </form>
-        )}
-
-        {authMethod === "email" && isOwner && (
-          <div className="space-y-4 animate-scaleIn">
-            <Link href="/salon-owner/login" className="w-full py-4 mt-2 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white rounded-2xl font-bold text-[14.5px] hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-pink-500/20">
-              <span className="material-icons-round text-[18px]">mail</span>
-              Proceed to Email Login
-            </Link>
-            
-            <div className="flex items-center gap-3 py-4">
-              <div className="flex-1 h-px bg-white/10"></div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">New to glvia?</span>
-              <div className="flex-1 h-px bg-white/10"></div>
+              <Link href="/salon-owner/register" className="w-full py-4 bg-white/[0.05] border border-white/10 text-white rounded-2xl font-bold text-[14.5px] hover:bg-white/[0.08] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <span className="material-icons-round text-[18px] text-slate-400">storefront</span>
+                Register New Salon
+              </Link>
             </div>
-
-            <Link href="/salon-owner/register" className="w-full py-4 bg-white/[0.05] border border-white/10 text-white rounded-2xl font-bold text-[14.5px] hover:bg-white/[0.08] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-              <span className="material-icons-round text-[18px] text-slate-400">storefront</span>
-              Register New Salon
-            </Link>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* ======================= GOOGLE AUTH ======================= */}
         {!isOtpSent && (
