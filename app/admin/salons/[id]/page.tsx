@@ -198,6 +198,7 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
       tags: tagsArray,
       featured: !!salonForm.featured,
       is_active: !!salonForm.is_active,
+      status: salonForm.status || 'pending',
       google_map_url: salonForm.google_map_url || null
     };
 
@@ -236,10 +237,14 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
         <Link href="/admin/salons" className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
           <span className="material-icons-round text-[18px] text-gray-600">arrow_back</span>
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-extrabold text-text-primary">{salon?.name || "Salon"}</h1>
           <p className="text-sm text-text-secondary mt-0.5">Manage services, categories & details for this salon</p>
         </div>
+        <Link href={`/salon-owner/dashboard?salon_id=${id}`} className="btn-secondary py-2 px-4 text-sm flex items-center gap-2">
+          <span className="material-icons-round text-[16px]">open_in_new</span>
+          Open Full Dashboard
+        </Link>
       </div>
 
       <div className="flex items-center justify-between">
@@ -350,6 +355,20 @@ export default function SalonEditPage({ params }: { params: Promise<{ id: string
                 <input type="checkbox" checked={!!salonForm.is_active} onChange={(e) => setSalonForm((prev: any) => ({ ...prev, is_active: e.target.checked }))} className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500" />
                 <span className="text-sm font-semibold text-gray-700">Active (Visible on App)</span>
               </label>
+            </div>
+
+            <div className="md:col-span-2 pt-2 border-t border-gray-100 mt-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Approval Status</label>
+              <select 
+                value={salonForm.status || 'pending'} 
+                onChange={(e) => setSalonForm((prev: any) => ({ ...prev, status: e.target.value }))}
+                className="w-full md:w-1/2 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 bg-white"
+              >
+                <option value="pending">Pending</option>
+                <option value="approved">Approved (Listed on Marketplace)</option>
+                <option value="rejected">Rejected</option>
+                <option value="suspended">Suspended</option>
+              </select>
             </div>
           </div>
 

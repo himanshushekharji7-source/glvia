@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAdminAuth } from "../../lib/adminAuth";
 import {
   useSalonOwnerStats, useMyBookings, useUpdateBookingStatus,
@@ -9,7 +10,7 @@ import {
   useSalon, useUpdateSalonProfile,
 } from "../../lib/hooks";
 
-type Tab = "overview" | "bookings" | "services" | "staff" | "settings";
+type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 // ─── Status Badge ────────────────────────────────────────────────────────────
@@ -723,13 +724,47 @@ function SettingsTab({ salonId }: { salonId: string }) {
   );
 }
 
-// ─── Main Dashboard Page ──────────────────────────────────────────────────────
-export default function SalonOwnerDashboard() {
+// ─── Preview Tab ──────────────────────────────────────────────────────────────
+function PreviewTab({ salonId }: { salonId: string }) {
+  return (
+    <div className="bg-white/[0.03] border border-white/8 rounded-3xl overflow-hidden h-[80vh] relative shadow-2xl flex flex-col">
+      <div className="bg-slate-900 border-b border-white/10 px-4 py-3 flex items-center justify-between z-10">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+          <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
+          <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+        </div>
+        <div className="bg-slate-800/80 px-4 py-1.5 rounded-full flex items-center gap-2 max-w-sm w-full mx-auto justify-center">
+          <span className="material-icons-round text-[14px] text-slate-500">lock</span>
+          <span className="text-xs text-slate-400 font-mono truncate">glvia.com/salon/{salonId}</span>
+        </div>
+        <a href={`/salon/${salonId}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-pink-400 hover:text-pink-300 font-semibold transition-colors">
+          Open in New Tab<span className="material-icons-round text-[14px]">open_in_new</span>
+        </a>
+      </div>
+      <div className="flex-1 bg-white relative">
+        {/* Iframe renders the exact customer view without surrounding layout */}
+        <iframe 
+          src={`/salon/${salonId}`} 
+          className="w-full h-full border-none"
+          title="Salon Preview"
+          sandbox="allow-same-origin allow-scripts allow-forms"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Dashboard Component with Params ──────────────────────────────────────────
+function DashboardContent() {
   const { admin, logout, isSalonOwner, isAdmin } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const searchParams = useSearchParams();
+  const querySalonId = searchParams.get("salon_id");
 
-  // Determine the salon to manage
-  const salonId = (isSalonOwner ? admin?.salon_id : admin?.salon_id) ?? "";
+  // Only allow Super Admins to use query params. 
+  // Salon Owners MUST use their linked salon_id.
+  const salonId = (isSalonOwner ? admin?.salon_id : (isAdmin ? querySalonId || admin?.salon_id : "")) ?? "";
   const { data: stats, isLoading: statsLoading } = useSalonOwnerStats(salonId || undefined);
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -738,6 +773,7 @@ export default function SalonOwnerDashboard() {
     { id: "services", label: "Services", icon: "spa" },
     { id: "staff", label: "Staff", icon: "people" },
     { id: "settings", label: "Settings", icon: "settings" },
+    { id: "preview", label: "Preview", icon: "visibility" },
   ];
 
   if (!salonId) {
@@ -822,7 +858,21 @@ export default function SalonOwnerDashboard() {
         {activeTab === "services" && <ServicesTab salonId={salonId} />}
         {activeTab === "staff" && <StaffTab salonId={salonId} />}
         {activeTab === "settings" && <SettingsTab salonId={salonId} />}
+        {activeTab === "preview" && <PreviewTab salonId={salonId} />}
       </main>
     </div>
+  );
+}
+
+// ─── Main Dashboard Page ──────────────────────────────────────────────────────
+export default function SalonOwnerDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-dvh flex items-center justify-center bg-slate-950">
+        <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

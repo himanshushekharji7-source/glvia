@@ -22,6 +22,7 @@ const fields = [
   { name: "total_reviews", label: "Total Reviews", type: "number" as const },
   { name: "facilities_string", label: "Facilities (comma separated)", type: "text" as const, placeholder: "e.g. Waiting Chair, Washed Towel" },
   { name: "timings", label: "Weekly Timings", type: "text" as const, placeholder: "e.g. 11:15 AM - 09:00 PM" },
+  { name: "status", label: "Approval Status", type: "select" as const, options: [{value: "pending", label: "Pending"}, {value: "approved", label: "Approved"}, {value: "rejected", label: "Rejected"}, {value: "suspended", label: "Suspended"}] },
 ];
 
 export default function SalonsPage() {
@@ -51,7 +52,7 @@ export default function SalonsPage() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ rating: 0, total_reviews: 0, featured: false, is_active: true });
+    setForm({ rating: 0, total_reviews: 0, featured: false, is_active: true, status: 'pending' });
     setModalOpen(true);
   };
 
@@ -122,9 +123,14 @@ export default function SalonsPage() {
       </span>
     )},
     { key: "distance", label: "Distance", width: "100px" },
-    { key: "is_active", label: "Status", width: "80px", render: (v: boolean) => (
+    { key: "status", label: "Approval", width: "100px", render: (v: string) => (
+      <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider ${v === "approved" ? "bg-green-50 text-green-600" : v === "rejected" ? "bg-red-50 text-red-600" : v === "suspended" ? "bg-orange-50 text-orange-600" : "bg-yellow-50 text-yellow-600"}`}>
+        {v || "pending"}
+      </span>
+    )},
+    { key: "is_active", label: "Active", width: "80px", render: (v: boolean) => (
       <span className={`text-xs font-bold px-2 py-0.5 rounded ${v ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>
-        {v ? "Active" : "Inactive"}
+        {v ? "Yes" : "No"}
       </span>
     )},
   ];
