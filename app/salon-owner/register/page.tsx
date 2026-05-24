@@ -14,23 +14,51 @@ declare global {
   }
 }
 
+// Reusable Shimmer Button
+const PremiumButton = ({ 
+  children, 
+  onClick, 
+  disabled, 
+  type = "button", 
+  className = "", 
+  isLoading = false 
+}: any) => (
+  <motion.button
+    type={type}
+    onClick={onClick}
+    disabled={disabled || isLoading}
+    whileHover={{ scale: 1.015, y: -1 }}
+    whileTap={{ scale: 0.97 }}
+    className={`relative overflow-hidden w-full py-4 rounded-2xl font-bold text-[14.5px] shadow-xl disabled:opacity-70 transition-all flex items-center justify-center gap-2 group ${className}`}
+  >
+    <motion.div 
+      initial={{ x: "-100%" }}
+      animate={{ x: "200%" }}
+      transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+      className="absolute inset-0 z-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]"
+    />
+    <span className="relative z-10 flex items-center gap-2">
+      {isLoading ? (
+        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      ) : (
+        children
+      )}
+    </span>
+  </motion.button>
+);
+
 export default function SalonOwnerRegisterPage() {
   const router = useRouter();
   
-  // View State: "form" | "otp" | "success"
   const [view, setView] = useState<"form" | "otp" | "success">("form");
   
-  // Owner Details
+  // Form State
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  
-  // Salon Details
   const [salonName, setSalonName] = useState("");
   const [phone, setPhone] = useState("+91 ");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
-  
-  // Files
   const [images, setImages] = useState<File[]>([]);
   const [kycDocs, setKycDocs] = useState<File[]>([]);
   
@@ -45,30 +73,26 @@ export default function SalonOwnerRegisterPage() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (timer > 0) {
-      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
-    }
+    if (timer > 0) interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
   const cleanupRecaptcha = () => {
     if (window.recaptchaVerifier) {
-      try { window.recaptchaVerifier.clear(); } catch (e) { console.error(e); }
+      try { window.recaptchaVerifier.clear(); } catch (e) {}
       window.recaptchaVerifier = null;
     }
     const container = document.getElementById("recaptcha-container");
     if (container) container.innerHTML = "";
   };
 
-  // Helper to upload files to Supabase Storage
   const uploadFiles = async (files: File[], bucket: string, folder: string): Promise<string[]> => {
     const urls: string[] = [];
     for (const file of files) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${folder}/${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const { data, error } = await supabase.storage.from(bucket).upload(fileName, file);
+      const { error } = await supabase.storage.from(bucket).upload(fileName, file);
       if (error) throw error;
-      
       const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
       urls.push(publicUrl);
     }
@@ -78,20 +102,11 @@ export default function SalonOwnerRegisterPage() {
   const processRegistration = async (firebaseUid: string, userEmail: string) => {
     const imageUrls = await uploadFiles(images, 'salon-images', firebaseUid);
     const kycUrls = await uploadFiles(kycDocs, 'salon-kyc', firebaseUid);
-    const kycJson = { documents: kycUrls };
-
     const { data: salonId, error: rpcError } = await supabase.rpc("auto_create_salon_account", {
-      p_firebase_uid: firebaseUid,
-      p_owner_name: name.trim(),
-      p_email: userEmail.toLowerCase().trim(),
-      p_salon_name: salonName.trim(),
-      p_phone: phone.trim().replace(/\s+/g, ''),
-      p_city: city.trim(),
-      p_address_street: address.trim(),
-      p_salon_images: imageUrls,
-      p_kyc_documents: kycJson
+      p_firebase_uid: firebaseUid, p_owner_name: name.trim(), p_email: userEmail.toLowerCase().trim(),
+      p_salon_name: salonName.trim(), p_phone: phone.trim().replace(/\s+/g, ''), p_city: city.trim(),
+      p_address_street: address.trim(), p_salon_images: imageUrls, p_kyc_documents: { documents: kycUrls }
     });
-
     if (rpcError) throw new Error(rpcError.message || "Failed to build backend infrastructure.");
     return salonId;
   };
@@ -109,7 +124,6 @@ export default function SalonOwnerRegisterPage() {
     return null;
   };
 
-  // Step 1: Send OTP
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError("");
@@ -117,7 +131,6 @@ export default function SalonOwnerRegisterPage() {
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
-      // scroll to top to see error
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -134,11 +147,8 @@ export default function SalonOwnerRegisterPage() {
       setTimer(30);
       window.scrollTo({ top: 0, behavior: "smooth" });
       
-      setTimeout(() => {
-        if (otpInputRef.current) otpInputRef.current.focus();
-      }, 300);
+      setTimeout(() => { if (otpInputRef.current) otpInputRef.current.focus(); }, 400);
     } catch (err: any) {
-      console.error(err);
       cleanupRecaptcha();
       setError(err.message || "Failed to send OTP.");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -147,7 +157,6 @@ export default function SalonOwnerRegisterPage() {
     }
   };
 
-  // Step 2: Verify OTP & Process Registration
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -160,12 +169,10 @@ export default function SalonOwnerRegisterPage() {
       const result = await confirmationResult.confirm(otpCode);
       const firebaseUser = result.user;
       localStorage.setItem("token", firebaseUser.uid);
-
       await processRegistration(firebaseUser.uid, firebaseUser.email || email);
-      
       setView("success");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      console.error(err);
       setError("Invalid OTP code. Please try again.");
     } finally {
       setIsLoading(false);
@@ -186,167 +193,186 @@ export default function SalonOwnerRegisterPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
       localStorage.setItem("token", firebaseUser.uid);
-      
       await processRegistration(firebaseUser.uid, firebaseUser.email || email);
-      
       setView("success");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      if (err.code !== "auth/popup-closed-by-user") {
-        setError(err.message || "Google signup failed");
-      }
+      if (err.code !== "auth/popup-closed-by-user") setError(err.message || "Google signup failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, setFiles: React.Dispatch<React.SetStateAction<File[]>>) => {
-    if (e.target.files) {
-      setFiles(Array.from(e.target.files));
-    }
+    if (e.target.files) setFiles(Array.from(e.target.files));
   };
 
-  const handleSuccessRedirect = () => {
-    router.push("/salon-owner/dashboard");
+  const containerVariants = {
+    hidden: { opacity: 0, y: 40, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0.3, duration: 0.8, staggerChildren: 0.08, delayChildren: 0.1 } },
+    exit: { opacity: 0, y: -20, scale: 0.95, filter: "blur(8px)", transition: { duration: 0.4 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } }
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-dvh bg-slate-50 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans antialiased">
       <div id="recaptcha-container"></div>
 
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-br from-pink-600 via-rose-500 to-purple-600" />
+      {/* Luxury Background Elements */}
+      <div className="absolute top-0 left-0 right-0 h-80 bg-gradient-to-br from-pink-600 via-rose-500 to-purple-700" />
+      <div className="absolute top-0 left-0 right-0 h-80 bg-[url('https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-20 mix-blend-overlay pointer-events-none" />
       
       <div className="relative w-full max-w-2xl mt-12 mb-12">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-white tracking-tight mb-2 drop-shadow-md">Join the Marketplace</h1>
-          <p className="text-white/90 text-sm font-medium">Register your salon on GLVIA and start accepting bookings.</p>
-        </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-10">
+          <h1 className="text-[40px] font-black text-white tracking-tight mb-2 drop-shadow-md">Join the Marketplace</h1>
+          <p className="text-white/90 text-[15px] font-medium tracking-wide">Register your salon on GLVIA and start accepting bookings.</p>
+        </motion.div>
 
         <AnimatePresence mode="wait">
           {/* ======================= FORM VIEW ======================= */}
           {view === "form" && (
             <motion.div 
               key="form"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white rounded-[32px] p-6 sm:p-10 shadow-2xl space-y-10 relative overflow-hidden"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="bg-white rounded-[36px] p-6 sm:p-10 shadow-[0_40px_80px_rgba(0,0,0,0.1)] space-y-12 relative overflow-hidden"
             >
-              {isLoading && (
-                <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-20 flex items-center justify-center">
-                  <div className="w-8 h-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-                </div>
-              )}
+              <AnimatePresence>
+                {isLoading && (
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-white/70 backdrop-blur-md z-20 flex flex-col items-center justify-center"
+                  >
+                    <div className="w-10 h-10 border-4 border-slate-100 border-t-purple-600 rounded-full animate-spin mb-4 shadow-lg" />
+                    <span className="text-sm font-bold text-slate-800 animate-pulse">Processing...</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {error && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 flex items-start gap-3">
-                  <span className="material-icons-round text-[20px]">error_outline</span>
-                  <span className="flex-1 leading-snug">{error}</span>
-                </motion.div>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="p-4 bg-red-50/80 backdrop-blur-sm text-red-600 text-[13px] font-bold rounded-2xl border border-red-100 flex items-start gap-3">
+                    <span className="material-icons-round text-[20px]">error_outline</span>
+                    <span className="flex-1 leading-snug">{error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Owner Details */}
-              <section>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
-                    <span className="material-icons-round text-[18px]">person</span>
+              <motion.section variants={itemVariants}>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 flex items-center justify-center text-pink-600 shadow-sm border border-pink-100/50">
+                    <span className="material-icons-round text-[20px]">person</span>
                   </div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Owner Details</h3>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Owner Details</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Full Name *</label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" disabled={isLoading} />
+                  <div className="group">
+                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Full Name *</label>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:bg-white transition-all shadow-sm" disabled={isLoading} />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Email Address *</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="owner@salon.com" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" disabled={isLoading} />
+                  <div className="group">
+                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Email Address *</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="owner@salon.com" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:bg-white transition-all shadow-sm" disabled={isLoading} />
                   </div>
                 </div>
-              </section>
+              </motion.section>
 
               {/* Salon Details */}
-              <section>
-                <div className="flex items-center gap-3 mb-6 border-t border-slate-100 pt-8">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-                    <span className="material-icons-round text-[18px]">storefront</span>
+              <motion.section variants={itemVariants}>
+                <div className="flex items-center gap-4 mb-6 border-t border-slate-100 pt-10">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center text-purple-600 shadow-sm border border-purple-100/50">
+                    <span className="material-icons-round text-[20px]">storefront</span>
                   </div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Salon & Location</h3>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Salon & Location</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Salon Name *</label>
-                    <input type="text" value={salonName} onChange={(e) => setSalonName(e.target.value)} placeholder="Elegance Beauty" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" disabled={isLoading} />
+                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Salon Name *</label>
+                    <input type="text" value={salonName} onChange={(e) => setSalonName(e.target.value)} placeholder="Elegance Beauty" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus:bg-white transition-all shadow-sm" disabled={isLoading} />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Mobile Number *</label>
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9876543210" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" disabled={isLoading} />
+                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Mobile Number *</label>
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9876543210" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus:bg-white transition-all shadow-sm" disabled={isLoading} />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">City *</label>
-                    <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="New Delhi" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" disabled={isLoading} />
+                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">City *</label>
+                    <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="New Delhi" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus:bg-white transition-all shadow-sm" disabled={isLoading} />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Full Address *</label>
-                    <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, Sector 4" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" disabled={isLoading} />
+                    <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Full Address *</label>
+                    <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, Sector 4" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus:bg-white transition-all shadow-sm" disabled={isLoading} />
                   </div>
                 </div>
-              </section>
+              </motion.section>
 
               {/* Uploads */}
-              <section>
-                <div className="flex items-center gap-3 mb-6 border-t border-slate-100 pt-8">
-                  <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
-                    <span className="material-icons-round text-[18px]">cloud_upload</span>
+              <motion.section variants={itemVariants}>
+                <div className="flex items-center gap-4 mb-6 border-t border-slate-100 pt-10">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-50 to-orange-50 flex items-center justify-center text-rose-600 shadow-sm border border-rose-100/50">
+                    <span className="material-icons-round text-[20px]">cloud_upload</span>
                   </div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Verification Documents</h3>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Verification Documents</h3>
                 </div>
                 <div className="space-y-4">
-                  <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <label className="block text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">Salon Images (Public) *</label>
-                    <input type="file" multiple accept="image/*" onChange={(e) => handleImageChange(e, setImages)} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-pink-100 file:text-pink-600 hover:file:bg-pink-200 transition-colors cursor-pointer" disabled={isLoading} />
-                    <p className="text-[11px] font-medium text-slate-400 mt-3">Select 1 or more images of your salon interior/exterior.</p>
+                  <div className="p-6 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded-[24px] transition-colors">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-widest">Salon Images (Public) *</label>
+                    <input type="file" multiple accept="image/*" onChange={(e) => handleImageChange(e, setImages)} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-white file:text-pink-600 file:shadow-sm hover:file:shadow-md transition-all cursor-pointer" disabled={isLoading} />
+                    <p className="text-[12px] font-medium text-slate-400 mt-4">Select 1 or more images of your salon interior/exterior.</p>
                   </div>
-                  <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <label className="block text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">KYC Documents (Private) *</label>
-                    <input type="file" multiple accept="image/*,.pdf" onChange={(e) => handleImageChange(e, setKycDocs)} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-purple-100 file:text-purple-600 hover:file:bg-purple-200 transition-colors cursor-pointer" disabled={isLoading} />
-                    <p className="text-[11px] font-medium text-slate-400 mt-3">Upload Aadhaar, PAN, or GST Certificate for verification.</p>
+                  <div className="p-6 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded-[24px] transition-colors">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-widest">KYC Documents (Private) *</label>
+                    <input type="file" multiple accept="image/*,.pdf" onChange={(e) => handleImageChange(e, setKycDocs)} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-white file:text-purple-600 file:shadow-sm hover:file:shadow-md transition-all cursor-pointer" disabled={isLoading} />
+                    <p className="text-[12px] font-medium text-slate-400 mt-4">Upload Aadhaar, PAN, or GST Certificate for verification.</p>
                   </div>
                 </div>
-              </section>
+              </motion.section>
 
               {/* Submit Buttons */}
-              <div className="pt-6 border-t border-slate-100">
-                <button type="button" onClick={handleSendOtp} disabled={isLoading} className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white rounded-2xl font-bold text-[14.5px] shadow-lg shadow-purple-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group relative overflow-hidden">
-                  <span className="relative z-10">Send OTP <span className="opacity-80 font-normal ml-1">to verify & register</span></span>
-                  <span className="material-icons-round text-[18px] relative z-10 group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </button>
+              <motion.div variants={itemVariants} className="pt-8 border-t border-slate-100">
+                <PremiumButton onClick={handleSendOtp} isLoading={isLoading} className="bg-gradient-to-r from-pink-600 via-rose-500 to-purple-600 text-white shadow-pink-500/25">
+                  Send OTP <span className="opacity-80 font-normal ml-1 hidden sm:inline">to verify & register</span>
+                  <span className="material-icons-round text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </PremiumButton>
                 
-                <div className="flex items-center gap-3 my-6">
+                <div className="flex items-center gap-4 my-7">
                   <div className="flex-1 h-px bg-slate-100" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OR</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">OR</p>
                   <div className="flex-1 h-px bg-slate-100" />
                 </div>
 
-                <button type="button" onClick={handleGoogleSignup} disabled={isLoading} className="w-full py-3.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl font-bold text-[13px] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-                  <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                <motion.button 
+                  type="button" 
+                  onClick={handleGoogleSignup} 
+                  disabled={isLoading} 
+                  whileHover={{ scale: 1.015, y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full py-4 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl font-bold text-[14px] transition-all flex items-center justify-center gap-3 shadow-sm hover:shadow-md"
+                >
+                  <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z" />
                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
                     <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
                     <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
                   </svg>
                   Register with Google
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
 
-              <div className="text-center pt-2">
-                <p className="text-slate-500 text-[13px] font-medium">
+              <motion.div variants={itemVariants} className="text-center pt-4">
+                <p className="text-slate-500 text-[13.5px] font-medium">
                   Already have an account?{" "}
                   <Link href="/login" className="text-pink-600 font-bold hover:text-pink-500 transition-colors">
                     Log in
                   </Link>
                 </p>
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
@@ -354,34 +380,41 @@ export default function SalonOwnerRegisterPage() {
           {view === "otp" && (
             <motion.div 
               key="otp"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white rounded-[32px] p-8 shadow-2xl relative overflow-hidden max-w-md mx-auto"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="bg-white rounded-[36px] p-8 sm:p-10 shadow-[0_40px_80px_rgba(0,0,0,0.15)] relative overflow-hidden max-w-md mx-auto"
             >
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.1, backgroundColor: "#f1f5f9" }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setView("form")}
-                className="absolute top-6 left-6 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                className="absolute top-6 left-6 w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 border border-slate-100 shadow-sm transition-colors"
               >
                 <span className="material-icons-round text-[18px]">arrow_back</span>
-              </button>
+              </motion.button>
 
-              <div className="text-center mt-4 mb-8">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Verify Phone</h2>
-                <p className="text-xs text-slate-500 font-medium px-4 leading-relaxed">
-                  Enter the 6-digit code sent to <br/><span className="text-slate-800 font-bold">{phone}</span>
+              <motion.div variants={itemVariants} className="text-center mt-6 mb-10">
+                <h2 className="text-[26px] font-black text-slate-900 mb-2 tracking-tight">Verify Phone</h2>
+                <p className="text-[14px] text-slate-500 font-medium px-4 leading-relaxed">
+                  Enter the 6-digit code sent to <br/><span className="text-slate-800 font-bold bg-slate-100 px-2 py-0.5 rounded-md inline-block mt-1">{phone}</span>
                 </p>
-              </div>
+              </motion.div>
 
-              {error && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 text-center text-red-500 text-xs font-bold bg-red-50 py-2 rounded-lg">
-                  {error}
-                </motion.div>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 overflow-hidden">
+                    <div className="text-center text-red-600 text-[13px] font-bold bg-red-50 py-3 px-4 rounded-xl border border-red-100">
+                      {error}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div className="relative">
+              <form onSubmit={handleVerifyOtp} className="space-y-8">
+                <motion.div variants={itemVariants} className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition-opacity duration-500" />
                   <input 
                     ref={otpInputRef}
                     type="text" 
@@ -391,24 +424,26 @@ export default function SalonOwnerRegisterPage() {
                     value={otpCode} 
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
                     required 
-                    className="w-full text-center tracking-[1.5em] pl-[1.5em] text-3xl font-black py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-300 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all" 
+                    className="relative w-full text-center tracking-[1.5em] pl-[1.5em] text-[32px] font-black py-4 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 placeholder-slate-200 focus:outline-none focus:border-purple-500 focus:shadow-[0_0_0_4px_rgba(168,85,247,0.1)] transition-all" 
                   />
-                </div>
+                </motion.div>
 
-                <button type="submit" disabled={isLoading || otpCode.length < 6} className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 disabled:opacity-50 text-white rounded-2xl font-bold text-[14px] shadow-lg shadow-purple-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                  {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Verify & Register</span>}
-                </button>
+                <motion.div variants={itemVariants}>
+                  <PremiumButton type="submit" disabled={otpCode.length < 6} isLoading={isLoading} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-500/25">
+                    Verify & Register
+                  </PremiumButton>
+                </motion.div>
 
-                <div className="text-center">
+                <motion.div variants={itemVariants} className="text-center">
                   <button 
                     type="button" 
                     onClick={handleSendOtp} 
                     disabled={timer > 0 || isLoading} 
-                    className={`text-[12px] font-bold transition-colors ${timer > 0 ? "text-slate-400" : "text-purple-600 hover:text-purple-500"}`}
+                    className={`text-[13px] font-bold transition-all ${timer > 0 ? "text-slate-400" : "text-slate-700 hover:text-pink-600"}`}
                   >
-                    {timer > 0 ? `Resend code in 00:${timer.toString().padStart(2, '0')}` : "Resend SMS"}
+                    {timer > 0 ? `Resend code in 00:${timer.toString().padStart(2, '0')}` : "Resend SMS Code"}
                   </button>
-                </div>
+                </motion.div>
               </form>
             </motion.div>
           )}
@@ -417,55 +452,49 @@ export default function SalonOwnerRegisterPage() {
           {view === "success" && (
             <motion.div 
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white rounded-[32px] p-10 shadow-2xl text-center relative overflow-hidden max-w-sm mx-auto"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="bg-white rounded-[36px] p-10 shadow-[0_40px_80px_rgba(0,0,0,0.15)] text-center relative overflow-hidden max-w-sm mx-auto"
             >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-[200px] bg-gradient-to-b from-pink-500/20 to-transparent blur-3xl pointer-events-none" />
+              
               <motion.div 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-                className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-pink-600 to-purple-600 flex items-center justify-center shadow-xl shadow-purple-500/30"
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+                className="w-28 h-28 mx-auto mb-8 rounded-[32px] bg-gradient-to-br from-pink-600 via-rose-500 to-purple-600 flex items-center justify-center shadow-[0_20px_40px_-10px_rgba(236,72,153,0.5)] rotate-3"
               >
                 <motion.span 
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5, duration: 0.3 }}
-                  className="material-icons-round text-white text-5xl"
+                  initial={{ opacity: 0, scale: 0, pathLength: 0 }}
+                  animate={{ opacity: 1, scale: 1, pathLength: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4, type: "spring" }}
+                  className="material-icons-round text-white text-[64px]"
                 >
                   check
                 </motion.span>
               </motion.div>
               
               <motion.h2 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-2xl font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-3"
+                variants={itemVariants}
+                className="text-[32px] font-black text-slate-900 tracking-tight mb-3"
               >
                 Success!
               </motion.h2>
               
               <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="text-sm font-medium text-slate-500 mb-8 px-2 leading-relaxed"
+                variants={itemVariants}
+                className="text-[14.5px] font-medium text-slate-500 leading-relaxed mb-10 px-2"
               >
                 Your salon account has been successfully created and verified. Welcome to the GLVIA marketplace.
               </motion.p>
 
-              <motion.button 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                onClick={handleSuccessRedirect}
-                className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-2xl font-bold text-[15px] shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
-              >
-                Go to Dashboard
-                <span className="material-icons-round text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
-              </motion.button>
+              <motion.div variants={itemVariants}>
+                <PremiumButton onClick={handleSuccessRedirect} className="bg-slate-900 text-white shadow-slate-900/20">
+                  Go to Dashboard <span className="material-icons-round text-[18px]">arrow_forward</span>
+                </PremiumButton>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
