@@ -10,7 +10,8 @@
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop glvia",
     "pm2:restart": "pm2 restart glvia",
-    "pm2:logs": "pm2 logs glvia"
+    "pm2:logs": "pm2 logs glvia",
+    "push": "ELECTRON_RUN_AS_NODE=1 \"/Applications/Antigravity IDE.app/Contents/MacOS/Electron\" .git-scripts/push.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
