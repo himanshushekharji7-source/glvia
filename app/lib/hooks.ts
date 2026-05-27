@@ -810,59 +810,41 @@ export const useSalonReviews = (salonId?: string) => {
     queryFn: async () => {
       if (!salonId) return [];
       try {
-        // Mode A: Query the new verified salon_reviews table
+        // Mode A: Query the new verified salon_reviews table (Filter by 'approved' status only - Correction 1 & 4)
         const { data, error } = await supabase
           .from('salon_reviews')
           .select('*, customer:users(first_name, last_name, avatar_url), service:salon_services(name)')
           .eq('salon_id', salonId)
+          .eq('status', 'approved')
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          return data.map((r: any) => ({
-            id: r.id,
-            bookingId: r.booking_id,
-            salonId: r.salon_id,
-            customerId: r.customer_id,
-            serviceName: r.service?.name || "Salon Service",
-            rating: Number(r.rating) || 5,
-            reviewText: r.review_text || "",
-            images: r.images || [],
-            ownerReply: r.owner_reply || null,
-            status: r.status || "approved",
-            isVerifiedBooking: !!r.is_verified_booking,
-            customerName: r.customer ? `${r.customer.first_name || ""} ${r.customer.last_name || ""}`.trim() || "Verified Client" : "Verified Client",
-            createdAt: r.created_at || new Date().toISOString()
-          }));
+        if (error) {
+          console.error("salon_reviews table is not available yet, raising unavailable flag:", error);
+          const res = [] as any;
+          res.isUnavailable = true;
+          return res;
         }
 
-        // Mode B Fallback: Query the pre-existing reviews table
-        console.warn("salon_reviews table is not yet queryable, falling back to reviews table...");
-        const { data: fallbackData, error: fallbackErr } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('salon_id', salonId)
-          .order('created_at', { ascending: false });
-
-        if (fallbackErr) throw fallbackErr;
-
-        return (fallbackData || []).map((r: any) => ({
+        return (data || []).map((r: any) => ({
           id: r.id,
-          bookingId: null,
+          bookingId: r.booking_id,
           salonId: r.salon_id,
-          customerId: null,
-          serviceName: "Salon Service",
+          customerId: r.customer_id,
+          serviceName: r.service?.name || "Salon Service",
           rating: Number(r.rating) || 5,
-          reviewText: r.comment || "",
-          images: [],
-          ownerReply: null,
-          status: "approved",
-          isVerifiedBooking: true,
-          customerName: r.user_name || "Client",
+          reviewText: r.review_text || "",
+          images: r.images || [],
+          ownerReply: r.owner_reply || null,
+          status: r.status || "approved",
+          isVerifiedBooking: !!r.is_verified_booking,
+          customerName: r.customer ? `${r.customer.first_name || ""} ${r.customer.last_name || ""}`.trim() || "Verified Client" : "Verified Client",
           createdAt: r.created_at || new Date().toISOString()
         }));
       } catch (err) {
         console.error("Error fetching salon reviews:", err);
-        return [];
+        const res = [] as any;
+        res.isUnavailable = true;
+        return res;
       }
     },
     enabled: !!salonId,
@@ -883,6 +865,7 @@ export const useSubmitReview = () => {
       is_verified_booking?: boolean;
     }) => {
       try {
+        // Enforce Correction 1: Insert status as 'pending'
         const { data, error } = await supabase
           .from('salon_reviews')
           .insert({
@@ -893,33 +876,13 @@ export const useSubmitReview = () => {
             rating: reviewData.rating,
             review_text: reviewData.review_text,
             images: reviewData.images || [],
-            status: 'approved',
+            status: 'pending',
             is_verified_booking: reviewData.is_verified_booking !== false
           })
           .select()
           .single();
 
-        if (error) {
-          console.warn("Insert to salon_reviews failed, falling back to reviews table:", error.message);
-          
-          const { data: cust } = await supabase.from('users').select('first_name, last_name').eq('id', reviewData.customer_id).single();
-          const custName = cust ? `${cust.first_name || ""} ${cust.last_name || ""}`.trim() : "Verified Client";
-          
-          const { data: fbData, error: fbErr } = await supabase
-            .from('reviews')
-            .insert({
-              salon_id: reviewData.salon_id,
-              user_name: custName,
-              rating: reviewData.rating,
-              comment: reviewData.review_text
-            })
-            .select()
-            .single();
-
-          if (fbErr) throw fbErr;
-          return fbData;
-        }
-
+        if (error) throw error;
         return data;
       } catch (err: any) {
         console.error("Review submission failed:", err);
@@ -931,6 +894,7 @@ export const useSubmitReview = () => {
       queryClient.invalidateQueries({ queryKey: ['salon', vars.salon_id] });
       queryClient.invalidateQueries({ queryKey: ['myBookings'] });
       queryClient.invalidateQueries({ queryKey: ['salonOwnerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['reviewsModeration', vars.salon_id] });
     }
   });
 };
@@ -940,27 +904,15 @@ export const useUpdateReview = () => {
   return useMutation({
     mutationFn: async ({ id, salon_id, ...updates }: { id: string; salon_id: string; rating?: number; review_text?: string; images?: string[] }) => {
       try {
+        // When a user updates a review, reset status to 'pending' for re-moderation safety
         const { data, error } = await supabase
           .from('salon_reviews')
-          .update(updates)
+          .update({ ...updates, status: 'pending' })
           .eq('id', id)
           .select()
           .single();
 
-        if (error) {
-          const { data: fbData, error: fbErr } = await supabase
-            .from('reviews')
-            .update({
-              rating: updates.rating,
-              comment: updates.review_text
-            })
-            .eq('id', id)
-            .select()
-            .single();
-
-          if (fbErr) throw fbErr;
-          return fbData;
-        }
+        if (error) throw error;
         return data;
       } catch (err: any) {
         console.error("Updating review failed:", err);
@@ -971,6 +923,7 @@ export const useUpdateReview = () => {
       queryClient.invalidateQueries({ queryKey: ['salonReviews', vars.salon_id] });
       queryClient.invalidateQueries({ queryKey: ['salon', vars.salon_id] });
       queryClient.invalidateQueries({ queryKey: ['salonOwnerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['reviewsModeration', vars.salon_id] });
     }
   });
 };
@@ -1007,27 +960,12 @@ export const useReviewsModeration = (salonId?: string) => {
           .eq('salon_id', salonId)
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          return data;
+        if (error) {
+          console.error("salon_reviews table query failed for moderation:", error);
+          return [];
         }
 
-        const { data: fallbackData } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('salon_id', salonId)
-          .order('created_at', { ascending: false });
-
-        return (fallbackData || []).map((r: any) => ({
-          id: r.id,
-          booking_id: null,
-          salon_id: r.salon_id,
-          rating: r.rating,
-          review_text: r.comment || "",
-          owner_reply: null,
-          status: 'approved',
-          customerName: r.user_name || "Client",
-          created_at: r.created_at || new Date().toISOString()
-        }));
+        return data || [];
       } catch (err) {
         console.error("Error loading reviews for moderation:", err);
         return [];

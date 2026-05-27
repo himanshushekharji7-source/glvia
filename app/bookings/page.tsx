@@ -52,6 +52,7 @@ export default function BookingsPage() {
   const [reviewImages, setReviewImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const submitReview = useSubmitReview();
+  const [reviewSuccess, setReviewSuccess] = useState<boolean>(false);
 
   const handleReviewImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -106,11 +107,7 @@ export default function BookingsPage() {
         is_verified_booking: true
       });
 
-      alert("Review submitted successfully! Thank you.");
-      setReviewModal(null);
-      setReviewText("");
-      setReviewImages([]);
-      setReviewRating(5);
+      setReviewSuccess(true);
     } catch (err: any) {
       alert("Failed to submit review: " + err.message);
     }
@@ -430,99 +427,133 @@ export default function BookingsPage() {
       {reviewModal && (
         <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center animate-fadeIn">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md shadow-2xl animate-slideUp sm:animate-scaleIn h-[85vh] sm:h-auto overflow-y-auto flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
-                <h3 className="text-base font-black text-text-primary uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="material-icons-round text-[#ec4899]">rate_review</span>
-                  Leave Verified Review
-                </h3>
-                <button onClick={() => setReviewModal(null)} className="w-8 h-8 bg-surface-dim rounded-full flex items-center justify-center text-text-secondary">
-                  <span className="material-icons-round text-[20px]">close</span>
-                </button>
-              </div>
-
-              {/* Verified Visit Summary */}
-              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 mb-5 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
-                  <span className="material-icons-round text-[18px]">verified</span>
+            {reviewSuccess ? (
+              <div className="flex flex-col items-center justify-center text-center py-10 space-y-4 animate-scaleIn">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 animate-bounce">
+                  <span className="material-icons-round text-[36px]">verified</span>
                 </div>
                 <div>
-                  <div className="text-xs font-black text-emerald-800 uppercase tracking-wide">Verified Booking</div>
-                  <div className="text-sm font-bold text-text-primary mt-0.5">{reviewModal.salonId?.name || "Glivaji Salon"}</div>
-                  <div className="text-[10px] text-text-secondary mt-0.5">
-                    {reviewModal.services?.[0]?.name || "Salon Service"} • Visited on {reviewModal.date}
+                  <h4 className="text-base font-black text-text-primary uppercase tracking-wide">Review Submitted!</h4>
+                  <p className="text-xs text-text-secondary mt-1.5 leading-relaxed max-w-xs mx-auto">
+                    Thank you! Your verified feedback has been submitted to the moderation queue and will appear publicly once approved.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setReviewModal(null);
+                    setReviewSuccess(false);
+                    setReviewText("");
+                    setReviewImages([]);
+                    setReviewRating(5);
+                  }}
+                  className="px-6 py-2.5 bg-black text-white text-xs font-bold rounded-xl active:scale-95 transition-all mt-4 shadow-md"
+                >
+                  Got it, thanks!
+                </button>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                    <h3 className="text-base font-black text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="material-icons-round text-[#ec4899]">rate_review</span>
+                      Leave Verified Review
+                    </h3>
+                    <button 
+                      onClick={() => {
+                        setReviewModal(null);
+                        setReviewSuccess(false);
+                      }} 
+                      className="w-8 h-8 bg-surface-dim rounded-full flex items-center justify-center text-text-secondary"
+                    >
+                      <span className="material-icons-round text-[20px]">close</span>
+                    </button>
+                  </div>
+
+                  {/* Verified Visit Summary */}
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 mb-5 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                      <span className="material-icons-round text-[18px]">verified</span>
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-emerald-800 uppercase tracking-wide">Verified Booking</div>
+                      <div className="text-sm font-bold text-text-primary mt-0.5">{reviewModal.salonId?.name || "Glivaji Salon"}</div>
+                      <div className="text-[10px] text-text-secondary mt-0.5">
+                        {reviewModal.services?.[0]?.name || "Salon Service"} • Visited on {reviewModal.date}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Star rating selector */}
+                  <div className="mb-5 text-center">
+                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2.5">
+                      Your Overall Rating
+                    </label>
+                    <div className="flex items-center justify-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          className="text-amber-400 active:scale-125 transition-transform"
+                        >
+                          <span className="material-icons-round text-4xl">
+                            {star <= reviewRating ? "star" : "star_border"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Review Text comment */}
+                  <div className="mb-5">
+                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">
+                      Share Your Experience
+                    </label>
+                    <textarea
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                      placeholder="What did you like or dislike? How was the service, staff cleanliness, etc.?"
+                      rows={4}
+                      className="w-full px-4 py-3 bg-surface-dim border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-primary/50 placeholder:text-text-tertiary transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Image attachment deck */}
+                  <div className="mb-6">
+                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2">
+                      Attach Photo (Optional)
+                    </label>
+                    <div className="flex gap-2 flex-wrap items-center">
+                      {reviewImages.map((img, idx) => (
+                        <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                          <Image src={img} alt="" fill className="object-cover" />
+                          <button 
+                            onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white"
+                          >
+                            <span className="material-icons-round text-[9px]">close</span>
+                          </button>
+                        </div>
+                      ))}
+
+                      <label className={`w-14 h-14 rounded-xl border border-dashed border-gray-300 bg-surface-dim/40 flex flex-col items-center justify-center text-text-tertiary hover:text-primary hover:border-primary/50 transition-colors cursor-pointer shrink-0 ${uploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
+                        <span className="material-icons-round text-[20px]">{uploadingImage ? "hourglass_top" : "add_a_photo"}</span>
+                        <input type="file" accept="image/*" onChange={handleReviewImageUpload} className="hidden" />
+                      </label>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Star rating selector */}
-              <div className="mb-5 text-center">
-                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2.5">
-                  Your Overall Rating
-                </label>
-                <div className="flex items-center justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRating(star)}
-                      className="text-amber-400 active:scale-125 transition-transform"
-                    >
-                      <span className="material-icons-round text-3xl">
-                        {star <= reviewRating ? "star" : "star_border"}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Review Text comment */}
-              <div className="mb-5">
-                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">
-                  Share Your Experience
-                </label>
-                <textarea
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  placeholder="What did you like or dislike? How was the service, staff cleanliness, etc.?"
-                  rows={4}
-                  className="w-full px-4 py-3 bg-surface-dim border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-primary/50 placeholder:text-text-tertiary transition-all resize-none"
-                />
-              </div>
-
-              {/* Image attachment deck */}
-              <div className="mb-6">
-                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2">
-                  Attach Photo (Optional)
-                </label>
-                <div className="flex gap-2 flex-wrap items-center">
-                  {reviewImages.map((img, idx) => (
-                    <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
-                      <Image src={img} alt="" fill className="object-cover" />
-                      <button 
-                        onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
-                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white"
-                      >
-                        <span className="material-icons-round text-[9px]">close</span>
-                      </button>
-                    </div>
-                  ))}
-
-                  <label className={`w-14 h-14 rounded-xl border border-dashed border-gray-300 bg-surface-dim/40 flex flex-col items-center justify-center text-text-tertiary hover:text-primary hover:border-primary/50 transition-colors cursor-pointer shrink-0 ${uploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
-                    <span className="material-icons-round text-[20px]">{uploadingImage ? "hourglass_top" : "add_a_photo"}</span>
-                    <input type="file" accept="image/*" onChange={handleReviewImageUpload} className="hidden" />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleReviewSubmit}
-              disabled={submitReview.isPending || !reviewText.trim()}
-              className="w-full py-3.5 bg-black text-white font-extrabold text-sm rounded-2xl shadow-lg active:scale-95 transition-transform flex justify-center items-center gap-1.5 disabled:opacity-50"
-            >
-              {submitReview.isPending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-icons-round text-[16px]">send</span>Submit Verified Review</>}
-            </button>
+                <button
+                  onClick={handleReviewSubmit}
+                  disabled={submitReview.isPending || !reviewText.trim()}
+                  className="w-full py-3.5 bg-black text-white font-extrabold text-sm rounded-2xl shadow-lg active:scale-95 transition-transform flex justify-center items-center gap-1.5 disabled:opacity-50"
+                >
+                  {submitReview.isPending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-icons-round text-[16px]">send</span>Submit Verified Review</>}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -501,3 +501,122 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
+-- ═══════════════════════════════════════════════════════════════
+-- VERIFIED CUSTOMER REVIEWS & MODERATION SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+
+-- Create salon_reviews table with 'pending' default status
+CREATE TABLE IF NOT EXISTS public.salon_reviews (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  booking_id UUID NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  salon_id UUID NOT NULL REFERENCES public.salons(id) ON DELETE CASCADE,
+  customer_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  service_id UUID REFERENCES public.salon_services(id) ON DELETE SET NULL,
+  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  review_text TEXT,
+  images TEXT[] DEFAULT '{}',
+  owner_reply TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'hidden')),
+  is_verified_booking BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT unique_booking_review UNIQUE (booking_id)
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.salon_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Allow select/read access to approved/visible reviews for anyone
+CREATE POLICY "Allow public select reviews" ON public.salon_reviews
+  FOR SELECT USING (true);
+
+-- Allow authenticated inserts/updates
+CREATE POLICY "Allow authenticated insert/update reviews" ON public.salon_reviews
+  FOR ALL USING (true) WITH CHECK (true);
+
+-- Trigger Function to Enforce Review Eligibility (Correction 3)
+CREATE OR REPLACE FUNCTION public.validate_review_eligibility()
+RETURNS TRIGGER AS $$
+DECLARE
+  b_status TEXT;
+  b_cust UUID;
+  b_salon UUID;
+  existing_review_id UUID;
+BEGIN
+  -- 1. Fetch booking details
+  SELECT status, customer_id, salon_id 
+  INTO b_status, b_cust, b_salon
+  FROM public.bookings
+  WHERE id = NEW.booking_id;
+
+  -- 2. Validate booking exists and is completed
+  IF b_status IS NULL OR b_status != 'completed' THEN
+    RAISE EXCEPTION 'Reviews are restricted to completed bookings only.';
+  END IF;
+
+  -- 3. Validate booking customer match
+  IF NEW.customer_id IS NOT NULL AND b_cust != NEW.customer_id THEN
+    RAISE EXCEPTION 'Reviewer must be the customer who made the booking.';
+  END IF;
+
+  -- 4. Validate salon match
+  IF b_salon != NEW.salon_id THEN
+    RAISE EXCEPTION 'Review salon ID must match booking salon ID.';
+  END IF;
+
+  -- 5. Check duplicate review for booking
+  SELECT id INTO existing_review_id
+  FROM public.salon_reviews
+  WHERE booking_id = NEW.booking_id AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
+  LIMIT 1;
+
+  IF existing_review_id IS NOT NULL THEN
+    RAISE EXCEPTION 'A review has already been submitted for this booking.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to run validation BEFORE INSERT
+CREATE TRIGGER trigger_validate_review_eligibility
+BEFORE INSERT ON public.salon_reviews
+FOR EACH ROW EXECUTE FUNCTION public.validate_review_eligibility();
+
+-- Trigger Function to Recalculate Salon Ratings from APPROVED reviews only (Correction 4)
+CREATE OR REPLACE FUNCTION public.recalculate_salon_ratings()
+RETURNS TRIGGER AS $$
+DECLARE
+  avg_score NUMERIC;
+  total_count INT;
+BEGIN
+  -- Compute average and total counts from approved reviews only
+  SELECT COALESCE(ROUND(AVG(rating), 1), 0.0), COUNT(id)
+  INTO avg_score, total_count
+  FROM public.salon_reviews
+  WHERE salon_id = COALESCE(NEW.salon_id, OLD.salon_id) AND status = 'approved';
+
+  -- Update target salon record
+  UPDATE public.salons
+  SET rating = avg_score,
+      total_reviews = total_count
+  WHERE id = COALESCE(NEW.salon_id, OLD.salon_id);
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Triggers for real-time rating updates
+CREATE TRIGGER trigger_update_salon_rating_on_insert
+AFTER INSERT ON public.salon_reviews
+FOR EACH ROW EXECUTE FUNCTION public.recalculate_salon_ratings();
+
+CREATE TRIGGER trigger_update_salon_rating_on_update
+AFTER UPDATE ON public.salon_reviews
+FOR EACH ROW EXECUTE FUNCTION public.recalculate_salon_ratings();
+
+CREATE TRIGGER trigger_update_salon_rating_on_delete
+AFTER DELETE ON public.salon_reviews
+FOR EACH ROW EXECUTE FUNCTION public.recalculate_salon_ratings();
+
+

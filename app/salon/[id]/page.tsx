@@ -431,11 +431,19 @@ export default function SalonDetailPage() {
 
         {/* Reviews Deck */}
         <div className="space-y-4">
-          {reviews.length === 0 ? (
+          {reviews.length === 0 || (reviews as any).isUnavailable ? (
             <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-6">
-              <span className="material-icons-round text-3xl text-text-tertiary mb-1">rate_review</span>
-              <p className="text-xs text-text-secondary font-medium">No customer feedback yet.</p>
-              <p className="text-[10px] text-text-tertiary mt-0.5">Reviews appear automatically after completed visits.</p>
+              <span className="material-icons-round text-3xl text-text-tertiary mb-1">
+                {(reviews as any).isUnavailable ? "cloud_off" : "rate_review"}
+              </span>
+              <p className="text-xs text-text-secondary font-medium">
+                {(reviews as any).isUnavailable ? "Reviews will be available soon" : "No customer feedback yet."}
+              </p>
+              <p className="text-[10px] text-text-tertiary mt-0.5">
+                {(reviews as any).isUnavailable 
+                  ? "Platform-grade verified review system is initializing." 
+                  : "Reviews appear automatically after completed visits."}
+              </p>
             </div>
           ) : (
             reviews.map((r: any) => (
