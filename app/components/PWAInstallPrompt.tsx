@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -26,7 +25,6 @@ export default function PWAInstallPrompt() {
       document.referrer.includes("android-app://");
 
     if (isStandalone) {
-      // Already installed or running in standalone mode -> Never show again
       localStorage.setItem("glvia_pwa_installed", "true");
       return;
     }
@@ -46,9 +44,8 @@ export default function PWAInstallPrompt() {
     if (dismissedAt) {
       const parsedTime = parseInt(dismissedAt, 10);
       const currentTime = Date.now();
-      const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in ms
+      const twentyFourHours = 24 * 60 * 60 * 1000;
       if (currentTime - parsedTime < twentyFourHours) {
-        // Dismissed within last 24 hours, keep hidden
         return;
       }
     }
@@ -57,22 +54,25 @@ export default function PWAInstallPrompt() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Wait a short delay after homepage load to make it look premium
+      // Delayed trigger to gracefully appear after home page loads
       setTimeout(() => {
-        setShowPrompt(true);
+        const isAlreadyInstalled = localStorage.getItem("glvia_pwa_installed") === "true";
+        if (!isAlreadyInstalled) {
+          setShowPrompt(true);
+        }
       }, 1500);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-    // 6. Handle iOS or general browsers where beforeinstallprompt doesn't fire
-    // Wait a brief delay to gracefully slide in
+    // 6. Graceful fallback trigger for other browsers/devices (like iOS Safari)
     const generalTimer = setTimeout(() => {
       const isAlreadyInstalled = localStorage.getItem("glvia_pwa_installed") === "true";
+      // On iOS Safari, beforeinstallprompt never fires, so we show the prompt using our custom generalTimer
       if (!isAlreadyInstalled) {
         setShowPrompt(true);
       }
-    }, 2500);
+    }, 3000);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -82,12 +82,14 @@ export default function PWAInstallPrompt() {
 
   const handleInstallClick = async () => {
     if (isIOS) {
+      // For iOS, direct installation is impossible, show premium fallback instructions
       setShowIOSInstructions(true);
       return;
     }
 
     if (deferredPrompt) {
       try {
+        // Trigger the native install prompt immediately
         await deferredPrompt.prompt();
         const choiceResult = await deferredPrompt.userChoice;
         if (choiceResult.outcome === "accepted") {
@@ -113,88 +115,72 @@ export default function PWAInstallPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col justify-between bg-white px-6 py-10 font-sans antialiased select-none overflow-y-auto animate-fadeIn">
-      {/* Background Soft Glow Blobs */}
-      <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-pink-500/[0.04] blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-purple-500/[0.04] blur-[80px] pointer-events-none" />
+    <div className="fixed inset-0 z-[200] flex flex-col justify-end bg-black/40 backdrop-blur-[2px] font-sans antialiased select-none animate-fadeIn">
+      {/* Tap outside sheet to dismiss */}
+      <div className="absolute inset-0" onClick={handleDismiss} />
 
-      {/* Top Section - Logo & Header */}
-      <div className="flex flex-col items-center text-center mt-6">
-        {/* Shiny App Logo Card */}
-        <div className="relative w-24 h-24 rounded-3xl p-1 bg-white border border-slate-100 shadow-[0_16px_36px_rgba(0,0,0,0.06)] flex items-center justify-center mb-6 hover:scale-105 transition-transform duration-300">
-          <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#e11d48] to-[#9333ea] flex items-center justify-center shadow-inner overflow-hidden">
-            <span className="material-icons-round text-white text-[48px] font-bold">spa</span>
-          </div>
-        </div>
-
-        <h1 className="text-2.5xl font-black text-slate-900 tracking-tight mb-2">
-          Install Glvia App
-        </h1>
-        <p className="text-[13px] text-slate-400 font-medium leading-relaxed max-w-[280px]">
-          Install the Glvia Web App for a faster, smoother, and more seamless beauty booking experience.
-        </p>
-      </div>
-
-      {/* Middle Section - Benefits List */}
-      <div className="my-8 max-w-sm mx-auto w-full px-2">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">
-          Premium Benefits
-        </h3>
+      {/* Premium Bottom-Sheet Popup Card */}
+      <div className="relative w-full max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-16px_40px_rgba(0,0,0,0.06)] p-6 max-h-[85vh] overflow-y-auto transform transition-all duration-300 animate-slideUp z-10">
         
-        <div className="space-y-4">
-          {[
-            { title: "Faster performance", desc: "Instant loading and zero friction" },
-            { title: "App-like experience", desc: "Borderless, beautiful full-screen views" },
-            { title: "One-tap booking access", desc: "Get straight to your stylists instantly" },
-            { title: "Better browsing experience", desc: "Clean interface without web browser bars" },
-            { title: "Quick access from home screen", desc: "Launches right from your home app layout" }
-          ].map((benefit, i) => (
-            <div key={i} className="flex items-start gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-50/30 hover:border-pink-100 transition-colors">
-              <div className="w-6 h-6 rounded-full bg-[#fff0f4] text-[#e11d48] flex items-center justify-center shrink-0 mt-0.5">
-                <span className="material-icons-round text-xs font-bold">check</span>
+        {/* Native Sheet Drag Handle */}
+        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6 shrink-0" />
+
+        {/* Content View: Guidelines or Main Install Info */}
+        {!showIOSInstructions ? (
+          <div>
+            {/* Header: Logo + Title Side-by-Side */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="relative w-12 h-12 rounded-[14px] bg-gradient-to-br from-[#e11d48] to-[#9333ea] flex items-center justify-center shadow-md overflow-hidden shrink-0">
+                <span className="material-icons-round text-white text-[24px]">spa</span>
               </div>
               <div>
-                <h4 className="text-xs font-extrabold text-slate-950 mb-0.5">{benefit.title}</h4>
-                <p className="text-[10px] text-slate-400 font-semibold">{benefit.desc}</p>
+                <h3 className="text-base font-black text-slate-900 leading-tight">Install Glvia App</h3>
+                <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Install Glvia for a faster, smoother, and better salon booking experience.</p>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Bottom Section - Action CTAs */}
-      <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mt-auto">
-        <button
-          onClick={handleInstallClick}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#e11d48] to-[#9333ea] text-white text-xs font-extrabold shadow-md active:scale-[0.98] transition-all hover:opacity-95 flex items-center justify-center gap-1.5 cursor-pointer"
-        >
-          <span className="material-icons-round text-sm">download_for_offline</span>
-          Install App
-        </button>
+            {/* Benefits Grid */}
+            <div className="grid grid-cols-2 gap-2.5 my-5">
+              {[
+                { title: "Faster performance", icon: "bolt" },
+                { title: "App-like experience", icon: "touch_app" },
+                { title: "Quick booking access", icon: "calendar_month" },
+                { title: "Home screen access", icon: "home" }
+              ].map((benefit, i) => (
+                <div key={i} className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-50 bg-slate-50/40">
+                  <div className="w-6 h-6 rounded-full bg-[#fff0f4] text-[#e11d48] flex items-center justify-center shrink-0">
+                    <span className="material-icons-round text-xs font-bold">{benefit.icon}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-900 leading-tight">{benefit.title}</span>
+                </div>
+              ))}
+            </div>
 
-        <button
-          onClick={handleDismiss}
-          className="w-full py-3.5 text-slate-400 hover:text-slate-600 text-xs font-extrabold transition-colors cursor-pointer text-center"
-        >
-          Continue in Browser
-        </button>
-      </div>
+            {/* CTA Buttons */}
+            <div className="flex flex-col gap-2.5 mt-6">
+              <button
+                onClick={handleInstallClick}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#e11d48] to-[#9333ea] text-white text-xs font-extrabold shadow-md active:scale-[0.98] transition-all hover:opacity-95 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-icons-round text-sm">download_for_offline</span>
+                Install App
+              </button>
 
-      {/* Premium iOS share drawer helper */}
-      {showIOSInstructions && (
-        <div className="fixed inset-0 z-[250] flex items-end justify-center p-4">
-          {/* Blur Overlay */}
-          <div 
-            className="absolute inset-0 bg-[#191c1d]/60 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => setShowIOSInstructions(false)}
-          />
-          
-          {/* iOS Guidelines Drawer Card */}
-          <div className="relative w-full max-w-md bg-white rounded-t-[32px] p-6 shadow-2xl border-t border-slate-100 flex flex-col gap-6 animate-slideUp z-10">
-            <div className="flex items-center justify-between">
+              <button
+                onClick={handleDismiss}
+                className="w-full py-3 text-slate-400 hover:text-slate-600 text-xs font-extrabold transition-colors cursor-pointer text-center"
+              >
+                Continue in Browser
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* iOS Safari Step-by-Step Instructions view */
+          <div>
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-sm font-black text-slate-900 leading-tight">Install on iOS Safari</h3>
-                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Add to your Home Screen in 3 quick steps</p>
+                <h3 className="text-base font-black text-slate-900 leading-tight">Install on iOS Safari</h3>
+                <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Follow 3 quick steps to add Glvia to your Home Screen</p>
               </div>
               <button 
                 onClick={() => setShowIOSInstructions(false)}
@@ -204,44 +190,53 @@ export default function PWAInstallPrompt() {
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+            <div className="space-y-3.5">
+              <div className="flex items-center gap-4 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
                 <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-900 font-black text-xs shadow-sm">1</span>
-                <p className="text-xs text-slate-600 font-bold flex items-center gap-1.5">
+                <p className="text-xs text-slate-600 font-bold flex items-center gap-1.5 flex-wrap">
                   Tap the Share button 
                   <span className="material-icons-round text-[18px] text-[#007aff] bg-white p-1 rounded-lg border border-slate-100 shadow-sm leading-none shrink-0">ios_share</span>
-                  in Safari.
+                  in Safari's toolbar.
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+              <div className="flex items-center gap-4 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
                 <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-900 font-black text-xs shadow-sm">2</span>
-                <p className="text-xs text-slate-600 font-bold flex items-center gap-1.5">
-                  Scroll down and choose
-                  <span className="font-extrabold text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm leading-none">Add to Home Screen</span>.
+                <p className="text-xs text-slate-600 font-bold flex items-center gap-1.5 flex-wrap">
+                  Scroll down and tap
+                  <span className="font-extrabold text-slate-950 bg-white px-2.5 py-1 rounded-lg border border-slate-100 shadow-sm leading-none">Add to Home Screen</span>.
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+              <div className="flex items-center gap-4 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
                 <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-900 font-black text-xs shadow-sm">3</span>
                 <p className="text-xs text-slate-600 font-bold flex items-center gap-1.5">
-                  Tap <span className="font-extrabold text-slate-900">Add</span> in the top right corner.
+                  Tap <span className="font-extrabold text-slate-950">Add</span> in the top right corner.
                 </p>
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setShowIOSInstructions(false);
-                handleDismiss();
-              }}
-              className="w-full py-4 rounded-2xl bg-slate-900 text-white text-xs font-extrabold shadow-md hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
-            >
-              Okay, I understand
-            </button>
+            <div className="flex flex-col gap-2.5 mt-6">
+              <button
+                onClick={() => {
+                  setShowIOSInstructions(false);
+                  handleDismiss();
+                }}
+                className="w-full py-3.5 rounded-2xl bg-slate-900 text-white text-xs font-extrabold shadow-md hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                Okay, I understand
+              </button>
+
+              <button
+                onClick={() => setShowIOSInstructions(false)}
+                className="w-full py-3 text-slate-400 hover:text-slate-600 text-xs font-extrabold transition-colors cursor-pointer text-center"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
