@@ -66,6 +66,13 @@ export default function PWAInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
+    // 5b. Event Listener for Manual App Trigger (e.g. from Profile page)
+    const handleManualTrigger = () => {
+      setShowPrompt(true);
+      setShowIOSInstructions(false);
+    };
+    window.addEventListener("trigger-pwa-install", handleManualTrigger);
+
     // 6. Graceful fallback trigger for other browsers/devices (like iOS Safari)
     const generalTimer = setTimeout(() => {
       const isAlreadyInstalled = localStorage.getItem("glvia_pwa_installed") === "true";
@@ -77,6 +84,7 @@ export default function PWAInstallPrompt() {
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("trigger-pwa-install", handleManualTrigger);
       clearTimeout(generalTimer);
     };
   }, []);

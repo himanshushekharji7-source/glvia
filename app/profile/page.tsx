@@ -14,6 +14,7 @@ const menuItems = [
   { icon: "notifications", label: "Notifications", href: "/notifications", badge: "" },
   { icon: "account_balance_wallet", label: "Wallet", href: "/wallet", badge: "" },
   { icon: "support_agent", label: "Help & Support (8004642110)", href: "tel:8004642110", badge: "" },
+  { icon: "download_for_offline", label: "Install App", href: "#", badge: "Install Now", isInstall: true },
   { icon: "settings", label: "Settings", href: "#", badge: "" },
 ];
 
@@ -127,16 +128,38 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-5 mt-6 space-y-1">
-        {menuItems.map((item) => (
-          <Link key={item.label} href={item.href} className="flex items-center gap-3.5 py-3.5 px-1 rounded-xl hover:bg-surface-dim transition-colors group">
-            <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-               <span className="material-icons-round text-[18px] text-primary">{item.icon}</span>
-            </div>
-            <span className="flex-1 text-[14px] font-medium text-text-primary">{item.label}</span>
-            {item.badge && <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-pink-100 text-pink-600 uppercase tracking-wide">{item.badge}</span>}
-            <span className="material-icons-round text-[18px] text-text-tertiary group-hover:text-primary transition-colors">chevron_right</span>
-          </Link>
-        ))}
+        {menuItems.map((item) => {
+          const handleClick = (e: React.MouseEvent) => {
+            if (item.isInstall) {
+              e.preventDefault();
+              window.dispatchEvent(new CustomEvent("trigger-pwa-install"));
+            }
+          };
+
+          return (
+            <Link 
+              key={item.label} 
+              href={item.href} 
+              onClick={handleClick}
+              className="flex items-center gap-3.5 py-3.5 px-1 rounded-xl hover:bg-surface-dim transition-colors group"
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                 <span className="material-icons-round text-[18px] text-primary">{item.icon}</span>
+              </div>
+              <span className="flex-1 text-[14px] font-medium text-text-primary">{item.label}</span>
+              {item.badge && (
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${
+                  item.isInstall 
+                    ? "bg-purple-100 text-purple-600" 
+                    : "bg-pink-100 text-pink-600"
+                }`}>
+                  {item.badge}
+                </span>
+              )}
+              <span className="material-icons-round text-[18px] text-text-tertiary group-hover:text-primary transition-colors">chevron_right</span>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="px-5 mt-6 mb-6">
