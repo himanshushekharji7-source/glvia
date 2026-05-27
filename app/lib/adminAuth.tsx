@@ -195,6 +195,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithEmail = async (email: string, password: string, securityPin?: string): Promise<{ success: boolean; error?: string }> => {
     try {
+      const allowedAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "himanshushekharji7@gmail.com";
+      if (email.toLowerCase().trim() !== allowedAdminEmail.toLowerCase().trim()) {
+        return { success: false, error: "Access Denied: Only the authorized admin email is allowed to log in." };
+      }
+
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       let { data } = await supabase
@@ -222,7 +227,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
       if (!data) {
         await firebaseSignOut(auth);
-        return { success: false, error: "No admin or salon owner account found for this email." };
+        return { success: false, error: "No admin account found for this email." };
       }
       
       if (data.approval_status === "rejected" || data.approval_status === "suspended") {
@@ -230,9 +235,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Your account has been " + data.approval_status + " by an administrator." };
       }
 
-      // Check role constraint: Only super_admin and salon_owner are allowed
-      const allowedRoles = ["salon_owner", "super_admin"];
-      if (!allowedRoles.includes(data.role)) {
+      // Check role constraint: Only super_admin is allowed
+      if (data.role !== "super_admin") {
         await firebaseSignOut(auth);
         return { success: false, error: "Unauthorized role access." };
       }
@@ -277,6 +281,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       
+      const allowedAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "himanshushekharji7@gmail.com";
+      const userEmail = result.user.email || "";
+      if (userEmail.toLowerCase().trim() !== allowedAdminEmail.toLowerCase().trim()) {
+        await firebaseSignOut(auth);
+        return { success: false, error: "Access Denied: Only the authorized admin email is allowed to log in." };
+      }
+
       let { data } = await supabase
         .from("admin_users")
         .select("id, firebase_uid, email, role, approval_status, security_pin_hash")
@@ -310,8 +321,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Your account has been " + data.approval_status + " by an administrator." };
       }
 
-      const allowedRoles = ["salon_owner", "super_admin"];
-      if (!allowedRoles.includes(data.role)) {
+      // Check role constraint: Only super_admin is allowed
+      if (data.role !== "super_admin") {
         await firebaseSignOut(auth);
         return { success: false, error: "Unauthorized role access." };
       }

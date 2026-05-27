@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "../lib/adminAuth";
 import AdminSidebar from "../components/admin/AdminSidebar";
@@ -16,16 +16,19 @@ export default function AdminLayout({
 }) {
   const { isAuthenticated, isAdmin, isPinVerified, isLoading, admin } = useAdminAuth();
   const router = useRouter();
+  const [is2FAVerified, setIs2FAVerified] = useState(false);
+  const [isMounting, setIsMounting] = useState(true);
 
-  // Redirect salon owner to dashboard if they land here
+  // Sync session storage 2FA state on client side mount
   useEffect(() => {
-    if (!isLoading && isAuthenticated && admin && admin.role === "salon_owner") {
-      router.replace("/salon-owner/dashboard");
+    if (typeof window !== "undefined") {
+      setIs2FAVerified(sessionStorage.getItem("admin_2fa_verified") === "true");
     }
-  }, [isLoading, isAuthenticated, admin, router]);
+    setIsMounting(false);
+  }, [isAuthenticated, isLoading]);
 
   // Show loading spinner while checking auth
-  if (isLoading) {
+  if (isLoading || isMounting) {
     return (
       <div className="min-h-dvh bg-surface flex items-center justify-center">
         <div className="text-center">
@@ -36,9 +39,9 @@ export default function AdminLayout({
     );
   }
 
-  // Show login page if not authenticated or not a super admin
-  if (!isAuthenticated || !isAdmin) {
-    return <AdminLoginPage />;
+  // Show login page if not authenticated, not a super admin, or 2FA is not verified
+  if (!isAuthenticated || !isAdmin || !is2FAVerified) {
+    return <AdminLoginPage initialStep={isAuthenticated && isAdmin ? "2fa" : "login"} />;
   }
 
   // Force PIN setup if the super admin doesn't have one
@@ -51,7 +54,7 @@ export default function AdminLayout({
     return <AdminPinVerificationPage />;
   }
 
-  // Authenticated & PIN Verified — show admin dashboard
+  // Authenticated, 2FA & PIN Verified — show admin dashboard
   return (
     <div className="min-h-dvh bg-surface flex flex-col lg:flex-row">
       <AdminSidebar />
