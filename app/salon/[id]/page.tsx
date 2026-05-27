@@ -20,6 +20,38 @@ export default function SalonDetailPage() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  const handleShare = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const publicUrl = `${origin}/salon/${id}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(publicUrl)
+        .then(() => {
+          setShowCopiedToast(true);
+          setTimeout(() => setShowCopiedToast(false), 2000);
+        })
+        .catch(err => {
+          console.error("Failed to copy link: ", err);
+        });
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = publicUrl;
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setShowCopiedToast(true);
+        setTimeout(() => setShowCopiedToast(false), 2000);
+      } catch (err) {
+        console.error("Fallback copy failed: ", err);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   // Get services and categories based on gender
   const services = useMemo(() => {
@@ -131,12 +163,22 @@ export default function SalonDetailPage() {
             <span className="material-icons-round text-[20px]">chevron_left</span>
             <span className="text-sm font-semibold">Back</span>
           </button>
-          {selectedServices.length > 0 && (
-            <Link href="/checkout" className="flex items-center gap-1.5 text-primary font-bold text-sm">
-              <span className="material-icons-round text-[18px]">shopping_cart</span>
-              Cart: {selectedServices.length} Item
-            </Link>
-          )}
+          
+          <div className="flex items-center gap-3">
+            {selectedServices.length > 0 && (
+              <Link href="/checkout" className="flex items-center gap-1.5 text-primary font-bold text-sm">
+                <span className="material-icons-round text-[18px]">shopping_cart</span>
+                Cart: {selectedServices.length} Item
+              </Link>
+            )}
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-50 text-text-primary hover:text-primary hover:bg-pink-50 transition-all border border-gray-100 cursor-pointer"
+              title="Share Salon"
+            >
+              <span className="material-icons-round text-[18px]">share</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -359,6 +401,13 @@ export default function SalonDetailPage() {
         onClose={() => setInfoModalOpen(false)} 
         salon={salon} 
       />
+
+      {showCopiedToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-slate-900/95 backdrop-blur-md border border-white/10 px-5 py-3 rounded-full text-white text-[11px] font-bold shadow-2xl flex items-center gap-2 animate-bounce">
+          <span className="material-icons-round text-green-400 text-[14px]">check_circle</span>
+          Salon link copied to clipboard!
+        </div>
+      )}
     </div>
   );
 }
