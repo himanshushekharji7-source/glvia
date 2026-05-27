@@ -53,6 +53,7 @@ export default function BookingsPage() {
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const submitReview = useSubmitReview();
   const [reviewSuccess, setReviewSuccess] = useState<boolean>(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const handleReviewImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -82,6 +83,23 @@ export default function BookingsPage() {
 
   const handleReviewSubmit = async () => {
     if (!reviewModal) return;
+    setReviewError(null);
+
+    // Frontend abuse prevention checks (Correction 5 & QA 10)
+    const cleanedText = reviewText.trim();
+    if (!cleanedText) {
+      setReviewError("Review comment cannot be empty.");
+      return;
+    }
+    if (cleanedText.length < 3) {
+      setReviewError("Please write at least 3 characters in your review.");
+      return;
+    }
+    if (cleanedText.length > 1000) {
+      setReviewError("Your review is too long (maximum 1000 characters).");
+      return;
+    }
+
     try {
       const firebaseUid = localStorage.getItem("token") || "";
       let customerId = "";
@@ -102,14 +120,20 @@ export default function BookingsPage() {
         customer_id: customerId || undefined,
         service_id: reviewModal.services?.[0]?.id || null,
         rating: reviewRating,
-        review_text: reviewText,
+        review_text: cleanedText,
         images: reviewImages,
         is_verified_booking: true
       });
 
       setReviewSuccess(true);
     } catch (err: any) {
-      alert("Failed to submit review: " + err.message);
+      console.error("Submission error details:", err);
+      const errMsg = err.message || "";
+      if (errMsg.includes("already been submitted") || errMsg.includes("unique_booking_review")) {
+        setReviewError("Review already submitted");
+      } else {
+        setReviewError(errMsg || "Failed to submit review. Please try again.");
+      }
     }
   };
 
@@ -442,6 +466,7 @@ export default function BookingsPage() {
                   onClick={() => {
                     setReviewModal(null);
                     setReviewSuccess(false);
+                    setReviewError(null);
                     setReviewText("");
                     setReviewImages([]);
                     setReviewRating(5);
@@ -449,6 +474,31 @@ export default function BookingsPage() {
                   className="px-6 py-2.5 bg-black text-white text-xs font-bold rounded-xl active:scale-95 transition-all mt-4 shadow-md"
                 >
                   Got it, thanks!
+                </button>
+              </div>
+            ) : reviewError === "Review already submitted" ? (
+              <div className="flex flex-col items-center justify-center text-center py-10 space-y-4 animate-scaleIn">
+                <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 animate-bounce">
+                  <span className="material-icons-round text-[36px]">rate_review</span>
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-text-primary uppercase tracking-wide">Review already submitted</h4>
+                  <p className="text-xs text-text-secondary mt-1.5 leading-relaxed max-w-xs mx-auto">
+                    You have already submitted a review for this completed booking. Thank you for sharing your experience!
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setReviewModal(null);
+                    setReviewSuccess(false);
+                    setReviewError(null);
+                    setReviewText("");
+                    setReviewImages([]);
+                    setReviewRating(5);
+                  }}
+                  className="px-6 py-2.5 bg-black text-white text-xs font-bold rounded-xl active:scale-95 transition-all mt-4 shadow-md"
+                >
+                  Close
                 </button>
               </div>
             ) : (
@@ -463,6 +513,7 @@ export default function BookingsPage() {
                       onClick={() => {
                         setReviewModal(null);
                         setReviewSuccess(false);
+                        setReviewError(null);
                       }} 
                       className="w-8 h-8 bg-surface-dim rounded-full flex items-center justify-center text-text-secondary"
                     >
@@ -544,6 +595,13 @@ export default function BookingsPage() {
                     </div>
                   </div>
                 </div>
+
+                {reviewError && (
+                  <div className="text-xs text-red-500 font-extrabold mb-3 text-center bg-red-50 border border-red-100 p-2.5 rounded-xl flex items-center gap-1.5 justify-center">
+                    <span className="material-icons-round text-sm">warning</span>
+                    {reviewError}
+                  </div>
+                )}
 
                 <button
                   onClick={handleReviewSubmit}
