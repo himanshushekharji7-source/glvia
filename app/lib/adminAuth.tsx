@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "./supabase";
 import { auth, googleProvider } from "./firebase";
@@ -10,7 +10,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser 
 } from "firebase/auth";
-
+ 
 const formatAuthError = (err: any): string => {
   const code = err?.code || "";
   const message = err?.message || "";
@@ -36,7 +36,7 @@ const formatAuthError = (err: any): string => {
   
   return message || "An error occurred during authentication.";
 };
-
+ 
 interface AdminUser {
   id: string;
   firebase_uid: string;
@@ -47,7 +47,7 @@ interface AdminUser {
   approval_status: string;
   has_pin: boolean;
 }
-
+ 
 interface AdminAuthContextType {
   admin: AdminUser | null;
   isLoading: boolean;
@@ -61,8 +61,12 @@ interface AdminAuthContextType {
   verifyPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   setupPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   refreshAdminProfile: () => Promise<void>;
+  is2FAVerified: boolean;
+  challengeAdmin2FA: (email: string) => Promise<{ success: boolean; adminPhone?: string; maskedPhone?: string; error?: string }>;
+  verifyAdmin2FASession: (email: string, firebaseUid: string) => Promise<{ success: boolean; error?: string }>;
+  verifyServerSession: () => Promise<{ success: boolean; error?: string }>;
 }
-
+ 
 const AdminAuthContext = createContext<AdminAuthContextType>({
   admin: null,
   isLoading: true,
@@ -76,36 +80,72 @@ const AdminAuthContext = createContext<AdminAuthContextType>({
   verifyPin: async () => ({ success: false }),
   setupPin: async () => ({ success: false }),
   refreshAdminProfile: async () => {},
+  is2FAVerified: false,
+  challengeAdmin2FA: async () => ({ success: false }),
+  verifyAdmin2FASession: async () => ({ success: false }),
+  verifyServerSession: async () => ({ success: false }),
 });
-
+ 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPinVerified, setIsPinVerified] = useState(false);
-
-  // Load initial PIN verification status from sessionStorage on client
+  const [is2FAVerified, setIs2FAVerified] = useState(false);
+ 
+  // Sync PIN verification status from sessionStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const verified = sessionStorage.getItem("admin_pin_verified") === "true";
       setIsPinVerified(verified);
     }
   }, []);
-
+ 
+  // Sync cryptographic session verification with the server-side cookie
+  const verifyServerSession = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const localToken = typeof window !== "undefined" ? sessionStorage.getItem("admin_2fa_verified") : null;
+      const res = await fetch("/api/admin/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify-session", token: localToken || undefined }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setIs2FAVerified(true);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("admin_2fa_verified", data.token || "true");
+        }
+        return { success: true };
+      } else {
+        setIs2FAVerified(false);
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("admin_2fa_verified");
+        }
+        return { success: false, error: data.error || "Session invalid" };
+      }
+    } catch (e) {
+      setIs2FAVerified(false);
+      return { success: false, error: "Verification request failed" };
+    }
+  };
+ 
+  useEffect(() => {
+    verifyServerSession();
+  }, [admin]);
+ 
   // Sync Firebase Auth with Supabase admin_users
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
-          // 1. First try to find by firebase_uid
           let { data, error } = await supabase
             .from("admin_users")
             .select("id, firebase_uid, email, name, role, salon_id, approval_status, security_pin_hash")
             .eq("firebase_uid", firebaseUser.uid)
             .maybeSingle();
-
-          // 2. If not found by firebase_uid, try finding by email to link legacy accounts
+ 
           if (!data && firebaseUser.email) {
-            const { data: emailData, error: emailError } = await supabase
+            const { data: emailData } = await supabase
               .from("admin_users")
               .select("id, firebase_uid, email, name, role, salon_id, approval_status, security_pin_hash")
               .eq("email", firebaseUser.email)
@@ -113,7 +153,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               
             if (emailData) {
                if (!emailData.firebase_uid) {
-                 // Link the account!
                  await supabase
                    .from("admin_users")
                    .update({ firebase_uid: firebaseUser.uid })
@@ -121,12 +160,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
                    
                  data = { ...emailData, firebase_uid: firebaseUser.uid };
                } else if (emailData.firebase_uid === firebaseUser.uid) {
-                 // Already linked, possibly by concurrent login function
                  data = emailData;
                }
             }
           }
-
+ 
           if (!data) {
             console.warn("User authenticated in Firebase but no admin_users record found.");
             setAdmin(null);
@@ -144,8 +182,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               approval_status: data.approval_status,
               has_pin: !!data.security_pin_hash,
             });
-
-            // If not super_admin, we don't need PIN verification.
+ 
             if (data.role !== "super_admin") {
               setIsPinVerified(true);
             }
@@ -159,10 +196,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
       setIsLoading(false);
     });
-
+ 
     return () => unsubscribe();
   }, []);
-
+ 
   const refreshAdminProfile = async () => {
     if (!auth.currentUser) return;
     try {
@@ -171,7 +208,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         .select("id, firebase_uid, email, name, role, salon_id, approval_status, security_pin_hash")
         .eq("firebase_uid", auth.currentUser.uid)
         .maybeSingle();
-
+ 
       if (data) {
         setAdmin({
           id: data.id,
@@ -183,7 +220,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           approval_status: data.approval_status,
           has_pin: !!data.security_pin_hash,
         });
-
+ 
         if (data.role !== "super_admin") {
           setIsPinVerified(true);
         }
@@ -192,14 +229,47 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       console.error("Error refreshing admin profile:", err);
     }
   };
-
+ 
+  const challengeAdmin2FA = async (email: string): Promise<{ success: boolean; adminPhone?: string; maskedPhone?: string; error?: string }> => {
+    try {
+      const res = await fetch("/api/admin/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "challenge", email }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, adminPhone: data.adminPhone, maskedPhone: data.maskedPhone };
+      }
+      return { success: false, error: data.error || "2FA challenge request failed." };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to challenge 2FA." };
+    }
+  };
+ 
+  const verifyAdmin2FASession = async (email: string, firebaseUid: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch("/api/admin/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify-success", email, firebaseUid }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIs2FAVerified(true);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("admin_2fa_verified", "true");
+        }
+        return { success: true };
+      }
+      return { success: false, error: data.error || "Failed to establish secure session." };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Session establishment failed." };
+    }
+  };
+ 
   const loginWithEmail = async (email: string, password: string, securityPin?: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const allowedAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "himanshushekharji7@gmail.com";
-      if (email.toLowerCase().trim() !== allowedAdminEmail.toLowerCase().trim()) {
-        return { success: false, error: "Access Denied: Only the authorized admin email is allowed to log in." };
-      }
-
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       let { data } = await supabase
@@ -207,7 +277,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         .select("id, firebase_uid, email, role, approval_status, security_pin_hash")
         .eq("firebase_uid", userCredential.user.uid)
         .maybeSingle();
-
+ 
       if (!data) {
         const { data: emailData } = await supabase
           .from("admin_users")
@@ -224,7 +294,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
            }
         }
       }
-
+ 
       if (!data) {
         await firebaseSignOut(auth);
         return { success: false, error: "No admin account found for this email." };
@@ -234,13 +304,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         await firebaseSignOut(auth);
         return { success: false, error: "Your account has been " + data.approval_status + " by an administrator." };
       }
-
+ 
       // Check role constraint: Only super_admin is allowed
       if (data.role !== "super_admin") {
         await firebaseSignOut(auth);
         return { success: false, error: "Unauthorized role access." };
       }
-
+ 
       // Check Security PIN for super_admin if already set up
       if (data.role === "super_admin" && data.security_pin_hash) {
         if (!securityPin) {
@@ -253,47 +323,39 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           input_email: data.email,
           input_pin: securityPin
         });
-
+ 
         if (pinError || !pinValid) {
           await firebaseSignOut(auth);
           return { success: false, error: "Incorrect Security PIN." };
         }
-
-        // Correct PIN
+ 
         setIsPinVerified(true);
-        sessionStorage.setItem("admin_pin_verified", "true");
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("admin_pin_verified", "true");
+        }
       } else if (data.role === "super_admin" && !data.security_pin_hash) {
-        // Super admin logging in for the first time, bypass PIN entry on login form (it will force setup inside)
         setIsPinVerified(false);
       } else {
-        // Salon Owner doesn't need PIN
         setIsPinVerified(true);
       }
-
+ 
       return { success: true };
     } catch (err: any) {
       console.error("Email Login error:", err);
       return { success: false, error: formatAuthError(err) };
     }
   };
-
+ 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       
-      const allowedAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "himanshushekharji7@gmail.com";
-      const userEmail = result.user.email || "";
-      if (userEmail.toLowerCase().trim() !== allowedAdminEmail.toLowerCase().trim()) {
-        await firebaseSignOut(auth);
-        return { success: false, error: "Access Denied: Only the authorized admin email is allowed to log in." };
-      }
-
       let { data } = await supabase
         .from("admin_users")
         .select("id, firebase_uid, email, role, approval_status, security_pin_hash")
         .eq("firebase_uid", result.user.uid)
         .maybeSingle();
-
+ 
       if (!data && result.user.email) {
         const { data: emailData } = await supabase
           .from("admin_users")
@@ -310,7 +372,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
            }
         }
       }
-
+ 
       if (!data) {
         await firebaseSignOut(auth);
         return { success: false, error: "No account found for this Google account." };
@@ -320,27 +382,26 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         await firebaseSignOut(auth);
         return { success: false, error: "Your account has been " + data.approval_status + " by an administrator." };
       }
-
+ 
       // Check role constraint: Only super_admin is allowed
       if (data.role !== "super_admin") {
         await firebaseSignOut(auth);
         return { success: false, error: "Unauthorized role access." };
       }
-
+ 
       if (data.role === "super_admin") {
-        // Force PIN verification on the session unlock screen or redirect to PIN setup
         setIsPinVerified(false);
       } else {
         setIsPinVerified(true);
       }
-
+ 
       return { success: true };
     } catch (err: any) {
       console.error("Google Login error:", err);
       return { success: false, error: formatAuthError(err) };
     }
   };
-
+ 
   const verifyPin = async (pin: string): Promise<{ success: boolean; error?: string }> => {
     if (!admin) return { success: false, error: "Not logged in" };
     try {
@@ -348,12 +409,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         input_email: admin.email,
         input_pin: pin
       });
-
+ 
       if (error) throw error;
       
       if (pinValid === true) {
         setIsPinVerified(true);
-        sessionStorage.setItem("admin_pin_verified", "true");
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("admin_pin_verified", "true");
+        }
         return { success: true };
       } else {
         return { success: false, error: "Incorrect Security PIN" };
@@ -363,7 +426,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: err.message || "Failed to verify PIN" };
     }
   };
-
+ 
   const setupPin = async (pin: string): Promise<{ success: boolean; error?: string }> => {
     if (!admin) return { success: false, error: "Not logged in" };
     try {
@@ -371,12 +434,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         input_email: admin.email,
         new_pin: pin
       });
-
+ 
       if (error) throw error;
-
+ 
       if (data === true) {
         setIsPinVerified(true);
-        sessionStorage.setItem("admin_pin_verified", "true");
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("admin_pin_verified", "true");
+        }
         await refreshAdminProfile();
         return { success: true };
       } else {
@@ -387,21 +452,32 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: err.message || "Failed to set up PIN" };
     }
   };
-
+ 
   const logout = async () => {
     setIsLoading(true);
+    try {
+      await fetch("/api/admin/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" }),
+      });
+    } catch (e) {
+      console.error("Logout API request failed:", e);
+    }
     await firebaseSignOut(auth);
     setAdmin(null);
     setIsPinVerified(false);
+    setIs2FAVerified(false);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("admin_pin_verified");
+      sessionStorage.removeItem("admin_2fa_verified");
     }
     setIsLoading(false);
   };
-
+ 
   const isSalonOwner = admin?.role === "salon_owner";
   const isAdmin = admin?.role === "super_admin";
-
+ 
   return (
     <AdminAuthContext.Provider
       value={{
@@ -417,11 +493,15 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         verifyPin,
         setupPin,
         refreshAdminProfile,
+        is2FAVerified,
+        challengeAdmin2FA,
+        verifyAdmin2FASession,
+        verifyServerSession,
       }}
     >
       {children}
     </AdminAuthContext.Provider>
   );
 }
-
+ 
 export const useAdminAuth = () => useContext(AdminAuthContext);

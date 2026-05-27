@@ -14,21 +14,11 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isAdmin, isPinVerified, isLoading, admin } = useAdminAuth();
+  const { isAuthenticated, isAdmin, isPinVerified, isLoading, admin, is2FAVerified } = useAdminAuth();
   const router = useRouter();
-  const [is2FAVerified, setIs2FAVerified] = useState(false);
-  const [isMounting, setIsMounting] = useState(true);
-
-  // Sync session storage 2FA state on client side mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIs2FAVerified(sessionStorage.getItem("admin_2fa_verified") === "true");
-    }
-    setIsMounting(false);
-  }, [isAuthenticated, isLoading]);
 
   // Show loading spinner while checking auth
-  if (isLoading || isMounting) {
+  if (isLoading) {
     return (
       <div className="min-h-dvh bg-surface flex items-center justify-center">
         <div className="text-center">

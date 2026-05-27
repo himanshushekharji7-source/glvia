@@ -4,9 +4,19 @@ import { useState, useEffect, useRef } from "react";
 import { useAdminAuth } from "../../lib/adminAuth";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { auth } from "../../lib/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
  
 export default function AdminLoginPage({ initialStep = "login" }: { initialStep?: "login" | "2fa" }) {
-  const { loginWithEmail, loginWithGoogle, isAuthenticated, admin } = useAdminAuth();
+  const { 
+    loginWithEmail, 
+    loginWithGoogle, 
+    isAuthenticated, 
+    admin, 
+    challengeAdmin2FA, 
+    verifyAdmin2FASession 
+  } = useAdminAuth();
+  
   const router = useRouter();
   
   const [step, setStep] = useState<"login" | "2fa">(initialStep);
@@ -17,34 +27,72 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
  
-  // 2FA Specific State
+  // Firebase 2FA OTP State
   const [otpArray, setOtpArray] = useState<string[]>(["", "", "", "", "", ""]);
-  const [generatedOtp, setGeneratedOtp] = useState("");
-  const [otpTimer, setOtpTimer] = useState(120);
+  const [maskedPhone, setMaskedPhone] = useState("");
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
  
-  // 1. Generate & Log OTP upon entering 2FA step
-  const generateAndSendOTP = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setOtpTimer(120);
-    setOtpArray(["", "", "", "", "", ""]);
-    setError("");
-    
-    // Log with a super premium styled format in the browser console
-    console.log(
-      "%c🔑 [SECURITY] Admin 2FA Verification Code: " + code, 
-      "color: #db2777; font-size: 16px; font-weight: bold; background: #fff5f7; padding: 6px 12px; border-radius: 6px; border: 1px solid #fecdd3;"
-    );
+  // 1. Invisible reCAPTCHA Cleanup Helper
+  const cleanupRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {}
+      window.recaptchaVerifier = null;
+    }
+    const container = document.getElementById("admin-recaptcha-container");
+    if (container) container.innerHTML = "";
   };
  
-  useEffect(() => {
-    if (step === "2fa" && !generatedOtp) {
-      generateAndSendOTP();
-    }
-  }, [step, generatedOtp]);
+  // 2. Trigger Firebase Phone Auth OTP
+  const sendFirebaseOTP = async (targetEmail: string) => {
+    setError("");
+    setIsLoading(true);
  
-  // 2. Countdown Timer
+    try {
+      // Step A: Request server challenge to retrieve phone securely
+      const challengeRes = await challengeAdmin2FA(targetEmail);
+      if (!challengeRes.success || !challengeRes.adminPhone) {
+        throw new Error(challengeRes.error || "Failed to retrieve authorized admin credentials.");
+      }
+ 
+      const { adminPhone, maskedPhone: serverMaskedPhone } = challengeRes;
+      setMaskedPhone(serverMaskedPhone || "your authorized number");
+ 
+      // Step B: Set up invisible reCAPTCHA
+      cleanupRecaptcha();
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "admin-recaptcha-container", {
+        size: "invisible"
+      });
+ 
+      // Step C: Trigger Firebase SMS OTP
+      const confirmation = await signInWithPhoneNumber(auth, adminPhone, window.recaptchaVerifier);
+      setConfirmationResult(confirmation);
+      
+      setOtpArray(["", "", "", "", "", ""]);
+      setOtpTimer(120); // 2 minutes standard countdown
+      setStep("2fa");
+    } catch (err: any) {
+      cleanupRecaptcha();
+      console.error("2FA initialization error:", err);
+      setError(err.message || "Failed to send 2-Factor OTP. Please try again.");
+      setStep("login");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+ 
+  // 3. Automatic Recovery State Trigger (for refreshes during OTP entry)
+  useEffect(() => {
+    if (initialStep === "2fa" && isAuthenticated && admin && !confirmationResult && !isLoading) {
+      sendFirebaseOTP(admin.email);
+    }
+  }, [initialStep, isAuthenticated, admin]);
+ 
+  // 4. OTP Countdown Timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (step === "2fa" && otpTimer > 0) {
@@ -55,7 +103,7 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
     return () => clearInterval(interval);
   }, [step, otpTimer]);
  
-  // 3. Auto-focus the first OTP box when entering 2FA step
+  // 5. Auto-focus split input boxes
   useEffect(() => {
     if (step === "2fa") {
       setTimeout(() => {
@@ -64,6 +112,7 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
     }
   }, [step]);
  
+  // Form submission: Email & Password verification (Step 1)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -77,38 +126,33 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
       return;
     }
  
-    // Restrict login screen to the authorized admin email immediately
-    const allowedAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "himanshushekharji7@gmail.com";
-    if (email.toLowerCase().trim() !== allowedAdminEmail.toLowerCase().trim()) {
-      setError("Access Denied: Only the authorized admin email is allowed to log in.");
-      return;
-    }
- 
     setIsLoading(true);
     const result = await loginWithEmail(email, password, pin || undefined);
     setIsLoading(false);
  
     if (result.success) {
-      setStep("2fa");
+      // Proceed directly to triggering Firebase Phone OTP challenge
+      await sendFirebaseOTP(email);
     } else {
-      setError(result.error || "Login failed");
+      setError(result.error || "Login failed. Invalid credentials.");
     }
   };
  
+  // Google Auth submission (Step 1)
   const handleGoogleLogin = async () => {
     setError("");
     setIsLoading(true);
     const result = await loginWithGoogle();
     setIsLoading(false);
  
-    if (result.success) {
-      setStep("2fa");
+    if (result.success && auth.currentUser?.email) {
+      await sendFirebaseOTP(auth.currentUser.email);
     } else {
       setError(result.error || "Google login failed");
     }
   };
  
-  // Split OTP digits state change handler
+  // Split OTP digit inputs state changes
   const handleOtpBoxChange = (index: number, value: string) => {
     const cleanValue = value.replace(/\D/g, "");
     if (!cleanValue) return;
@@ -151,6 +195,7 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
     }
   };
  
+  // OTP Verification Submission (Step 2)
   const handleVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -161,26 +206,53 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
       return;
     }
  
-    setIsLoading(true);
-    if (code === generatedOtp) {
-      sessionStorage.setItem("admin_2fa_verified", "true");
-      // Page reload to let Root Layout update and render the children!
-      window.location.reload();
-    } else {
-      setError("Incorrect 2-Factor OTP Code. Please try again.");
+    if (!confirmationResult) {
+      setError("OTP session expired. Please resend a new code.");
+      return;
     }
-    setIsLoading(false);
+ 
+    setIsLoading(true);
+    try {
+      // Step A: Verify phone OTP securely inside Firebase Auth client-side
+      const result = await confirmationResult.confirm(code);
+      
+      const adminEmail = admin?.email || email;
+ 
+      // Step B: Query server-side to set HttpOnly Secure session cookies
+      const sessionRes = await verifyAdmin2FASession(adminEmail, result.user.uid);
+      if (sessionRes.success) {
+        // Establish state and refresh layout view to enter dashboard
+        window.location.reload();
+      } else {
+        setError(sessionRes.error || "Session verification failed on backend.");
+      }
+    } catch (err: any) {
+      console.error("OTP verification error:", err);
+      setError("Invalid or expired 2-Factor OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+ 
+  const handleResendOTP = async () => {
+    const targetEmail = admin?.email || email;
+    if (targetEmail) {
+      await sendFirebaseOTP(targetEmail);
+    }
   };
  
   return (
     <div className="min-h-dvh bg-[#f5f6f8] flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Ambient gradient glow blobs */}
+      {/* Invisible reCAPTCHA target element required by Firebase Auth */}
+      <div id="admin-recaptcha-container"></div>
+ 
+      {/* Ambient soft glow background blobs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-pink-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
  
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md font-sans">
  
-        {/* Header Logo + Branding */}
+        {/* Logo + Title Header */}
         <div className="text-center mb-8">
           <div className="relative w-14 h-14 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100 shrink-0">
             <div className="relative w-full h-full rounded-2xl overflow-hidden">
@@ -188,12 +260,12 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
             </div>
           </div>
           <h1 className="text-[22px] font-black text-[#111827] tracking-tight mb-1">Admin Portal</h1>
-          <p className="text-[13px] text-[#6b7280] font-medium">
-            {step === "login" ? "Sign in to manage your platform" : "Two-Factor Verification Required"}
+          <p className="text-[13px] text-[#6b7280] font-semibold">
+            {step === "login" ? "Sign in to manage your platform" : "Two-Factor SMS Verification"}
           </p>
         </div>
  
-        {/* ================= STEP 1: LOGIN CREDENTIALS ================= */}
+        {/* ================= STEP 1: CREDENTIALS SIGN-IN ================= */}
         {step === "login" ? (
           <form
             onSubmit={handleSubmit}
@@ -289,7 +361,7 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Verifying credentials...
+                  Verifying...
                 </>
               ) : (
                 <>
@@ -299,14 +371,14 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
               )}
             </button>
  
-            {/* Divider */}
+            {/* Split Divider */}
             <div className="flex items-center gap-3 my-1">
               <div className="flex-1 h-px bg-[#f3f4f6]" />
               <p className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-wider">or</p>
               <div className="flex-1 h-px bg-[#f3f4f6]" />
             </div>
  
-            {/* Google Sign In */}
+            {/* Google OAuth Button */}
             <button
               type="button"
               onClick={handleGoogleLogin}
@@ -323,7 +395,7 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
             </button>
           </form>
         ) : (
-          /* ================= STEP 2: TWO-FACTOR OTP VERIFICATION ================= */
+          /* ================= STEP 2: TWO-FACTOR SMS OTP ================= */
           <form
             onSubmit={handleVerify2FA}
             className="bg-white border border-[#e5e7eb] rounded-3xl p-8 space-y-6 shadow-[0_8px_32px_rgba(0,0,0,0.06)] relative overflow-hidden animate-fadeIn"
@@ -336,20 +408,19 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
             )}
  
             <div className="text-center flex flex-col items-center">
-              {/* Security shield icon */}
               <div className="w-16 h-16 rounded-full bg-pink-50 border border-pink-100 text-pink-600 flex items-center justify-center mb-4 relative shadow-sm">
-                <span className="material-icons-round text-[32px] animate-pulse">shield</span>
+                <span className="material-icons-round text-[32px] animate-pulse">sms</span>
               </div>
-              <h3 className="text-base font-extrabold text-[#111827] tracking-tight">Two-Factor OTP</h3>
+              <h3 className="text-base font-extrabold text-[#111827] tracking-tight">Enter SMS Code</h3>
               <p className="text-[12px] text-[#6b7280] font-medium leading-relaxed max-w-[280px] mt-1">
-                Enter the 6-digit code sent to your authorized email address:
-                <span className="block font-bold text-slate-800 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded mt-1 overflow-hidden truncate">
-                  {process.env.NEXT_PUBLIC_ADMIN_EMAIL || "himanshushekharji7@gmail.com"}
+                A 6-digit verification code has been dispatched to:
+                <span className="block font-bold text-slate-800 bg-slate-50 border border-slate-100 px-3 py-1 rounded mt-1 select-text">
+                  {maskedPhone}
                 </span>
               </p>
             </div>
  
-            {/* Split OTP 6-Digit input boxes */}
+            {/* Split 6-digit OTP code boxes */}
             <div className="flex justify-between gap-2">
               {otpArray.map((digit, index) => (
                 <input
@@ -376,51 +447,41 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Verifying...
+                  Verifying OTP...
                 </>
               ) : (
                 <>
                   <span className="material-icons-round text-[18px]">verified_user</span>
-                  Verify & Log In
+                  Verify SMS Code
                 </>
               )}
             </button>
  
-            {/* Resend Code Button & Timer */}
+            {/* SMS Resend Timer & Button */}
             <div className="text-center mt-4">
               <button
                 type="button"
-                onClick={generateAndSendOTP}
+                onClick={handleResendOTP}
                 disabled={otpTimer > 0 || isLoading}
                 className={`text-xs font-bold transition-all cursor-pointer ${
                   otpTimer > 0 ? "text-slate-400" : "text-slate-700 hover:text-pink-600"
                 }`}
               >
                 {otpTimer > 0 
-                  ? `Resend code in ${Math.floor(otpTimer / 60)}:${(otpTimer % 60).toString().padStart(2, '0')}` 
-                  : "Resend Code"
+                  ? `Resend SMS in ${Math.floor(otpTimer / 60)}:${(otpTimer % 60).toString().padStart(2, '0')}` 
+                  : "Resend SMS Code"
                 }
               </button>
             </div>
  
-            {/* DEV PREVIEW TOOLTIP CARD - Extremely premium, neat dev helper */}
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between shadow-inner mt-4 animate-fadeIn">
-              <div className="min-w-0 flex-1 pr-2">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Security Preview Code</span>
-                <p className="text-[10px] text-slate-400 font-medium leading-none mt-1">For development, also logged in Console.</p>
-              </div>
-              <span className="text-sm font-black text-slate-800 tracking-widest font-mono bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm shrink-0">
-                {generatedOtp || "------"}
-              </span>
-            </div>
- 
-            {/* Back to Login Gate */}
+            {/* Go back to Step 1 */}
             <div className="text-center pt-2">
               <button
                 type="button"
                 onClick={() => {
+                  cleanupRecaptcha();
+                  setConfirmationResult(null);
                   setStep("login");
-                  setGeneratedOtp("");
                   setError("");
                 }}
                 className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1 mx-auto cursor-pointer"
@@ -432,7 +493,7 @@ export default function AdminLoginPage({ initialStep = "login" }: { initialStep?
           </form>
         )}
  
-        {/* Footer restricted disclaimer */}
+        {/* Footer restricted access note */}
         <p className="text-center text-[11px] text-[#9ca3af] font-medium mt-6">
           Restricted access — Authorized Admin only
         </p>
