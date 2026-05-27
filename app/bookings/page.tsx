@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
-import { useMyBookings, useUpdateBookingStatus, useRescheduleBooking } from "../lib/hooks";
+import axios from "axios";
+import Image from "next/image";
+import { supabase, TABLES } from "../lib/supabase";
+import { useMyBookings, useUpdateBookingStatus, useRescheduleBooking, useSubmitReview } from "../lib/hooks";
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
   pending: { bg: "bg-amber-500/10", text: "text-amber-600", label: "Pending" },
@@ -41,6 +44,84 @@ export default function BookingsPage() {
   const [rescheduleModal, setRescheduleModal] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(dates[0].full);
   const [selectedTime, setSelectedTime] = useState("10:00 AM");
+
+  // Verified Customer Review Composability State
+  const [reviewModal, setReviewModal] = useState<any>(null);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewText, setReviewText] = useState<string>("");
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+  const submitReview = useSubmitReview();
+
+  const handleReviewImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    setUploadingImage(true);
+    try {
+      const res = await axios.post("/api/media", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      if (res.data.success) {
+        const fileUrl = res.data.file.url;
+        setReviewImages(prev => [...prev, fileUrl]);
+        showToast("Photo attached successfully!");
+      } else {
+        alert("Upload failed: " + res.data.error);
+      }
+    } catch (error: any) {
+      alert("Upload failed: " + error.message);
+    } finally {
+      setUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!reviewModal) return;
+    try {
+      const firebaseUid = localStorage.getItem("token") || "";
+      let customerId = "";
+      try {
+        const { data: usr } = await supabase
+          .from(TABLES.USERS)
+          .select("id")
+          .eq("firebase_uid", firebaseUid)
+          .single();
+        if (usr) customerId = usr.id;
+      } catch (e) {
+        console.error(e);
+      }
+
+      await submitReview.mutateAsync({
+        booking_id: reviewModal.id || reviewModal._id,
+        salon_id: reviewModal.salonId?._id || reviewModal.salonId,
+        customer_id: customerId || undefined,
+        service_id: reviewModal.services?.[0]?.id || null,
+        rating: reviewRating,
+        review_text: reviewText,
+        images: reviewImages,
+        is_verified_booking: true
+      });
+
+      alert("Review submitted successfully! Thank you.");
+      setReviewModal(null);
+      setReviewText("");
+      setReviewImages([]);
+      setReviewRating(5);
+    } catch (err: any) {
+      alert("Failed to submit review: " + err.message);
+    }
+  };
+
+  // Toast helper for profile
+  const [toastMsg, setToastMsg] = useState("");
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(""), 3000);
+  };
 
   const filteredBookings = bookings?.filter((b: any) => {
     const status = (b.status || 'pending').toLowerCase();
@@ -207,9 +288,23 @@ export default function BookingsPage() {
                     </button>
                   </Link>
                   {statusVal === "completed" && (
-                    <button className="btn-primary w-full text-[12px] py-2 !px-2 flex-1">
-                      Book Again
-                    </button>
+                    <div className="flex gap-2 w-full flex-1">
+                      <button 
+                        onClick={() => {
+                          setReviewModal(booking);
+                          setReviewRating(5);
+                          setReviewText("");
+                          setReviewImages([]);
+                        }}
+                        className="btn-primary flex-1 text-[11px] py-2 !px-2 bg-gradient-to-r from-[#e11d48] to-[#ec4899] text-white font-extrabold flex items-center justify-center gap-1 shadow-pink"
+                      >
+                        <span className="material-icons-round text-[13px]">rate_review</span>
+                        Leave Review
+                      </button>
+                      <button className="btn-ghost border border-border flex-1 text-[11px] py-2 !px-2 text-text-secondary font-bold">
+                        Book Again
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -329,6 +424,113 @@ export default function BookingsPage() {
               {reschedule.isPending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Confirm New Slot"}
             </button>
           </div>
+        </div>
+      )}
+      {/* Leaves Review Sheet / Bottom Drawer */}
+      {reviewModal && (
+        <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center animate-fadeIn">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md shadow-2xl animate-slideUp sm:animate-scaleIn h-[85vh] sm:h-auto overflow-y-auto flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                <h3 className="text-base font-black text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="material-icons-round text-[#ec4899]">rate_review</span>
+                  Leave Verified Review
+                </h3>
+                <button onClick={() => setReviewModal(null)} className="w-8 h-8 bg-surface-dim rounded-full flex items-center justify-center text-text-secondary">
+                  <span className="material-icons-round text-[20px]">close</span>
+                </button>
+              </div>
+
+              {/* Verified Visit Summary */}
+              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 mb-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                  <span className="material-icons-round text-[18px]">verified</span>
+                </div>
+                <div>
+                  <div className="text-xs font-black text-emerald-800 uppercase tracking-wide">Verified Booking</div>
+                  <div className="text-sm font-bold text-text-primary mt-0.5">{reviewModal.salonId?.name || "Glivaji Salon"}</div>
+                  <div className="text-[10px] text-text-secondary mt-0.5">
+                    {reviewModal.services?.[0]?.name || "Salon Service"} • Visited on {reviewModal.date}
+                  </div>
+                </div>
+              </div>
+
+              {/* Star rating selector */}
+              <div className="mb-5 text-center">
+                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2.5">
+                  Your Overall Rating
+                </label>
+                <div className="flex items-center justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="text-amber-400 active:scale-125 transition-transform"
+                    >
+                      <span className="material-icons-round text-3xl">
+                        {star <= reviewRating ? "star" : "star_border"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Review Text comment */}
+              <div className="mb-5">
+                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">
+                  Share Your Experience
+                </label>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="What did you like or dislike? How was the service, staff cleanliness, etc.?"
+                  rows={4}
+                  className="w-full px-4 py-3 bg-surface-dim border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-primary/50 placeholder:text-text-tertiary transition-all resize-none"
+                />
+              </div>
+
+              {/* Image attachment deck */}
+              <div className="mb-6">
+                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2">
+                  Attach Photo (Optional)
+                </label>
+                <div className="flex gap-2 flex-wrap items-center">
+                  {reviewImages.map((img, idx) => (
+                    <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                      <Image src={img} alt="" fill className="object-cover" />
+                      <button 
+                        onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white"
+                      >
+                        <span className="material-icons-round text-[9px]">close</span>
+                      </button>
+                    </div>
+                  ))}
+
+                  <label className={`w-14 h-14 rounded-xl border border-dashed border-gray-300 bg-surface-dim/40 flex flex-col items-center justify-center text-text-tertiary hover:text-primary hover:border-primary/50 transition-colors cursor-pointer shrink-0 ${uploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
+                    <span className="material-icons-round text-[20px]">{uploadingImage ? "hourglass_top" : "add_a_photo"}</span>
+                    <input type="file" accept="image/*" onChange={handleReviewImageUpload} className="hidden" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleReviewSubmit}
+              disabled={submitReview.isPending || !reviewText.trim()}
+              className="w-full py-3.5 bg-black text-white font-extrabold text-sm rounded-2xl shadow-lg active:scale-95 transition-transform flex justify-center items-center gap-1.5 disabled:opacity-50"
+            >
+              {submitReview.isPending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-icons-round text-[16px]">send</span>Submit Verified Review</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-slate-900/95 backdrop-blur-md border border-white/10 px-5 py-3 rounded-full text-white text-[11px] font-bold shadow-2xl flex items-center gap-2 animate-bounce">
+          <span className="material-icons-round text-green-400 text-[14px]">check_circle</span>
+          {toastMsg}
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useSalon } from "../../lib/hooks";
+import { useSalon, useSalonReviews } from "../../lib/hooks";
 import ServiceDetailModal from "../../components/ServiceDetailModal";
 import SalonInfoModal from "../../components/SalonInfoModal";
 
@@ -103,6 +103,32 @@ export default function SalonDetailPage() {
     if (services.length === 0) return 0;
     return Math.min(...services.map((s: any) => s.price));
   }, [services]);
+
+  // --- Real verified customer reviews queries & statistics ---
+  const { data: reviews = [] } = useSalonReviews(id as string);
+
+  const reviewStats = useMemo(() => {
+    if (reviews.length === 0) {
+      return { 
+        avg: Number(salon?.rating) || 0.0, 
+        total: Number(salon?.total_reviews) || 0, 
+        breakdown: [0, 0, 0, 0, 0] 
+      };
+    }
+    const total = reviews.length;
+    let sum = 0;
+    const breakdown = [0, 0, 0, 0, 0]; // 5, 4, 3, 2, 1 stars
+    reviews.forEach((r: any) => {
+      const rating = Math.min(5, Math.max(1, Math.round(r.rating)));
+      sum += rating;
+      breakdown[5 - rating] += 1;
+    });
+    return {
+      avg: (sum / total).toFixed(1),
+      total,
+      breakdown: breakdown.map(c => Math.round((c / total) * 100))
+    };
+  }, [reviews, salon]);
 
   const isServiceAdded = (serviceId: string) => selectedServices.some(s => s._id === serviceId);
 
@@ -358,6 +384,125 @@ export default function SalonDetailPage() {
             <p className="text-text-tertiary font-medium">No services found</p>
           </div>
         )}
+      </div>
+
+      {/* ─── Real Customer Reviews & Ratings System Section ─── */}
+      <div className="px-4 border-t border-gray-100 pt-6 pb-24">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-black text-text-primary">Verified Reviews & Ratings</h2>
+          <span className="text-xs font-extrabold text-primary bg-pink-50 border border-pink-100 rounded-full px-2.5 py-0.5 uppercase tracking-wide">
+            100% Real
+          </span>
+        </div>
+
+        {/* Reviews Bento Summary block */}
+        <div className="grid grid-cols-3 gap-4 bg-gray-50 border border-gray-100 rounded-2xl p-4 mb-6">
+          <div className="flex flex-col items-center justify-center border-r border-gray-200/80">
+            <div className="text-3xl font-black text-text-primary tracking-tight leading-none">
+              {reviewStats.avg}
+            </div>
+            <div className="flex items-center gap-0.5 mt-1 text-amber-500">
+              <span className="material-icons-round text-[14px]">star</span>
+              <span className="text-[10px] font-extrabold text-text-primary">/ 5.0</span>
+            </div>
+            <div className="text-[9px] text-text-secondary mt-1.5 font-bold leading-none text-center">
+              Based on {reviewStats.total} verified visits
+            </div>
+          </div>
+
+          <div className="col-span-2 space-y-1.5 flex flex-col justify-center pl-1">
+            {[5, 4, 3, 2, 1].map((stars, idx) => (
+              <div key={stars} className="flex items-center gap-2">
+                <span className="text-[9px] font-bold text-text-secondary w-2 text-right">{stars}</span>
+                <span className="material-icons-round text-[10px] text-amber-500">star</span>
+                <div className="flex-1 h-1.5 bg-gray-200/80 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full" 
+                    style={{ width: `${reviewStats.breakdown[idx]}%` }}
+                  />
+                </div>
+                <span className="text-[9px] font-medium text-text-tertiary w-6 text-right">
+                  {reviewStats.breakdown[idx]}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Reviews Deck */}
+        <div className="space-y-4">
+          {reviews.length === 0 ? (
+            <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-6">
+              <span className="material-icons-round text-3xl text-text-tertiary mb-1">rate_review</span>
+              <p className="text-xs text-text-secondary font-medium">No customer feedback yet.</p>
+              <p className="text-[10px] text-text-tertiary mt-0.5">Reviews appear automatically after completed visits.</p>
+            </div>
+          ) : (
+            reviews.map((r: any) => (
+              <div key={r.id} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-black shrink-0">
+                      {r.customerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-text-primary">{r.customerName}</span>
+                        {r.isVerifiedBooking && (
+                          <span className="bg-emerald-500/10 text-emerald-600 text-[8px] font-black uppercase px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                            <span className="material-icons-round text-[9px]">verified</span>Verified
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[9px] text-text-secondary mt-0.5">
+                        Service: <strong className="text-text-primary">{r.serviceName}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 text-amber-500">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} className="material-icons-round text-[13px]">
+                        {i < r.rating ? "star" : "star_border"}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Review Text */}
+                <p className="text-xs text-text-primary mt-2 leading-relaxed">
+                  {r.reviewText}
+                </p>
+
+                {/* Review Images */}
+                {r.images && r.images.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar mt-2 pb-1">
+                    {r.images.map((img: string, idx: number) => (
+                      <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                        <Image src={img} alt="" fill className="object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Nested Owner Reply */}
+                {r.ownerReply && (
+                  <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 mt-3 flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <span className="material-icons-round text-white text-[12px]">spa</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-bold text-primary">Response from Salon Manager</div>
+                      <p className="text-[11px] text-text-primary mt-1 leading-normal italic">
+                        "{r.ownerReply}"
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* ─── Sticky Bottom Cart Bar ─── */}

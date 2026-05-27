@@ -21,6 +21,8 @@ import {
   useUpdateStaff,
   useDeleteStaff,
   useUpdateSalonProfile,
+  useReviewsModeration,
+  useUpdateReviewStatus,
 } from "../../../lib/hooks";
 
 // Future-proof Dynamic Module Registry
@@ -38,6 +40,7 @@ const salonWorkspaceModules: ModuleRegistry[] = [
   { key: "staff", label: "Staff Roster", icon: "groups", enabled: true },
   { key: "settings", label: "Salon Settings", icon: "settings", enabled: true },
   { key: "media", label: "Media Gallery", icon: "image", enabled: true },
+  { key: "reviews", label: "Reviews & Ratings", icon: "rate_review", enabled: true },
   { key: "preview", label: "Marketplace Preview", icon: "visibility", enabled: true },
   { key: "finance", label: "Finance & Payouts", icon: "payments", enabled: false },
   { key: "campaigns", label: "Marketing Campaigns", icon: "campaign", enabled: false },
@@ -243,6 +246,187 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
             >
               Cancel
             </button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  // ===========================================================================
+  // SUB-PANE STATE & LOGIC: REVIEWS & RATINGS MODERATION
+  // ===========================================================================
+  const { data: reviews = [], isLoading: reviewsLoading } = useReviewsModeration(id);
+  const updateReviewStatus = useUpdateReviewStatus();
+  const [updatingReviewId, setUpdatingReviewId] = useState<string | null>(null);
+  const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "approved" | "rejected" | "hidden">("all");
+
+  const handleUpdateReviewStatus = async (reviewId: string, status: "approved" | "rejected" | "hidden") => {
+    setUpdatingReviewId(reviewId);
+    try {
+      await updateReviewStatus.mutateAsync({ id: reviewId, salon_id: id, status });
+      showToast(`Review set to ${status.toUpperCase()}!`);
+      refetchSalon(); // update average rating and total counts if recalculated in real time
+    } catch (err: any) {
+      showToast("Error updating status: " + err.message);
+    } finally {
+      setUpdatingReviewId(null);
+    }
+  };
+
+  const filteredReviews = reviewFilter === "all"
+    ? reviews
+    : reviews.filter((r: any) => r.status === reviewFilter);
+
+  const reviewColumns = [
+    {
+      key: "customer",
+      label: "Customer",
+      width: "220px",
+      render: (_: any, row: any) => {
+        const name = row.customer 
+          ? `${row.customer.first_name || ""} ${row.customer.last_name || ""}`.trim() || "Client"
+          : row.customerName || "Client";
+        const avatar = row.customer?.avatar_url;
+        
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-black shrink-0 overflow-hidden relative border border-border">
+              {avatar ? (
+                <Image src={avatar} alt="" fill className="object-cover" />
+              ) : (
+                name.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-text-primary text-sm truncate flex items-center gap-1.5">
+                {name}
+                {row.is_verified_booking && (
+                  <span className="material-icons-round text-[13px] text-green-500" title="Verified Customer">verified</span>
+                )}
+              </div>
+              <div className="text-[10px] text-text-tertiary mt-0.5 font-medium">
+                {row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}
+              </div>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      key: "rating",
+      label: "Rating",
+      width: "120px",
+      render: (v: number) => (
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <span 
+              key={idx} 
+              className={`material-icons-round text-sm ${idx < v ? "text-amber-400" : "text-gray-200"}`}
+            >
+              star
+            </span>
+          ))}
+          <span className="text-xs font-bold text-text-secondary ml-1.5">{v}.0</span>
+        </div>
+      )
+    },
+    {
+      key: "review_text",
+      label: "Review Content",
+      render: (_: any, row: any) => (
+        <div className="space-y-1.5 max-w-md py-1">
+          {row.service?.name && (
+            <span className="inline-block text-[9px] font-black uppercase bg-surface-dim border border-border text-text-secondary px-2 py-0.5 rounded">
+              Service: {row.service.name}
+            </span>
+          )}
+          <p className="text-xs text-text-primary font-medium leading-relaxed break-words whitespace-pre-line">
+            {row.review_text || <span className="italic text-text-tertiary">No text review left.</span>}
+          </p>
+          {row.images && row.images.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto py-1 no-scrollbar">
+              {row.images.map((img: string, idx: number) => (
+                <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-border bg-surface-dim shrink-0 group">
+                  <Image src={img} alt="" fill className="object-cover" />
+                  <a 
+                    href={img} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <span className="material-icons-round text-[12px] text-white">open_in_new</span>
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+          {row.owner_reply && (
+            <div className="bg-surface-dim border border-border rounded-xl p-2.5 mt-2 flex gap-2">
+              <span className="material-icons-round text-[14px] text-primary shrink-0 mt-0.5">reply</span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-extrabold text-text-primary uppercase tracking-wider">Owner Reply</div>
+                <p className="text-[11px] text-text-secondary mt-0.5 leading-normal italic">{row.owner_reply}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: "status",
+      label: "Status",
+      width: "120px",
+      render: (v: string) => (
+        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+          v === "approved" ? "bg-green-50 text-green-600 border border-green-200" :
+          v === "pending" ? "bg-yellow-50 text-yellow-600 border border-yellow-200" :
+          v === "rejected" ? "bg-red-50 text-red-600 border border-red-200" :
+          v === "hidden" ? "bg-gray-100 text-gray-500 border border-gray-200" :
+          "bg-yellow-50 text-yellow-600 border border-yellow-200"
+        }`}>
+          {v || "pending"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      width: "200px",
+      render: (_: any, row: any) => {
+        const isApproved = row.status === "approved";
+        const isRejected = row.status === "rejected";
+        const isHidden = row.status === "hidden";
+        const isMutating = updatingReviewId === row.id;
+
+        return (
+          <div className="flex items-center gap-1.5 justify-end">
+            {!isApproved && (
+              <button
+                onClick={() => handleUpdateReviewStatus(row.id, "approved")}
+                disabled={isMutating}
+                className="px-2 py-1 text-[11px] font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-md border border-green-200 transition-colors disabled:opacity-50"
+              >
+                Approve
+              </button>
+            )}
+            {!isRejected && (
+              <button
+                onClick={() => handleUpdateReviewStatus(row.id, "rejected")}
+                disabled={isMutating}
+                className="px-2 py-1 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200 transition-colors disabled:opacity-50"
+              >
+                Reject
+              </button>
+            )}
+            {!isHidden && (
+              <button
+                onClick={() => handleUpdateReviewStatus(row.id, "hidden")}
+                disabled={isMutating}
+                className="px-2 py-1 text-[11px] font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-md border border-border transition-colors disabled:opacity-50"
+              >
+                Hide
+              </button>
+            )}
           </div>
         );
       },
@@ -1423,13 +1607,53 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
                   title="Salon Secure Customer Preview"
                 />
               </div>
+              </div>
+            )}
+
+          {/* ===================================================================
+              TAB PANE 8: REVIEWS & RATINGS MODERATION
+              =================================================================== */}
+          {activeTab === "reviews" && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+                <div>
+                  <h3 className="text-sm font-black text-text-primary uppercase tracking-wider">Reviews Moderation Center</h3>
+                  <p className="text-xs text-text-secondary mt-0.5">Approve, reject, or hide customer reviews to ensure compliance.</p>
+                </div>
+                <div className="flex bg-surface-dim rounded-lg p-0.5 border border-border gap-1 flex-wrap">
+                  {(["all", "pending", "approved", "rejected", "hidden"] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setReviewFilter(f)}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold capitalize transition-all ${
+                        reviewFilter === f 
+                          ? "bg-white text-primary shadow-sm font-bold" 
+                          : "text-text-secondary hover:text-text-primary"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {reviewsLoading ? (
+                <div className="flex justify-center py-12"><div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" /></div>
+              ) : (
+                <AdminTable 
+                  columns={reviewColumns} 
+                  data={filteredReviews} 
+                  isLoading={reviewsLoading}
+                  emptyMessage="No reviews active matching this filter." 
+                />
+              )}
             </div>
           )}
 
           {/* ===================================================================
               DYNAMIC EXTRA FUTURE MODULE CONTAINER (FUTURE-PROOF INJECTS)
               =================================================================== */}
-          {!["overview", "bookings", "services", "staff", "settings", "media", "preview"].includes(activeTab) && (
+          {!["overview", "bookings", "services", "staff", "settings", "media", "preview", "reviews"].includes(activeTab) && (
             <div className="bg-surface-card border border-border-strong rounded-2xl p-8 text-center max-w-xl mx-auto shadow-sm my-6 animate-fadeIn">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                 <span className="material-icons-round text-3xl">

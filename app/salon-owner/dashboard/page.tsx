@@ -10,11 +10,12 @@ import {
   useSalonStaff, useAddStaff, useUpdateStaff, useDeleteStaff,
   useSalonServices, useAddService, useUpdateService, useDeleteService,
   useSalon, useUpdateSalonProfile,
+  useOwnerReply, useReviewsModeration, useUpdateReviewStatus,
 } from "../../lib/hooks";
 import SalonOnboardingWizard from "../../components/admin/SalonOnboardingWizard";
 import MediaUploader from "../../components/admin/MediaUploader";
 
-type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "preview";
+type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "reviews" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 // ─── Status Badge ────────────────────────────────────────────────────────────
@@ -985,6 +986,7 @@ function DashboardContent() {
     { id: "services", label: "Services", icon: "content_cut" },
     { id: "staff", label: "Staff", icon: "groups" },
     { id: "settings", label: "Settings", icon: "settings" },
+    { id: "reviews", label: "Reviews", icon: "rate_review" },
     { id: "preview", label: "Preview", icon: "visibility" },
   ];
 
@@ -1105,6 +1107,7 @@ function DashboardContent() {
           {activeTab === "services" && <ServicesTab salonId={salonId} />}
           {activeTab === "staff" && <StaffTab salonId={salonId} />}
           {activeTab === "settings" && <SettingsTab salonId={salonId} />}
+          {activeTab === "reviews" && <ReviewsTab salonId={salonId} />}
           {activeTab === "preview" && <PreviewTab salonId={salonId} />}
         </main>
       </div>
@@ -1112,7 +1115,7 @@ function DashboardContent() {
       {/* BottomNavBar (Mobile) */}
       <nav className="md:hidden flex-none w-full z-50 bg-white/90 backdrop-blur-xl border-t border-[#e1e3e4] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="flex justify-around items-center px-2 pb-5 pt-3">
-          {tabs.slice(0, 5).map(tab => (
+          {tabs.slice(0, 6).map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -1133,6 +1136,210 @@ function DashboardContent() {
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-slate-900/95 backdrop-blur-md border border-white/10 px-5 py-3 rounded-full text-white text-[11px] font-bold shadow-2xl flex items-center gap-2 animate-bounce">
           <span className="material-icons-round text-green-400 text-[14px]">check_circle</span>
           Salon link copied to clipboard!
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reviews Tab ──────────────────────────────────────────────────────────────
+function ReviewsTab({ salonId }: { salonId: string }) {
+  const { data: reviews = [], isLoading, refetch } = useReviewsModeration(salonId);
+  const ownerReplyMutation = useOwnerReply();
+  const updateStatusMutation = useUpdateReviewStatus();
+  
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [filterRating, setFilterRating] = useState<number | "all">("all");
+
+  const handleReplySubmit = async (reviewId: string) => {
+    const text = replyText[reviewId]?.trim();
+    if (!text) return;
+    setSubmittingId(reviewId);
+    try {
+      await ownerReplyMutation.mutateAsync({
+        id: reviewId,
+        salon_id: salonId,
+        owner_reply: text
+      });
+      alert("Reply posted successfully!");
+      refetch();
+    } catch (err: any) {
+      alert("Failed to submit reply: " + err.message);
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
+  const handleHideToggle = async (review: any) => {
+    const newStatus = review.status === 'hidden' ? 'approved' : 'hidden';
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: review.id,
+        salon_id: salonId,
+        status: newStatus
+      });
+      alert(`Review status set to ${newStatus}`);
+      refetch();
+    } catch (err: any) {
+      alert("Failed: " + err.message);
+    }
+  };
+
+  const filteredReviews = filterRating === "all"
+    ? reviews
+    : reviews.filter((r: any) => Math.round(r.rating) === filterRating);
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <header className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-[#191c1d]">Customer Reviews</h2>
+          <p className="text-sm text-[#574048] mt-1">Review feedback and respond directly to verified visits.</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#574048]">Filter Rating:</span>
+          <select
+            value={filterRating}
+            onChange={(e: any) => setFilterRating(e.target.value === "all" ? "all" : Number(e.target.value))}
+            className="px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl text-xs font-bold focus:outline-none focus:border-[#b10e6b]"
+          >
+            <option value="all">All Stars</option>
+            {[5, 4, 3, 2, 1].map(s => (
+              <option key={s} value={s}>{s} Stars</option>
+            ))}
+          </select>
+        </div>
+      </header>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-8 h-8 border-3 border-[#b10e6b]/30 border-t-[#b10e6b] rounded-full animate-spin" />
+        </div>
+      ) : filteredReviews.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-[#e1e3e4] rounded-2xl p-6">
+          <span className="material-icons-round text-5xl text-[#574048] mb-4">rate_review</span>
+          <p className="text-[#191c1d] font-semibold text-lg">No reviews found</p>
+          <p className="text-sm text-[#574048]">Reviews appear here once guests complete visits.</p>
+        </div>
+      ) : (
+        <div className="space-y-4 animate-fadeIn">
+          {filteredReviews.map((r: any) => (
+            <div key={r.id} className="bg-white border border-[#e1e3e4] rounded-3xl p-5 hover:shadow-ambient transition-all space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#f3f4f5] border border-[#e1e3e4] flex items-center justify-center text-sm font-bold text-[#b10e6b]">
+                    {(r.customerName || "C").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="font-bold text-[#191c1d] text-sm">{r.customerName || "Verified Guest"}</h4>
+                      {r.isVerifiedBooking !== false && (
+                        <span className="bg-green-100 text-green-700 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          <span className="material-icons-round text-[10px]">verified</span>Verified
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#574048] mt-0.5">
+                      Service: <strong className="text-[#191c1d]">{r.serviceName || "Salon Service"}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="flex items-center gap-0.5 text-amber-500">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} className="material-icons-round text-[16px]">
+                        {i < r.rating ? "star" : "star_border"}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-[#8b7079]">
+                    {new Date(r.createdAt || r.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Review Text */}
+              <p className="text-sm text-[#191c1d] leading-relaxed bg-[#f8f9fa] rounded-2xl p-3 border border-[#e1e3e4]/60">
+                {r.reviewText || r.comment}
+              </p>
+
+              {/* Photos */}
+              {r.images && r.images.length > 0 && (
+                <div className="flex gap-2 pb-1 overflow-x-auto">
+                  {r.images.map((img: string, idx: number) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border border-[#e1e3e4] shrink-0">
+                      <img src={img} alt="" className="object-cover w-full h-full" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Reply Section */}
+              <div className="border-t border-[#e1e3e4] pt-4 mt-2">
+                {r.ownerReply ? (
+                  <div className="bg-[#ffd9e4]/10 border border-[#ffd9e4]/30 rounded-2xl p-4 flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-[#b10e6b] flex items-center justify-center shrink-0">
+                      <span className="material-icons-round text-white text-[14px]">spa</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-[#b10e6b] uppercase tracking-wider">Your Reply</span>
+                        <button 
+                          onClick={() => setReplyText(p => ({ ...p, [r.id]: r.ownerReply }))}
+                          className="text-[11px] font-bold text-[#b10e6b] hover:underline"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <p className="text-xs text-[#574048] mt-1.5 leading-relaxed italic">
+                        "{r.ownerReply}"
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-xs font-bold text-[#574048]">Post a Reply to Guest:</div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Thank the guest or address their concerns..."
+                        value={replyText[r.id] || ""}
+                        onChange={(e) => setReplyText(p => ({ ...p, [r.id]: e.target.value }))}
+                        className="flex-1 px-4 py-2 bg-white border border-[#e1e3e4] rounded-xl text-xs focus:outline-none focus:border-[#b10e6b] transition-all"
+                      />
+                      <button
+                        onClick={() => handleReplySubmit(r.id)}
+                        disabled={submittingId === r.id || !replyText[r.id]?.trim()}
+                        className="px-4 py-2 bg-[#b10e6b] hover:bg-[#a12e70] text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        {submittingId === r.id ? "Posting..." : "Reply"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Abuse flag reporting */}
+                <div className="flex justify-end gap-3 mt-3.5">
+                  <button
+                    onClick={() => handleHideToggle(r)}
+                    className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border transition-all ${
+                      r.status === 'hidden' 
+                        ? 'bg-amber-100 border-amber-200 text-amber-800' 
+                        : 'bg-white border-[#e1e3e4] text-[#574048] hover:border-red-500 hover:text-red-500'
+                    }`}
+                  >
+                    <span className="material-icons-round text-[11px] mr-1 align-middle">
+                      {r.status === 'hidden' ? "visibility" : "visibility_off"}
+                    </span>
+                    {r.status === 'hidden' ? "Hidden (Spam)" : "Hide Review"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
