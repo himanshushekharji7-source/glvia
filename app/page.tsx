@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import ServiceDetailModal from "./components/ServiceDetailModal";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { useSalons } from "./lib/hooks";
 import { useRouter } from "next/navigation";
 import { supabase, TABLES } from "./lib/supabase";
@@ -735,6 +736,8 @@ export default function HomePage() {
         onAdd={() => selectedService && handleBook(selectedService.id)}
         onNext={() => router.push("/checkout")}
       />
+
+      <PWAInstallPrompt />
     </div>
   );
 }
