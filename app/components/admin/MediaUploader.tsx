@@ -58,10 +58,41 @@ export default function MediaUploader({
   const fetchMediaList = async () => {
     setLoadingMedia(true);
     try {
-      const res = await axios.get<MediaFile[]>("/api/media");
+      const res = await axios.get<MediaFile[]>("/api/media", {
+        params: {
+          role,
+          folder: finalFolder
+        }
+      });
       setMediaList(res.data || []);
     } catch (err) {
       console.error("Failed to fetch media library:", err);
+    } finally {
+      setLoadingMedia(false);
+    }
+  };
+
+  // Permanently delete a file from the global media library (Super Admin only)
+  const handleDelete = async (e: React.MouseEvent, file: MediaFile) => {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to permanently delete this media file?\n\nFile: ${file.name}\n\nThis cannot be undone.`)) return;
+    
+    setLoadingMedia(true);
+    try {
+      const res = await axios.delete("/api/media", {
+        params: {
+          name: file.relativePath,
+          role: "super-admin"
+        }
+      });
+      if (res.data.success) {
+        fetchMediaList();
+      } else {
+        alert(res.data.error || "Failed to delete file.");
+      }
+    } catch (err: any) {
+      console.error("Failed to delete media:", err);
+      alert(err.response?.data?.error || err.message || "Failed to delete file.");
     } finally {
       setLoadingMedia(false);
     }
@@ -449,6 +480,18 @@ export default function MediaUploader({
                           <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#b10e6b] text-white flex items-center justify-center shadow-md">
                             <span className="material-icons-round text-xs font-bold">check</span>
                           </div>
+                        )}
+
+                        {/* Delete button (Super Admin only) */}
+                        {role === "super-admin" && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(e, file)}
+                            className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-white/95 text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer"
+                            title="Permanently Delete Media"
+                          >
+                            <span className="material-icons-round text-[14px]">delete</span>
+                          </button>
                         )}
                         
                         {/* Media Label Tooltip */}

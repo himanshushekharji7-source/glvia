@@ -55,12 +55,40 @@ function getFilesRecursively(dir: string, baseDir: string = UPLOAD_DIR): any[] {
 /**
  * GET: Retrieve list of uploaded files, sorted by newest first (across all subdirectories)
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     ensureUploadDir();
-    const mediaList = getFilesRecursively(UPLOAD_DIR)
-      // Newest files first
-      .sort((a, b) => b.updatedAt - a.updatedAt);
+    
+    const { searchParams } = new URL(req.url);
+    const role = searchParams.get("role");
+    const folder = searchParams.get("folder");
+    
+    let mediaList = getFilesRecursively(UPLOAD_DIR);
+    
+    // Enforce isolation security logic: Only Super Admins / Admins can see all global uploads.
+    // Salon owners & customers can only see their own uploaded media (scoped by folder prefix).
+    if (role !== "super-admin" && role !== "admin") {
+      if (folder) {
+        // Sanitize folder query input to match system standards
+        const safeFolder = folder
+          .replace(/\\/g, "/")
+          .split("/")
+          .map(segment => segment.replace(/[^a-zA-Z0-9_-]/g, ""))
+          .filter(Boolean)
+          .join("/");
+          
+        if (safeFolder) {
+          mediaList = mediaList.filter(file => file.relativePath.startsWith(safeFolder + "/"));
+        } else {
+          mediaList = [];
+        }
+      } else {
+        mediaList = [];
+      }
+    }
+
+    // Sort: newest first
+    mediaList.sort((a, b) => b.updatedAt - a.updatedAt);
 
     return NextResponse.json(mediaList);
   } catch (error: any) {
