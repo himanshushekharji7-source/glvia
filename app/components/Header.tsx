@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import LocationPickerModal from "./LocationPickerModal";
 
 interface HeaderProps {
@@ -98,6 +99,13 @@ export default function Header({
       >
         {/* Left: Back or Location */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
+          {!showBack && showLocation && (
+            <Link href="/" className="shrink-0 flex items-center justify-center">
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-slate-100/20 bg-white shadow-sm hover:scale-105 transition-transform shrink-0">
+                <Image src="/logo.png" alt="Glvia Logo" fill className="object-cover" />
+              </div>
+            </Link>
+          )}
           {showBack && (
             <Link
               href="/"

@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 const tabs = [
   { 
     href: "/", 
     label: "glvia", 
     svg: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 8C14 5.79086 12.2091 4 10 4H7C6.44772 4 6 4.44772 6 5V19C6 19.5523 6.44772 20 7 20H11C13.2091 20 15 18.2091 15 16C15 14.5028 14.1751 13.1979 12.9866 12.5C14.7865 11.9686 16 10.1257 16 8C16 5.79086 14.2091 4 12 4H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M6 12H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="opacity-30" />
-      </svg>
+      <div className="relative w-6 h-6 rounded-md overflow-hidden bg-white shrink-0 border border-slate-100 shadow-sm">
+        <Image src="/logo.png" alt="glvia Logo" fill className="object-cover" />
+      </div>
     )
   },
   { 

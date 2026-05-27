@@ -40,6 +40,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" href="/logo.png" />
         <link rel="shortcut icon" href="/logo.png" />
         <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-dvh bg-surface">
         <QueryProvider>
