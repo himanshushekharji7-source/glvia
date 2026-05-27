@@ -29,8 +29,8 @@ function verifySessionToken(token: string): { valid: boolean; email?: string } {
     // Verify Expiration
     if (Date.now() > expiresAt) return { valid: false };
     
-    // Verify Email Constraint
-    const allowedAdminEmail = process.env.ADMIN_EMAIL || "himanshushekharji7@gmail.com";
+    // Verify Email Constraint (Production hardcoded fallback to brandfasion7@gmail.com)
+    const allowedAdminEmail = process.env.ADMIN_EMAIL || "brandfasion7@gmail.com";
     if (email.toLowerCase().trim() !== allowedAdminEmail.toLowerCase().trim()) {
       return { valid: false };
     }
@@ -51,7 +51,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action } = body;
  
-    const allowedAdminEmail = process.env.ADMIN_EMAIL || "himanshushekharji7@gmail.com";
+    // Fallback securely to brandfasion7@gmail.com
+    const allowedAdminEmail = process.env.ADMIN_EMAIL || "brandfasion7@gmail.com";
  
     // -------------------------------------------------------------
     // ACTION 1: CHALLENGE (Get authorized admin phone number)
@@ -77,10 +78,20 @@ export async function POST(req: NextRequest) {
         console.error("Supabase query error:", error);
       }
  
-      // Dynamic fallback if phone number is not found or is empty in the database
-      let adminPhone = data?.phone || process.env.ADMIN_PHONE || "+918004642110";
+      // Secure phone mapping: Read from DB, fallback to env keys, fallback to help support number
+      let rawPhone = data?.phone || process.env.Mobile_number || process.env.ADMIN_PHONE || "+918004642110";
+      let adminPhone = rawPhone.trim().replace(/\s+/g, "");
       
-      const cleanPhone = adminPhone.trim();
+      // Auto-format to E.164 standard for Indian mobile numbers
+      if (/^\d{10}$/.test(adminPhone)) {
+        adminPhone = `+91${adminPhone}`;
+      } else if (adminPhone.startsWith("91") && adminPhone.length === 12) {
+        adminPhone = `+${adminPhone}`;
+      } else if (!adminPhone.startsWith("+")) {
+        adminPhone = `+91${adminPhone}`;
+      }
+      
+      const cleanPhone = adminPhone;
       const maskedPhone = cleanPhone.length > 6 
         ? `${cleanPhone.slice(0, 3)} ****** ${cleanPhone.slice(-4)}`
         : cleanPhone;
