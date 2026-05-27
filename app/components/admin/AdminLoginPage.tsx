@@ -57,38 +57,44 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-dvh bg-[#f5f6f8] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Subtle ambient blobs — professional, not playful */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-pink-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
 
       <div className="relative w-full max-w-md">
-        {/* Logo */}
+
+        {/* Logo + Branding */}
         <div className="text-center mb-8">
-          <div className="relative w-16 h-16 rounded-2xl bg-white p-1 flex items-center justify-center mx-auto mb-4 shadow-lg overflow-hidden border border-white/10 shrink-0">
-            <div className="relative w-full h-full rounded-xl overflow-hidden">
-              <Image src="/logo.png" alt="GLVIA Brand Logo" fill className="object-cover" />
+          <div className="relative w-14 h-14 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100 shrink-0">
+            <div className="relative w-full h-full rounded-2xl overflow-hidden">
+              <Image src="/logo.png" alt="GLVIA Admin" fill className="object-cover" />
             </div>
           </div>
-          <h1 className="text-2xl font-extrabold text-white mb-1">glvia Admin</h1>
-          <p className="text-gray-400 text-sm">Sign in to manage your website</p>
+          <h1 className="text-[22px] font-black text-[#111827] tracking-tight mb-1">Admin Portal</h1>
+          <p className="text-[13px] text-[#6b7280] font-medium">Sign in to manage your platform</p>
         </div>
 
-        {/* Login Card */}
-        <form onSubmit={handleSubmit} className="bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-5">
+        {/* Login Card — elevated, authoritative */}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white border border-[#e5e7eb] rounded-3xl p-8 space-y-5 shadow-[0_8px_32px_rgba(0,0,0,0.06)]"
+        >
+          {/* Error state */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium px-4 py-3 rounded-xl flex items-center gap-2">
-              <span className="material-icons-round text-[16px]">error</span>
+            <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl flex items-center gap-2">
+              <span className="material-icons-round text-[16px] shrink-0">error</span>
               {error}
             </div>
           )}
 
+          {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Email</label>
+            <label className="block text-[12px] font-bold text-[#374151] mb-2 uppercase tracking-wider">
+              Email Address
+            </label>
             <div className="relative">
-              <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[20px]">
+              <span className="material-icons-round absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af] text-[20px]">
                 mail
               </span>
               <input
@@ -96,16 +102,19 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@glvia.com"
-                className="w-full pl-10 pr-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/10 transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl text-[#111827] placeholder-[#9ca3af] text-sm focus:outline-none focus:border-[#ec4899]/60 focus:ring-2 focus:ring-[#ec4899]/10 focus:bg-white transition-all"
                 autoComplete="email"
               />
             </div>
           </div>
 
+          {/* Password */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Password</label>
+            <label className="block text-[12px] font-bold text-[#374151] mb-2 uppercase tracking-wider">
+              Password
+            </label>
             <div className="relative">
-              <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[20px]">
+              <span className="material-icons-round absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af] text-[20px]">
                 lock
               </span>
               <input
@@ -113,13 +122,13 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full pl-10 pr-12 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/10 transition-all"
+                className="w-full pl-10 pr-12 py-3 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl text-[#111827] placeholder-[#9ca3af] text-sm focus:outline-none focus:border-[#ec4899]/60 focus:ring-2 focus:ring-[#ec4899]/10 focus:bg-white transition-all"
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] hover:text-[#6b7280] transition-colors"
               >
                 <span className="material-icons-round text-[20px]">
                   {showPassword ? "visibility_off" : "visibility"}
@@ -128,13 +137,16 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
+          {/* Security PIN */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-semibold text-gray-300">Security PIN</label>
-              <span className="text-[10px] text-gray-500 font-medium">Leave blank for first login</span>
+              <label className="block text-[12px] font-bold text-[#374151] uppercase tracking-wider">
+                Security PIN
+              </label>
+              <span className="text-[11px] text-[#9ca3af] font-medium">Leave blank for first login</span>
             </div>
             <div className="relative">
-              <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[20px]">
+              <span className="material-icons-round absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af] text-[20px]">
                 security
               </span>
               <input
@@ -145,19 +157,20 @@ export default function AdminLoginPage() {
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                 placeholder="4-digit PIN"
-                className="w-full pl-10 pr-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/10 transition-all text-center tracking-[0.5em] font-bold text-lg"
+                className="w-full pl-10 pr-4 py-3 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl text-[#111827] placeholder-[#9ca3af] text-sm focus:outline-none focus:border-[#ec4899]/60 focus:ring-2 focus:ring-[#ec4899]/10 focus:bg-white transition-all text-center tracking-[0.5em] font-bold text-lg"
               />
             </div>
           </div>
 
+          {/* Submit — authoritative gradient, not playful */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20"
+            className="w-full py-3.5 text-sm font-bold text-white bg-gradient-to-r from-[#e11d48] to-[#9333ea] rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(225,29,72,0.2)] mt-2"
           >
             {isLoading ? (
               <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Signing in...
               </>
             ) : (
@@ -169,18 +182,18 @@ export default function AdminLoginPage() {
           </button>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-white/10" />
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">or</p>
-            <div className="flex-1 h-px bg-white/10" />
+          <div className="flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-[#f3f4f6]" />
+            <p className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-wider">or</p>
+            <div className="flex-1 h-px bg-[#f3f4f6]" />
           </div>
 
-          {/* Google Sign In Button */}
+          {/* Google Sign In */}
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-md"
+            className="w-full py-3 bg-white text-[#111827] border border-[#e5e7eb] rounded-xl font-semibold text-sm hover:bg-[#f9fafb] hover:border-[#d1d5db] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-sm"
           >
             <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z" />
@@ -191,6 +204,11 @@ export default function AdminLoginPage() {
             Sign in with Google
           </button>
         </form>
+
+        {/* Footer note — authority signal */}
+        <p className="text-center text-[11px] text-[#9ca3af] font-medium mt-6">
+          Restricted access — Super Admin only
+        </p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAdminAuth } from "../../lib/adminAuth";
+import Image from "next/image";
 
 export default function AdminPinSetupPage() {
   const { setupPin, logout } = useAdminAuth();
@@ -104,103 +105,108 @@ export default function AdminPinSetupPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-dvh bg-[#f5f6f8] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Subtle ambient blobs */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-pink-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="relative w-full max-w-md bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-pink-500/20">
-            <span className="material-icons-round text-white text-[32px]">security</span>
+      <div className="relative w-full max-w-md">
+        {/* Logo + Title */}
+        <div className="text-center mb-8">
+          <div className="relative w-14 h-14 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100">
+            <div className="relative w-full h-full rounded-2xl overflow-hidden">
+              <Image src="/logo.png" alt="GLVIA Admin" fill className="object-cover" />
+            </div>
           </div>
-          <h1 className="text-2xl font-extrabold text-white mb-2">Set Security PIN</h1>
-          <p className="text-gray-400 text-sm leading-relaxed">
+          <h1 className="text-[22px] font-black text-[#111827] tracking-tight mb-1">Set Security PIN</h1>
+          <p className="text-[13px] text-[#6b7280] font-medium leading-relaxed">
             {step === 1 
               ? "Create a 4-digit Security PIN to protect your administrator session." 
               : "Please confirm your 4-digit Security PIN."}
           </p>
         </div>
 
-        {error && (
-          <div className="mb-5 bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium px-4 py-3 rounded-xl flex items-center gap-2">
-            <span className="material-icons-round text-[16px]">error</span>
-            {error}
-          </div>
-        )}
-
-        {step === 1 ? (
-          <div className="space-y-6">
-            <div className="flex gap-4 justify-center">
-              {pin.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => { pinRefs.current[index] = el; }}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handlePinChange(index, e.target.value, false)}
-                  onKeyDown={(e) => handleKeyDown(index, e, false)}
-                  disabled={isLoading}
-                  className="w-12 h-14 text-center text-2xl font-bold bg-white/[0.06] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/10 transition-all text-center"
-                />
-              ))}
+        <div className="bg-white border border-[#e5e7eb] rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.06)]">
+          {error && (
+            <div className="mb-5 bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl flex items-center gap-2">
+              <span className="material-icons-round text-[16px]">error</span>
+              {error}
             </div>
+          )}
 
-            <button
-              onClick={handleNextStep}
-              className="w-full py-3.5 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 animate-fadeInUp"
-            >
-              Continue
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex gap-4 justify-center">
-              {confirmPin.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => { confirmRefs.current[index] = el; }}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handlePinChange(index, e.target.value, true)}
-                  onKeyDown={(e) => handleKeyDown(index, e, true)}
-                  disabled={isLoading}
-                  className="w-12 h-14 text-center text-2xl font-bold bg-white/[0.06] border border-white/10 rounded-xl text-white focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/10 transition-all text-center"
-                />
-              ))}
-            </div>
+          {step === 1 ? (
+            <div className="space-y-6">
+              <div className="flex gap-4 justify-center">
+                {pin.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => { pinRefs.current[index] = el; }}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handlePinChange(index, e.target.value, false)}
+                    onKeyDown={(e) => handleKeyDown(index, e, false)}
+                    disabled={isLoading}
+                    className="w-14 h-16 text-center text-2xl font-bold bg-[#f9fafb] border border-[#e5e7eb] rounded-xl text-[#111827] focus:outline-none focus:border-[#ec4899]/60 focus:ring-2 focus:ring-[#ec4899]/10 focus:bg-white transition-all"
+                  />
+                ))}
+              </div>
 
-            <div className="flex gap-3">
               <button
-                onClick={() => { setStep(1); setConfirmPin(["", "", "", ""]); setError(""); }}
-                className="flex-1 py-3.5 text-sm font-bold text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+                onClick={handleNextStep}
+                className="w-full py-3.5 text-sm font-bold text-white bg-gradient-to-r from-[#e11d48] to-[#9333ea] rounded-xl hover:opacity-90 transition-opacity"
               >
-                Back
-              </button>
-              <button
-                onClick={handleSetup}
-                disabled={isLoading}
-                className="flex-1 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-              >
-                {isLoading ? "Setting up..." : "Confirm PIN"}
+                Continue
               </button>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-6">
+              <div className="flex gap-4 justify-center">
+                {confirmPin.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => { confirmRefs.current[index] = el; }}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handlePinChange(index, e.target.value, true)}
+                    onKeyDown={(e) => handleKeyDown(index, e, true)}
+                    disabled={isLoading}
+                    className="w-14 h-16 text-center text-2xl font-bold bg-[#f9fafb] border border-[#e5e7eb] rounded-xl text-[#111827] focus:outline-none focus:border-[#ec4899]/60 focus:ring-2 focus:ring-[#ec4899]/10 focus:bg-white transition-all"
+                  />
+                ))}
+              </div>
 
-        <button
-          onClick={logout}
-          className="w-full text-center text-xs text-gray-500 hover:text-gray-300 transition-colors mt-6 font-semibold flex items-center justify-center gap-1.5"
-        >
-          <span className="material-icons-round text-[14px]">logout</span>
-          Cancel and Log Out
-        </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setStep(1); setConfirmPin(["", "", "", ""]); setError(""); }}
+                  className="flex-1 py-3.5 text-sm font-bold text-[#374151] bg-[#f9fafb] border border-[#e5e7eb] rounded-xl hover:bg-[#f3f4f6] transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleSetup}
+                  disabled={isLoading}
+                  className="flex-1 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-[#e11d48] to-[#9333ea] rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : "Confirm PIN"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={logout}
+            className="w-full text-center text-xs text-[#9ca3af] hover:text-[#6b7280] transition-colors mt-6 font-semibold flex items-center justify-center gap-1.5"
+          >
+            <span className="material-icons-round text-[14px]">logout</span>
+            Cancel and Log Out
+          </button>
+        </div>
       </div>
     </div>
   );

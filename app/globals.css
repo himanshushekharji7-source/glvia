@@ -2,6 +2,27 @@
 
 /* ─── glvia Design System ─── */
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Glvia Design System — globals.css
+   ──────────────────────────────────────────────────────────────────────────
+
+   SYSTEM 1: Customer & Admin Shared Tokens (scoped to :root)
+   → Used by: Customer Website, Salon Owner Dashboard, Admin Panel
+   → Primary: #ec4899 (pink), Secondary: #8b5cf6 (purple)
+   → Tailwind classes: text-primary, bg-surface-card, border-border, etc.
+
+   SYSTEM 2: Stitch M3 Dashboard Theme (scoped to .stitch-dashboard)
+   → Used by: SalonOnboardingWizard (wraps itself in bg-background text-on-background)
+   → Primary: #b10e6b (deeper magenta) — intentional design choice for the wizard
+   → M3 tokens: text-on-surface-variant, bg-surface-container-low, etc.
+   → DO NOT remove — the onboarding wizard depends on this scope.
+
+   SAFE REFACTOR RULES:
+   - Never add M3 tokens to :root (they would pollute the global scope)
+   - Never change --color-primary in :root (breaking change for all buttons)
+   - To use a new token, add it to :root first, then map it in @theme
+   ────────────────────────────────────────────────────────────────────────── */
+
 :root {
   /* ── Primary Palette ── */
   --color-primary: #ec4899;
@@ -686,7 +707,13 @@ body {
   display: none;
 }
 
-/* ─── Stitch Dashboard Theme ─── */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SYSTEM 2 — Stitch M3 Dashboard Theme
+   Scope: .stitch-dashboard (used exclusively by SalonOnboardingWizard)
+   DO NOT remove or modify — the wizard is working premium and must stay intact.
+   DO NOT move these tokens to :root — they would override System 1 tokens.
+   ────────────────────────────────────────────────────────────────────────── */
 .stitch-dashboard {
   --color-surface-container-lowest: #ffffff;
   --color-on-tertiary-container: #fffbff;

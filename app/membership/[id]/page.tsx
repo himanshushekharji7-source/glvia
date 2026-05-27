@@ -35,8 +35,8 @@ export default function MembershipDetailPage() {
 
   if (!plan) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
-        <span className="material-icons-round text-5xl text-gray-400 mb-4">error_outline</span>
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-surface-card p-4 text-center">
+        <span className="material-icons-round text-5xl text-text-tertiary mb-4">error_outline</span>
         <h2 className="text-xl font-bold mb-2">Plan not found</h2>
         <button onClick={() => router.back()} className="px-6 py-2 bg-black text-white rounded-xl">Go Back</button>
       </div>
@@ -110,7 +110,7 @@ export default function MembershipDetailPage() {
       {/* Plan Cards Side-by-Side */}
       <div className="px-4 -mt-4 relative z-20 flex gap-3">
         {/* At Home Card */}
-        <div className="flex-1 rounded-xl overflow-hidden border border-gray-100 shadow-sm" style={{ background: "linear-gradient(to bottom, #f8fafc, #ffffff)" }}>
+        <div className="flex-1 rounded-xl overflow-hidden border border-border shadow-sm" style={{ background: "linear-gradient(to bottom, #f8fafc, #ffffff)" }}>
           <div className="flex justify-center -mt-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-black border-4 border-white flex items-center justify-center shadow-sm">
               <span className="material-icons-round text-white text-lg">home</span>
@@ -118,15 +118,15 @@ export default function MembershipDetailPage() {
           </div>
           <div className="text-center px-2 pb-3">
             <h3 className="text-black font-bold text-sm mb-2">At Home</h3>
-            <p className="text-gray-800 font-bold text-[13px]">Flat {plan.discount || "15%"} OFF</p>
-            <p className="text-gray-900 font-black text-[13px] mb-3">On all services</p>
+            <p className="text-text-primary font-bold text-[13px]">Flat {plan.discount || "15%"} OFF</p>
+            <p className="text-text-primary font-black text-[13px] mb-3">On all services</p>
             <div className="bg-black text-white text-[11px] font-bold py-1 w-full text-center uppercase">
               Unisex PLAN
             </div>
-            <div className="bg-white border-b border-gray-100 text-gray-800 text-[13px] font-bold py-2">
+            <div className="bg-surface-card border-b border-border text-text-primary text-[13px] font-bold py-2">
               {plan.duration}
             </div>
-            <div className="bg-white text-gray-800 text-[13px] font-medium py-2 rounded-b-lg">
+            <div className="bg-surface-card text-text-primary text-[13px] font-medium py-2 rounded-b-lg">
               On all bookings
             </div>
           </div>
@@ -141,8 +141,8 @@ export default function MembershipDetailPage() {
           </div>
           <div className="text-center px-2 pb-3">
             <h3 className="text-[#ec4899] font-bold text-sm mb-2">At the Salon</h3>
-            <p className="text-gray-800 font-bold text-[13px]">Flat {plan.discount || "15%"} OFF</p>
-            <p className="text-gray-900 font-black text-[13px] mb-3">On all services</p>
+            <p className="text-text-primary font-bold text-[13px]">Flat {plan.discount || "15%"} OFF</p>
+            <p className="text-text-primary font-black text-[13px] mb-3">On all services</p>
             <div className="bg-[#ec4899] text-white text-[11px] font-bold py-1 w-full text-center uppercase">
               Unisex PLAN
             </div>
@@ -159,55 +159,55 @@ export default function MembershipDetailPage() {
       {/* Benefits Section */}
       <div className="px-5 mt-8">
         <div className="flex items-center justify-center mb-6">
-          <div className="flex-1 h-px bg-gray-200"></div>
-          <h3 className="px-4 text-sm font-bold tracking-widest text-gray-800">BENEFITS</h3>
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border-strong"></div>
+          <h3 className="px-4 text-sm font-bold tracking-widest text-text-primary">BENEFITS</h3>
+          <div className="flex-1 h-px bg-border-strong"></div>
         </div>
 
         <div className="space-y-6">
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-               <span className="material-icons-round text-gray-600 text-3xl">chair_alt</span>
+            <div className="w-16 h-16 rounded-full bg-surface-dim flex items-center justify-center shrink-0">
+               <span className="material-icons-round text-text-secondary text-3xl">chair_alt</span>
             </div>
             <div>
-              <h4 className="text-[15px] font-black text-gray-900 mb-1">Salon At Home</h4>
-              <p className="text-gray-500 text-sm leading-snug">
+              <h4 className="text-[15px] font-black text-text-primary mb-1">Salon At Home</h4>
+              <p className="text-text-secondary text-sm leading-snug">
                 Unlock a flat {plan.discount || "15%"} savings on all At home bookings with your membership.
               </p>
             </div>
           </div>
           
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-               <span className="material-icons-round text-gray-600 text-3xl">store</span>
+            <div className="w-16 h-16 rounded-full bg-surface-dim flex items-center justify-center shrink-0">
+               <span className="material-icons-round text-text-secondary text-3xl">store</span>
             </div>
             <div>
-              <h4 className="text-[15px] font-black text-gray-900 mb-1">At the Salon</h4>
-              <p className="text-gray-500 text-sm leading-snug">
+              <h4 className="text-[15px] font-black text-text-primary mb-1">At the Salon</h4>
+              <p className="text-text-secondary text-sm leading-snug">
                 Unlock a flat {plan.discount || "15%"} savings on all salon bookings with your membership.
               </p>
             </div>
           </div>
 
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-               <span className="material-icons-round text-gray-600 text-3xl">support_agent</span>
+            <div className="w-16 h-16 rounded-full bg-surface-dim flex items-center justify-center shrink-0">
+               <span className="material-icons-round text-text-secondary text-3xl">support_agent</span>
             </div>
             <div>
-              <h4 className="text-[15px] font-black text-gray-900 mb-1">Priority Support</h4>
-              <p className="text-gray-500 text-sm leading-snug">
+              <h4 className="text-[15px] font-black text-text-primary mb-1">Priority Support</h4>
+              <p className="text-text-secondary text-sm leading-snug">
                 VIP support with faster responses and quick solutions.
               </p>
             </div>
           </div>
 
            <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
-               <span className="text-gray-800 font-black text-3xl italic">B</span>
+            <div className="w-16 h-16 rounded-full bg-surface-dim flex items-center justify-center shrink-0 border border-border">
+               <span className="text-text-primary font-black text-3xl italic">B</span>
             </div>
             <div>
-              <h4 className="text-[15px] font-black text-gray-900 mb-1">Extra BCP (Cash Points)</h4>
-              <p className="text-gray-500 text-sm leading-snug">
+              <h4 className="text-[15px] font-black text-text-primary mb-1">Extra BCP (Cash Points)</h4>
+              <p className="text-text-secondary text-sm leading-snug">
                 Earn extra BCP and save more on services.
               </p>
             </div>
@@ -226,7 +226,7 @@ export default function MembershipDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
         <div className="absolute top-0 left-0 p-6 max-w-[70%]">
           <h3 className="text-lg font-black tracking-widest text-black mb-2">AVAILABLE SALONS</h3>
-          <p className="text-gray-800 text-sm font-medium mb-4">
+          <p className="text-text-secondary text-sm font-medium mb-4">
             Enjoy benefits at our partner salons.
           </p>
           <Link href="/search" className="inline-block bg-black text-white text-xs font-bold px-4 py-2 rounded-md">
@@ -238,28 +238,28 @@ export default function MembershipDetailPage() {
       {/* FAQs Section */}
       <div className="px-5 mt-8 mb-12">
         <div className="flex items-center justify-center mb-6">
-          <div className="flex-1 h-px bg-gray-200"></div>
-          <h3 className="px-4 text-sm font-bold tracking-widest text-gray-800">FAQs</h3>
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border-strong"></div>
+          <h3 className="px-4 text-sm font-bold tracking-widest text-text-primary">FAQs</h3>
+          <div className="flex-1 h-px bg-border-strong"></div>
         </div>
 
-        <div className="space-y-0 border-t border-gray-200">
+        <div className="space-y-0 border-t border-border">
           {faqs.map((faq, idx) => (
-            <div key={idx} className="border-b border-gray-200">
+            <div key={idx} className="border-b border-border">
               <button 
                 className="w-full py-4 flex items-center justify-between text-left"
                 onClick={() => toggleFaq(idx)}
               >
-                <span className="flex gap-2 text-sm font-bold text-gray-900 pr-4">
+                <span className="flex gap-2 text-sm font-bold text-text-primary pr-4">
                   <span className="text-black text-lg -mt-1">•</span>
                   {faq.question}
                 </span>
-                <span className="material-icons-round text-gray-600 transition-transform" style={{ transform: openFaq === idx ? 'rotate(180deg)' : 'rotate(0)' }}>
+                <span className="material-icons-round text-text-secondary transition-transform" style={{ transform: openFaq === idx ? 'rotate(180deg)' : 'rotate(0)' }}>
                   expand_more
                 </span>
               </button>
               {openFaq === idx && (
-                <div className="pb-4 pl-5 pr-4 text-sm text-gray-600">
+                <div className="pb-4 pl-5 pr-4 text-sm text-text-secondary">
                   {faq.answer}
                 </div>
               )}
@@ -269,7 +269,7 @@ export default function MembershipDetailPage() {
       </div>
 
       {/* Sticky Buy Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50 animate-slideUp">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface-card border-t border-border z-50 animate-slideUp">
         <button 
           onClick={handlePurchase}
           disabled={isPurchasing}

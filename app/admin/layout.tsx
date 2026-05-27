@@ -29,8 +29,8 @@ export default function AdminLayout({
     return (
       <div className="min-h-dvh bg-surface flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500 font-medium">Loading...</p>
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-text-secondary font-medium">Loading...</p>
         </div>
       </div>
     );

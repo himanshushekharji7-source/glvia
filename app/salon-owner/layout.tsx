@@ -40,10 +40,10 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
 
   if (isLoading || isRedirectingToDashboard) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="min-h-dvh flex items-center justify-center bg-[#f8f9fa]">
         <div className="text-center">
-          <div className="w-14 h-14 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-slate-400 font-medium">Loading...</p>
+          <div className="w-14 h-14 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-text-secondary font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -52,8 +52,8 @@ function SalonOwnerGuard({ children }: { children: React.ReactNode }) {
   if (isRedirectingToLogin) {
     // Will redirect, show loading in the meantime
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="w-8 h-8 border-3 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
+      <div className="min-h-dvh flex items-center justify-center bg-[#f8f9fa]">
+        <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }

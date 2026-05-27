@@ -167,9 +167,9 @@ export default function BookingsPage() {
 
               {/* Ref ID Badge */}
               {booking.bookingReference && (
-                <div className="mt-3 bg-gray-50 border border-gray-100 rounded-lg py-1.5 px-3 flex justify-between items-center">
-                   <span className="text-[11px] text-gray-500 font-medium">Reference ID</span>
-                   <span className="text-[12px] font-mono font-bold text-gray-800">{booking.bookingReference}</span>
+                <div className="mt-3 bg-surface-dim border border-border rounded-lg py-1.5 px-3 flex justify-between items-center">
+                   <span className="text-[11px] text-text-secondary font-medium">Reference ID</span>
+                   <span className="text-[12px] font-mono font-bold text-text-primary">{booking.bookingReference}</span>
                 </div>
               )}
 
@@ -202,7 +202,7 @@ export default function BookingsPage() {
               {statusVal !== "confirmed" && (
                 <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                   <Link href={`/bookings/${booking._id}`} className="flex-1">
-                    <button className="btn-ghost border border-gray-200 w-full text-[12px] py-2 !px-2">
+                    <button className="btn-ghost border border-border w-full text-[12px] py-2 !px-2">
                       View Receipt
                     </button>
                   </Link>
@@ -238,12 +238,12 @@ export default function BookingsPage() {
             <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="material-icons-round text-3xl">warning_amber</span>
             </div>
-            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">Cancel Booking?</h3>
-            <p className="text-sm text-gray-500 text-center mb-6">
+            <h3 className="text-xl font-bold text-center text-text-primary mb-2">Cancel Booking?</h3>
+            <p className="text-sm text-text-secondary text-center mb-6">
               Are you sure you want to cancel this booking? This action cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setCancelModal(null)} className="flex-1 py-3 bg-gray-100 text-gray-800 font-bold rounded-xl active:scale-95 transition-transform">
+              <button onClick={() => setCancelModal(null)} className="flex-1 py-3 bg-surface-dim text-text-primary font-bold rounded-xl active:scale-95 transition-transform">
                 Keep It
               </button>
               <button 
@@ -263,8 +263,8 @@ export default function BookingsPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center animate-fadeIn">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md shadow-2xl animate-slideUp sm:animate-scaleIn h-[80vh] sm:h-auto overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Reschedule Booking</h3>
-              <button onClick={() => setRescheduleModal(null)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+              <h3 className="text-xl font-bold text-text-primary">Reschedule Booking</h3>
+              <button onClick={() => setRescheduleModal(null)} className="w-8 h-8 bg-surface-dim rounded-full flex items-center justify-center text-text-secondary">
                 <span className="material-icons-round text-[20px]">close</span>
               </button>
             </div>
@@ -283,14 +283,14 @@ export default function BookingsPage() {
                     className={`flex flex-col items-center min-w-[64px] py-3 px-2 rounded-2xl border transition-all shrink-0 ${
                       selectedDate === d.full
                         ? "bg-gradient-to-r from-[#e11d48] to-[#ec4899] text-white border-transparent shadow-md"
-                        : "border-gray-200 bg-white text-gray-800"
+                        : "border-border bg-surface-card text-text-primary"
                     }`}
                   >
-                    <span className={`text-[10px] font-medium ${selectedDate === d.full ? "text-white/80" : "text-gray-500"}`}>
+                    <span className={`text-[10px] font-medium ${selectedDate === d.full ? "text-white/80" : "text-text-tertiary"}`}>
                       {d.day}
                     </span>
                     <span className="text-xl font-bold mt-0.5">{d.date}</span>
-                    <span className={`text-[10px] font-medium ${selectedDate === d.full ? "text-white/80" : "text-gray-500"}`}>
+                    <span className={`text-[10px] font-medium ${selectedDate === d.full ? "text-white/80" : "text-text-tertiary"}`}>
                       {d.month}
                     </span>
                   </button>
@@ -312,7 +312,7 @@ export default function BookingsPage() {
                     className={`py-3 rounded-xl text-[13px] font-bold border transition-all ${
                       selectedTime === time
                         ? "bg-gradient-to-r from-[#e11d48] to-[#ec4899] text-white border-transparent shadow-sm"
-                        : "border-gray-200 text-gray-600 bg-gray-50 hover:border-pink-300"
+                        : "border-border text-text-secondary bg-surface-dim hover:border-primary/30"
                     }`}
                   >
                     {time}

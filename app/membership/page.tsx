@@ -48,7 +48,7 @@ export default function MembershipPlansPage() {
             const textColor = isGold ? "text-[#fde047]" : "text-[#e2e8f0]";
             
             return (
-              <div key={plan.id} className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white animate-fadeInUp">
+              <div key={plan.id} className="border border-border rounded-2xl overflow-hidden shadow-sm bg-surface-card animate-fadeInUp">
                 {/* Card Header */}
                 <div className={`relative h-[130px] flex flex-col items-center justify-center ${headerClasses}`}>
                   {/* Subtle repeating line texture for Silver */}

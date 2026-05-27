@@ -449,10 +449,10 @@ export default function HomePage() {
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
           {(!salons || salons.length === 0) ? (
-            <div className="w-full flex flex-col items-center justify-center py-8 px-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-center mx-2">
-               <span className="material-icons-round text-4xl text-gray-300 mb-3">store_mall_directory</span>
-               <h4 className="text-[14px] font-bold text-gray-800 mb-1">No salons available right now</h4>
-               <p className="text-[12px] text-gray-500 max-w-[200px]">New premium salons coming soon in your area.</p>
+          <div className="w-full flex flex-col items-center justify-center py-8 px-4 bg-surface-card border border-border rounded-2xl shadow-sm text-center mx-2">
+               <span className="material-icons-round text-4xl text-text-tertiary mb-3">store_mall_directory</span>
+               <h4 className="text-[14px] font-bold text-text-primary mb-1">No salons available right now</h4>
+               <p className="text-[12px] text-text-secondary max-w-[200px]">New premium salons coming soon in your area.</p>
             </div>
           ) : (
             salons.map((salon: any) => (
@@ -558,12 +558,12 @@ export default function HomePage() {
 
       {/* ─── Membership Plans ─── */}
       <div className="px-5 pb-8">
-        <div className="border-t border-gray-100 pt-6">
+        <div className="border-t border-border pt-6">
           <h3 className="text-lg font-bold text-text-primary mb-4">Membership Plans</h3>
           <div className="flex flex-col space-y-4">
-            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+            <div className="border border-border-strong rounded-xl overflow-hidden shadow-sm bg-surface-card">
               {membershipPlans.map((plan, idx) => (
-                <div key={plan.id} className={`p-4 ${idx === 0 ? "border-b border-gray-200" : ""}`}>
+                <div key={plan.id} className={`p-4 ${idx === 0 ? "border-b border-border" : ""}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="text-[15px] font-black" style={{ color: plan.name.includes("GOLD") ? "#C026D3" : "#C026D3" }}>
@@ -589,7 +589,7 @@ export default function HomePage() {
 
             {/* Trust Banners Carousel */}
             <div className="relative mt-4">
-              <div className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200 h-[100px] relative">
+              <div className="overflow-hidden rounded-xl bg-surface-card shadow-sm border border-border h-[100px] relative">
                 {trustBanners.map((bannerItem, idx) => {
                   const banner = bannerItem as any;
                   return (
@@ -624,7 +624,7 @@ export default function HomePage() {
                     key={idx}
                     onClick={() => setActiveTrustSlide(idx)}
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      idx === activeTrustSlide ? 'w-4 bg-gray-400' : 'w-2 bg-gray-200'
+                      idx === activeTrustSlide ? 'w-4 bg-text-tertiary' : 'w-2 bg-border-strong'
                     }`}
                     aria-label={`Go to slide ${idx + 1}`}
                   />
@@ -656,11 +656,11 @@ export default function HomePage() {
             </div>
 
             {/* Cash Points Card */}
-            <div className="mt-4 bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+            <div className="mt-4 bg-surface-card border border-border rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between relative">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-gray-900 mb-1">{siteSettings.billu_cash_points}</div>
-                  <div className="text-[11px] font-bold text-gray-800 tracking-wide">{(siteSettings.app_name || 'glvia').toUpperCase()} Cash Points</div>
+                  <div className="text-2xl font-black text-text-primary mb-1">{siteSettings.billu_cash_points}</div>
+                  <div className="text-[11px] font-bold text-text-primary tracking-wide">{(siteSettings.app_name || 'glvia').toUpperCase()} Cash Points</div>
                 </div>
                 
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
@@ -671,14 +671,14 @@ export default function HomePage() {
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-2xl font-black text-gray-900 mb-1">₹{siteSettings.billu_cash_value}</div>
-                  <div className="text-[11px] font-bold text-gray-800 tracking-wide">Real Money</div>
+                  <div className="text-2xl font-black text-text-primary mb-1">₹{siteSettings.billu_cash_value}</div>
+                  <div className="text-[11px] font-bold text-text-primary tracking-wide">Real Money</div>
                 </div>
               </div>
 
               <div className="text-center mt-6 mb-5">
-                <h3 className="text-lg font-black text-[#1E293B] mb-1">Redeem Now</h3>
-                <p className="text-[13px] text-gray-500 font-medium">Choose your preferred option</p>
+                <h3 className="text-lg font-black text-text-primary mb-1">Redeem Now</h3>
+                <p className="text-[13px] text-text-secondary font-medium">Choose your preferred option</p>
               </div>
 
               <div className="flex gap-3">
@@ -696,8 +696,8 @@ export default function HomePage() {
             {/* 100% Secure Section */}
             <div className="mt-6 flex items-center gap-4 px-2">
               <div className="flex-1 pr-2">
-                <h4 className="text-[15px] font-black text-gray-900 mb-1 leading-tight">Your data is 100% secure.</h4>
-                <p className="text-[13px] text-gray-600 leading-snug">
+                <h4 className="text-[15px] font-black text-text-primary mb-1 leading-tight">Your data is 100% secure.</h4>
+                <p className="text-[13px] text-text-secondary leading-snug">
                   We don't share your information with any third party.
                 </p>
               </div>
