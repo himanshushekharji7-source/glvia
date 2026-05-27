@@ -100,10 +100,10 @@ export default function LocationPickerModal({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity"
         onClick={onClose}
       />
-      <div className="fixed inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-surface-card md:rounded-3xl rounded-t-3xl z-50 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="fixed inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-surface-card md:rounded-3xl rounded-t-3xl z-[100] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border bg-surface-card">
