@@ -935,6 +935,39 @@ function DashboardContent() {
   const { data: salon, isLoading: salonLoading } = useSalon(salonId);
   const { data: stats, isLoading: statsLoading } = useSalonOwnerStats(salonId || undefined);
   const [showWizard, setShowWizard] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  const handleShare = () => {
+    if (!salonId) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const publicUrl = `${origin}/salon/${salonId}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(publicUrl)
+        .then(() => {
+          setShowCopiedToast(true);
+          setTimeout(() => setShowCopiedToast(false), 2000);
+        })
+        .catch(err => {
+          console.error("Failed to copy link: ", err);
+        });
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = publicUrl;
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setShowCopiedToast(true);
+        setTimeout(() => setShowCopiedToast(false), 2000);
+      } catch (err) {
+        console.error("Fallback copy failed: ", err);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   if (showWizard) {
     return <SalonOnboardingWizard salonId={salonId} initialData={salon} onComplete={() => setShowWizard(false)} />;
@@ -984,7 +1017,22 @@ function DashboardContent() {
         <div className="flex justify-between items-center px-5 h-16 w-full max-w-[1280px] mx-auto">
           <div className="flex items-center gap-2">
             <span className="material-icons-round text-[#b10e6b]">spa</span>
-            <span className="text-xl font-bold text-[#b10e6b] tracking-tight">GLVIA</span>
+            <span className="text-xl font-bold text-[#b10e6b] tracking-tight mr-1">GLVIA</span>
+            {salon?.name && (
+              <>
+                <span className="text-[#e1e3e4]">|</span>
+                <span className="text-sm font-bold text-[#191c1d] truncate max-w-[120px] sm:max-w-[200px]" title={salon.name}>
+                  {salon.name}
+                </span>
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f3f4f5] text-[#574048] hover:text-[#b10e6b] hover:bg-[#ffd9e4] transition-all cursor-pointer"
+                  title="Share Salon Link"
+                >
+                  <span className="material-icons-round text-[16px]">share</span>
+                </button>
+              </>
+            )}
             {isAdmin && <span className="ml-2 text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded-full">Admin View</span>}
           </div>
           <div className="flex items-center gap-4">
@@ -1004,10 +1052,23 @@ function DashboardContent() {
         <aside className="hidden md:flex flex-col h-full w-72 rounded-r-xl bg-[#f8f9fa] border-r border-[#e1e3e4] p-4 shrink-0 overflow-y-auto">
           <div className="flex items-center gap-3 mb-6 p-2">
             <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-[#e7e8e9] flex items-center justify-center text-xl font-bold text-[#b10e6b]">
-              {(admin?.name || "Owner").charAt(0).toUpperCase()}
+              {(salon?.name || admin?.name || "Owner").charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-[#b10e6b]">{admin?.name || "GLVIA Premium"}</h2>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <h2 className="text-sm font-bold text-[#b10e6b] truncate" title={salon?.name || admin?.name || "GLVIA Premium"}>
+                  {salon?.name || admin?.name || "GLVIA Premium"}
+                </h2>
+                {salonId && (
+                  <button
+                    onClick={handleShare}
+                    className="p-1 rounded-full hover:bg-[#ffd9e4] text-[#574048] hover:text-[#b10e6b] transition-all cursor-pointer shrink-0"
+                    title="Share Salon Link"
+                  >
+                    <span className="material-icons-round text-[16px]">share</span>
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-[#574048]">Owner Dashboard</p>
             </div>
           </div>
@@ -1059,6 +1120,13 @@ function DashboardContent() {
           ))}
         </div>
       </nav>
+
+      {showCopiedToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-slate-900/95 backdrop-blur-md border border-white/10 px-5 py-3 rounded-full text-white text-[11px] font-bold shadow-2xl flex items-center gap-2 animate-bounce">
+          <span className="material-icons-round text-green-400 text-[14px]">check_circle</span>
+          Salon link copied to clipboard!
+        </div>
+      )}
     </div>
   );
 }
