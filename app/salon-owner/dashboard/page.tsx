@@ -49,7 +49,7 @@ function StatCard({ label, value, icon, gradient }: { label: string; value: stri
 // ─── Modal ───────────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 bg-[#191c1d]/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-[#191c1d]/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div
         className="glass-card border border-[#e1e3e4] rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-ambient"
         onClick={e => e.stopPropagation()}
