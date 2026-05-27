@@ -34,17 +34,7 @@ export default function AdminLayout({
     return <AdminLoginPage initialStep={isAuthenticated && isAdmin ? "2fa" : "login"} />;
   }
 
-  // Force PIN setup if the super admin doesn't have one
-  if (admin && !admin.has_pin) {
-    return <AdminPinSetupPage />;
-  }
-
-  // Gate with PIN verification if not verified in current session
-  if (!isPinVerified) {
-    return <AdminPinVerificationPage />;
-  }
-
-  // Authenticated, 2FA & PIN Verified — show admin dashboard
+  // Authenticated & 2FA Verified — show admin dashboard
   return (
     <div className="min-h-dvh bg-surface flex flex-col lg:flex-row">
       <AdminSidebar />
