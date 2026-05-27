@@ -311,11 +311,14 @@ function UnifiedLoginContent() {
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[120px] pointer-events-none" />
 
       {/* Header Logo - Always visible at the top */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none">
-        <h1 className="text-3.5xl font-black bg-gradient-to-r from-[#e11d48] to-[#9333ea] bg-clip-text text-transparent tracking-tight">
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none flex flex-col items-center">
+        <div className="relative w-11 h-11 rounded-2xl overflow-hidden border border-slate-100 shadow-sm bg-white mb-1">
+          <Image src="/logo.png" alt="Glvia Logo" fill className="object-cover" />
+        </div>
+        <h1 className="text-2.5xl font-black bg-gradient-to-r from-[#e11d48] to-[#9333ea] bg-clip-text text-transparent tracking-tight">
           Glvia.com
         </h1>
-        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">Premium Beauty Gateway</p>
+        <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">Premium Beauty Gateway</p>
       </div>
 
       {/* ======================= ROLE SELECTION ======================= */}

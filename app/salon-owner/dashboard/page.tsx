@@ -1021,8 +1021,10 @@ function DashboardContent() {
       {/* TopAppBar */}
       <header className="flex-none w-full z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-[#e1e3e4]">
         <div className="flex justify-between items-center px-5 h-16 w-full max-w-[1280px] mx-auto">
-          <div className="flex items-center gap-2">
-            <span className="material-icons-round text-[#b10e6b]">spa</span>
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-100 shadow-sm bg-white shrink-0">
+              <Image src="/logo.png" alt="GLVIA Logo" fill className="object-cover" />
+            </div>
             <span className="text-xl font-bold text-[#b10e6b] tracking-tight mr-1">GLVIA</span>
             {salon?.name && (
               <>

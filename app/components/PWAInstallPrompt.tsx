@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -130,8 +131,8 @@ export default function PWAInstallPrompt() {
           <div>
             {/* Header: Logo + Title Side-by-Side */}
             <div className="flex items-center gap-4 mb-4">
-              <div className="relative w-12 h-12 rounded-[14px] bg-gradient-to-br from-[#e11d48] to-[#9333ea] flex items-center justify-center shadow-md overflow-hidden shrink-0">
-                <span className="material-icons-round text-white text-[24px]">spa</span>
+              <div className="relative w-12 h-12 rounded-[14px] overflow-hidden shrink-0 border border-slate-100 shadow-sm bg-white">
+                <Image src="/logo.png" alt="Glvia App Logo" fill className="object-cover" />
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900 leading-tight">Install Glvia App</h3>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAdminAuth } from "../../lib/adminAuth";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function AdminLoginPage() {
   const { loginWithEmail, loginWithGoogle, isAuthenticated, admin } = useAdminAuth();
@@ -66,8 +67,10 @@ export default function AdminLoginPage() {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-pink-500/20">
-            <span className="material-icons-round text-white text-[32px]">admin_panel_settings</span>
+          <div className="relative w-16 h-16 rounded-2xl bg-white p-1 flex items-center justify-center mx-auto mb-4 shadow-lg overflow-hidden border border-white/10 shrink-0">
+            <div className="relative w-full h-full rounded-xl overflow-hidden">
+              <Image src="/logo.png" alt="GLVIA Brand Logo" fill className="object-cover" />
+            </div>
           </div>
           <h1 className="text-2xl font-extrabold text-white mb-1">glvia Admin</h1>
           <p className="text-gray-400 text-sm">Sign in to manage your website</p>

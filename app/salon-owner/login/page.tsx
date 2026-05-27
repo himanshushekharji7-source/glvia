@@ -67,8 +67,10 @@ export default function SalonOwnerLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="relative inline-block mb-5">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 flex items-center justify-center mx-auto shadow-2xl shadow-pink-500/30">
-              <span className="material-icons-round text-white text-[38px]">content_cut</span>
+            <div className="w-20 h-20 rounded-[22px] bg-white p-1.5 flex items-center justify-center mx-auto shadow-2xl border border-white/10 overflow-hidden">
+              <div className="relative w-full h-full rounded-2xl overflow-hidden">
+                <Image src="/logo.png" alt="GLVIA Brand Logo" fill className="object-cover" />
+              </div>
             </div>
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center border-2 border-slate-950">
               <span className="material-icons-round text-slate-950 text-[14px]">verified</span>

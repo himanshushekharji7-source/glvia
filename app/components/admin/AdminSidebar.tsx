@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAdminAuth } from "../../lib/adminAuth";
+import Image from "next/image";
 
 const adminNav = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
@@ -26,8 +27,8 @@ export default function AdminSidebar() {
     <aside className="w-64 min-h-dvh bg-surface-card border-r border-border hidden lg:flex flex-col fixed left-0 top-0">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
-        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center mr-3">
-          <span className="material-icons-round text-white text-[18px]">auto_awesome</span>
+        <div className="relative w-8 h-8 rounded-lg overflow-hidden mr-3 shrink-0 border border-slate-100 shadow-sm bg-white">
+          <Image src="/logo.png" alt="GLVIA Logo" fill className="object-cover" />
         </div>
         <span className="font-extrabold text-lg text-text-primary tracking-tight">glvia Admin</span>
       </div>
