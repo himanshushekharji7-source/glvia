@@ -2,25 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-// Function to get the persistent upload directory
 function getUploadDir() {
   return process.env.PERSISTENT_STORAGE_DIR || path.join(process.cwd(), "..", "glvia_persistent_uploads");
 }
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ filename: string[] }> }
 ) {
   const { filename } = await params;
-  if (!filename) return new NextResponse("File not found", { status: 404 });
+  if (!filename || filename.length === 0) return new NextResponse("File not found", { status: 404 });
 
-  // Clean filename to prevent path traversal attack (e.g. "../../../etc/passwd")
-  const cleanFilename = path.basename(filename);
-  const filePath = path.join(getUploadDir(), cleanFilename);
+  // Prevent path traversal attacks (ensure no segment is '..' or '.')
+  if (filename.some(segment => segment === ".." || segment === ".")) {
+    return new NextResponse("Invalid file path", { status: 400 });
+  }
+
+  const filePath = path.join(getUploadDir(), ...filename);
 
   if (!fs.existsSync(filePath)) {
-    // If the file is not found in the persistent directory,
-    // check if it exists in the original public/uploads/media directory for backward compatibility
+    // Check in original public/uploads/media for backward compatibility (root level only)
+    const cleanFilename = filename[filename.length - 1];
     const oldFilePath = path.join(process.cwd(), "public", "uploads", "media", cleanFilename);
     if (!fs.existsSync(oldFilePath)) {
       return new NextResponse("File not found", { status: 404 });
@@ -28,7 +30,7 @@ export async function GET(
     return serveFile(oldFilePath, cleanFilename);
   }
 
-  return serveFile(filePath, cleanFilename);
+  return serveFile(filePath, filename[filename.length - 1]);
 }
 
 function serveFile(filePath: string, filename: string) {

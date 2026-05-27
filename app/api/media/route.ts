@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-// Define local directory path for storing uploads (outside the repo to prevent git from wiping it)
+// Define local directory path for storing uploads
 const UPLOAD_DIR = process.env.PERSISTENT_STORAGE_DIR || path.join(process.cwd(), "..", "glvia_persistent_uploads");
 
 // Helper to determine media type from filename extension
@@ -16,38 +16,49 @@ function getMediaType(filename: string): "image" | "video" | "other" {
   return "other";
 }
 
-// Ensure the directory exists
+// Ensure the base directory exists
 function ensureUploadDir() {
   if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   }
 }
 
+// Helper to recursively fetch files with their relative paths
+function getFilesRecursively(dir: string, baseDir: string = UPLOAD_DIR): any[] {
+  let results: any[] = [];
+  if (!fs.existsSync(dir)) return [];
+  const list = fs.readdirSync(dir);
+  list.forEach((file) => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    if (stat && stat.isDirectory()) {
+      results = results.concat(getFilesRecursively(filePath, baseDir));
+    } else {
+      if (!file.startsWith(".")) {
+        const relativePath = path.relative(baseDir, filePath);
+        const urlPath = relativePath.replace(/\\/g, "/");
+        results.push({
+          name: file,
+          url: `/uploads/media/${urlPath}`,
+          size: stat.size,
+          createdAt: stat.birthtimeMs || stat.mtimeMs,
+          updatedAt: stat.mtimeMs,
+          type: getMediaType(file),
+          relativePath: urlPath,
+        });
+      }
+    }
+  });
+  return results;
+}
+
 /**
- * GET: Retrieve list of uploaded files, sorted by newest first
+ * GET: Retrieve list of uploaded files, sorted by newest first (across all subdirectories)
  */
 export async function GET() {
   try {
     ensureUploadDir();
-    const files = fs.readdirSync(UPLOAD_DIR);
-    
-    const mediaList = files
-      .filter((file) => {
-        // Exclude system files/directories
-        return !file.startsWith(".") && fs.statSync(path.join(UPLOAD_DIR, file)).isFile();
-      })
-      .map((file) => {
-        const filePath = path.join(UPLOAD_DIR, file);
-        const stats = fs.statSync(filePath);
-        return {
-          name: file,
-          url: `/uploads/media/${file}`,
-          size: stats.size,
-          createdAt: stats.birthtimeMs || stats.mtimeMs,
-          updatedAt: stats.mtimeMs,
-          type: getMediaType(file),
-        };
-      })
+    const mediaList = getFilesRecursively(UPLOAD_DIR)
       // Newest files first
       .sort((a, b) => b.updatedAt - a.updatedAt);
 
@@ -62,17 +73,35 @@ export async function GET() {
 }
 
 /**
- * POST: Upload a file (image or video)
+ * POST: Upload a file to a specific organized subfolder (e.g. salons/[salon_id], admin, banners, services)
  */
 export async function POST(req: NextRequest) {
   try {
     ensureUploadDir();
     
+    const { searchParams } = new URL(req.url);
     const formData = await req.formData();
+    
     const file = formData.get("file") as File | null;
+    const queryFolder = searchParams.get("folder");
+    const formFolder = formData.get("folder") as string | null;
+    const folder = queryFolder || formFolder || "other";
     
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    // Sanitize folder path to prevent directory traversal
+    const safeFolder = folder
+      .replace(/\\/g, "/")
+      .split("/")
+      .map(segment => segment.replace(/[^a-zA-Z0-9_-]/g, ""))
+      .filter(Boolean)
+      .join("/");
+
+    const targetDir = path.join(UPLOAD_DIR, safeFolder);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
 
     const originalName = file.name || "unnamed_file";
@@ -86,7 +115,7 @@ export async function POST(req: NextRequest) {
     // Generate unique file name to avoid overwrite
     const uniqueId = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const uniqueFileName = `${baseName}-${uniqueId}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, uniqueFileName);
+    const filePath = path.join(targetDir, uniqueFileName);
 
     // Convert file to Buffer and save
     const arrayBuffer = await file.arrayBuffer();
@@ -94,16 +123,19 @@ export async function POST(req: NextRequest) {
     
     fs.writeFileSync(filePath, buffer);
 
+    const relativePath = path.relative(UPLOAD_DIR, filePath).replace(/\\/g, "/");
     const stats = fs.statSync(filePath);
+
     return NextResponse.json({
       success: true,
       file: {
         name: uniqueFileName,
-        url: `/uploads/media/${uniqueFileName}`,
+        url: `/uploads/media/${relativePath}`,
         size: stats.size,
         createdAt: stats.birthtimeMs || stats.mtimeMs,
         updatedAt: stats.mtimeMs,
         type: getMediaType(uniqueFileName),
+        relativePath: relativePath,
       }
     });
   } catch (error: any) {
@@ -116,20 +148,33 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * DELETE: Remove a file from the server
+ * DELETE: Remove a file from the server (only allowed for Super Admin or admin roles)
  */
 export async function DELETE(req: NextRequest) {
   try {
     ensureUploadDir();
     const { searchParams } = new URL(req.url);
     const filename = searchParams.get("name");
+    const role = searchParams.get("role");
+
+    // Critical permission constraint: Only super-admin or admin can delete files
+    if (role !== "super-admin" && role !== "admin") {
+      return NextResponse.json(
+        { error: "Access Denied: Only Super Admins can permanently delete files from the media library." },
+        { status: 403 }
+      );
+    }
 
     if (!filename) {
       return NextResponse.json({ error: "Filename parameter 'name' is required" }, { status: 400 });
     }
 
-    // Clean filename to prevent path traversal attack (e.g. "../../../etc/passwd")
-    const cleanFilename = path.basename(filename);
+    // Clean and validate filename relative path to prevent traversal attacks
+    const cleanFilename = filename.replace(/\\/g, "/");
+    if (cleanFilename.split("/").some(segment => segment === ".." || segment === ".")) {
+      return NextResponse.json({ error: "Invalid file path" }, { status: 400 });
+    }
+
     const filePath = path.join(UPLOAD_DIR, cleanFilename);
 
     if (!fs.existsSync(filePath)) {

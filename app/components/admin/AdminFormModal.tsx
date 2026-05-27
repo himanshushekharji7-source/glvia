@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import Image from "next/image";
+import MediaUploader from "./MediaUploader";
 
 interface FormField {
   name: string;
@@ -61,9 +62,11 @@ export default function AdminFormModal({
         <div className="p-6 space-y-4">
           {fields.map((field) => (
             <div key={field.name}>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                {field.label} {field.required && <span className="text-red-500">*</span>}
-              </label>
+              {field.type !== "url" && (
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  {field.label} {field.required && <span className="text-red-500">*</span>}
+                </label>
+              )}
 
               {field.type === "textarea" ? (
                 <textarea
@@ -86,6 +89,14 @@ export default function AdminFormModal({
                     </option>
                   ))}
                 </select>
+              ) : field.type === "url" ? (
+                <MediaUploader
+                  label={field.label}
+                  value={values[field.name] || ""}
+                  onChange={(url) => onChange(field.name, url)}
+                  folder={field.name === "image" ? "banners" : "services"}
+                  required={field.required}
+                />
               ) : (
                 <input
                   type={field.type === "number" ? "number" : "text"}
@@ -99,17 +110,6 @@ export default function AdminFormModal({
                   placeholder={field.placeholder}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500"
                 />
-              )}
-
-              {field.type === "url" && values[field.name] && (
-                <div className="mt-2 w-16 h-16 rounded-lg bg-gray-100 overflow-hidden relative">
-                  <Image
-                    src={values[field.name]}
-                    alt="Preview"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
               )}
             </div>
           ))}

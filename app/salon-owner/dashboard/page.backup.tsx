@@ -12,6 +12,7 @@ import {
   useSalon, useUpdateSalonProfile,
 } from "../../lib/hooks";
 import SalonOnboardingWizard from "../../components/admin/SalonOnboardingWizard";
+import MediaUploader from "../../components/admin/MediaUploader";
 
 type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -676,7 +677,12 @@ function ServicesTab({ salonId }: { salonId: string }) {
         </div>
       </div>
       <Input label="Category" value={form.category} onChange={(e: any) => setForm(p => ({ ...p, category: e.target.value }))} placeholder="e.g., Hair Cut & Style" />
-      <Input label="Image URL (optional)" value={form.image} onChange={(e: any) => setForm(p => ({ ...p, image: e.target.value }))} placeholder="https://..." />
+      <MediaUploader
+        label="Service Image (optional)"
+        value={form.image}
+        onChange={(url) => setForm(p => ({ ...p, image: url }))}
+        folder="services"
+      />
       <div>
         <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Description</label>
         <textarea
