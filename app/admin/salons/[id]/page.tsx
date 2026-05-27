@@ -105,6 +105,12 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
     }
   };
 
+  // --- Client-side Date Initialization (Prevents Hydration Mismatch) ---
+  const [todayString, setTodayString] = useState<string>("");
+  useEffect(() => {
+    setTodayString(new Date().toISOString().split("T")[0]);
+  }, []);
+
   useEffect(() => {
     if (id) {
       fetchOwner();
@@ -760,7 +766,7 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
                   </div>
                   <p className="text-[10px] text-text-secondary uppercase tracking-widest font-black">Today's Bookings</p>
                   <p className="text-2xl font-black text-text-primary mt-1">
-                    {statsLoading ? "—" : stats?.recentBookings?.filter((b: any) => b.status !== 'cancelled' && b.date === new Date().toISOString().split('T')[0]).length ?? 0}
+                    {statsLoading ? "—" : stats?.recentBookings?.filter((b: any) => b.status !== 'cancelled' && b.date === todayString).length ?? 0}
                   </p>
                 </div>
 
