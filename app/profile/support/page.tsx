@@ -215,13 +215,103 @@ const faqData: FAQCategory[] = [
     items: [
       {
         id: "r1",
-        question: "How to claim the Rs. 50 Flat Offer?",
-        answer: "Apply coupon code FLAT50 during checkout to get an instant flat ₹50 discount on your first salon booking."
+        question: "What is Rs.50 offer ?",
+        answer: "The Rs. 50 Flat Offer is a special promotional discount code (FLAT50) available to GLVIA customers, giving a flat ₹50 discount on booking premium salon services."
       },
       {
         id: "r2",
-        question: "Can this offer be combined with other deals?",
-        answer: "No, FLAT50 cannot be clubbed with other active deals or promo codes."
+        question: "How many times can I avail this offer ?",
+        answer: "This promotional offer can be claimed once per customer account on their first checkout booking."
+      },
+      {
+        id: "r3",
+        question: "This offer will be available to all the salons ?",
+        answer: "Yes, this flat ₹50 offer is universal and valid at all approved partner salons listed on the GLVIA marketplace."
+      },
+      {
+        id: "r4",
+        question: "How long will this offer be available ?",
+        answer: "The offer is valid for a limited time. Please check the banner or offer details screen in the app for the exact validity dates."
+      },
+      {
+        id: "r5",
+        question: "Can I avail of this offer on every service provided by the salon ?",
+        answer: "Yes, the discount is applicable to all hair, skin, beauty, and grooming services provided by our partner salons, subject to a minimum booking value of ₹200."
+      },
+      {
+        id: "r6",
+        question: "Is this offer valid across the country ?",
+        answer: "Yes, the offer is valid in all cities where GLVIA currently operates and has partner salons."
+      },
+      {
+        id: "r7",
+        question: "If salon deny to provide service then what to do ?",
+        answer: "In the rare event that a salon denies service, please contact our support immediately using the 'Message Us' chat below or call our helpline. We will either re-assign you to a nearby salon or process an instant full refund."
+      },
+      {
+        id: "r8",
+        question: "Can I reschedule my service which I selected in the offer ?",
+        answer: "Yes, you can reschedule your service appointment up to 2 hours before the slot directly from the Bookings tab without losing the discount."
+      },
+      {
+        id: "r9",
+        question: "Can I cancel my service which I booked in the offer ?",
+        answer: "Yes, cancellations are allowed according to our standard cancellation policy. If you cancel, the net paid amount will be refunded, and the one-time coupon slot will be restored to your account."
+      },
+      {
+        id: "r10",
+        question: "How can I pay for the offer ?",
+        answer: "You can pay using any of our standard online payment methods including Credit/Debit Cards, UPI (GPay, PhonePe, Paytm), Netbanking, or mobile wallets."
+      },
+      {
+        id: "r11",
+        question: "Can I avail this offer for more than one service at the same time ?",
+        answer: "Yes! You can add multiple services to your cart and the flat ₹50 discount will be applied to the total bill amount at checkout."
+      },
+      {
+        id: "r12",
+        question: "If I wish to book any service for a friend or relative under this offer ?",
+        answer: "Absolutely! During the checkout flow, simply select 'Book for someone else' and enter their name and details. The FLAT50 discount will still apply to the booking."
+      },
+      {
+        id: "r13",
+        question: "If the salon has another offer running, will this one be added on top of it ?",
+        answer: "No, this offer cannot be combined or clubbed with other salon-specific promotions, deals, or coupon codes. Only one promo code can be active per transaction."
+      },
+      {
+        id: "r14",
+        question: "This offer is valid outside Ludhiana and Delhi ?",
+        answer: "Yes, the offer is valid nationwide in all operational GLVIA regions, including Lucknow, Chandigarh, Mumbai, Jaipur, and more."
+      },
+      {
+        id: "r15",
+        question: "What is the time limit to avail this offer?",
+        answer: "Once claimed or unlocked, the coupon remains valid for 7 days. We recommend using it before expiration."
+      },
+      {
+        id: "r16",
+        question: "What is the duration of validity for this offer ?",
+        answer: "The promotion is valid through the current calendar month. Check your app coupon section for real-time validity information."
+      },
+      {
+        id: "r17",
+        question: "What is the process to reschedule my service appointment ?",
+        answer: "Go to your Bookings tab, select the active appointment, click 'Reschedule', pick a new slot, and confirm. Your promotional offer discount remains intact."
+      },
+      {
+        id: "r18",
+        question: "What is the process to cancel my service appointment ?",
+        answer: "Go to Bookings, open your active reservation, click 'Cancel Appointment', and select your reason. The refund will be credited back to your original source of payment within 5-7 business days."
+      },
+      {
+        id: "r19",
+        question: "What payment methods are accepted to pay for the offer ?",
+        answer: "All online digital payment methods are fully supported, including UPI, Debit/Credit Cards, Netbanking, and partner wallets."
+      },
+      {
+        id: "r20",
+        question: "What should I do if I wish to avail this offer more than once ?",
+        answer: "This is a one-time promotional discount per account. However, you can refer friends using your custom referral link, and you will both earn ₹100 in GCP (GLVIA Cash Points) when they complete their first booking!"
       }
     ]
   }
