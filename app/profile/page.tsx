@@ -14,6 +14,7 @@ const menuItems = [
   { icon: "notifications", label: "Notifications", href: "/notifications", badge: "" },
   { icon: "account_balance_wallet", label: "Wallet", href: "/wallet", badge: "" },
   { icon: "support_agent", label: "Help & Support", href: "/profile/support", badge: "" },
+  { icon: "gavel", label: "Privacy Policy", href: "/profile/privacy", badge: "" },
   { icon: "download_for_offline", label: "Install App", href: "#", badge: "Install Now", isInstall: true },
   { icon: "settings", label: "Settings", href: "#", badge: "" },
 ];
