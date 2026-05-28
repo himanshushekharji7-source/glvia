@@ -489,7 +489,7 @@ export default function SalonDetailClient() {
                   <div className="flex gap-2 overflow-x-auto no-scrollbar mt-2 pb-1">
                     {r.images.map((img: string, idx: number) => (
                       <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
-                        <Image src={img} alt="" fill className="object-cover" />
+                        <Image src={img} alt={`Customer review photo at ${salon?.name || 'glvia salon'} in ${salon?.address?.city || 'Uttar Pradesh'}`} fill className="object-cover" />
                       </div>
                     ))}
                   </div>

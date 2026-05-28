@@ -10,6 +10,8 @@ export default function robots(): MetadataRoute.Robots {
       allow: [
         "/",
         "/salon/",
+        "/salons/",
+        "/services/",
         "/at-the-salon",
         "/at-home",
         "/categories",

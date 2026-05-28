@@ -362,7 +362,7 @@ export default function AtTheSalonClient() {
                 <div className="w-full h-[160px] relative">
                   <Image 
                     src={salon.images?.[0] || salon.image || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80'} 
-                    alt={salon.name} 
+                    alt={`${salon.name} - Premium Salon in ${salon.address?.city || 'Uttar Pradesh'}`} 
                     fill
                     className="object-cover" 
                   />

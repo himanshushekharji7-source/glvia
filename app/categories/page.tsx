@@ -1,79 +1,84 @@
-"use client";
+import { Metadata } from "next";
+import CategoriesClient from "./CategoriesClient";
 
-import Link from "next/link";
-import BottomNav from "../components/BottomNav";
-import { useCategories } from "../lib/hooks";
+// Server-side metadata for /categories page
+export const metadata: Metadata = {
+  title: "Salon Categories in Uttar Pradesh | Hair, Spa, Makeup & Beauty - glvia",
+  description:
+    "Explore beauty categories including haircuts, spa, facial, waxing, nail art and makeup salons across Uttar Pradesh. Find the perfect salon service for you on glvia.",
+  alternates: {
+    canonical: "https://glvia.com/categories",
+  },
+  openGraph: {
+    title: "Salon Categories in Uttar Pradesh | Hair, Spa, Makeup & Beauty - glvia",
+    description:
+      "Explore beauty categories including haircuts, spa, facial, waxing, nail art and makeup salons across Uttar Pradesh.",
+    url: "https://glvia.com/categories",
+    siteName: "glvia",
+    type: "website",
+    images: [
+      {
+        url: "https://glvia.com/og-home.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Salon Categories Uttar Pradesh - glvia",
+      },
+    ],
+  },
+};
 
-const colorPalette = ["#ec4899", "#8b5cf6", "#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7", "#6366f1"];
+export default function Page() {
+  // ItemList Schema — categories as a structured list for rich snippets
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Beauty & Salon Service Categories",
+    "numberOfItems": 10,
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Hair Cut & Styling", "url": "https://glvia.com/search?category=hair-cut-style" },
+      { "@type": "ListItem", "position": 2, "name": "Hair Colour", "url": "https://glvia.com/search?category=hair-colour" },
+      { "@type": "ListItem", "position": 3, "name": "Skin Care & Facial", "url": "https://glvia.com/search?category=skin-care" },
+      { "@type": "ListItem", "position": 4, "name": "Spa & Massage", "url": "https://glvia.com/search?category=spa-massage" },
+      { "@type": "ListItem", "position": 5, "name": "Bridal Packages", "url": "https://glvia.com/search?category=bridal-packages" },
+      { "@type": "ListItem", "position": 6, "name": "Manicure & Pedicure", "url": "https://glvia.com/search?category=mani-pedi-hygiene" },
+      { "@type": "ListItem", "position": 7, "name": "Makeup", "url": "https://glvia.com/search?category=makeup" },
+      { "@type": "ListItem", "position": 8, "name": "Hair Treatments", "url": "https://glvia.com/search?category=hair-treatments" },
+      { "@type": "ListItem", "position": 9, "name": "Waxing & Threading", "url": "https://glvia.com/search?category=body-polishing" },
+      { "@type": "ListItem", "position": 10, "name": "Nail Art", "url": "https://glvia.com/search?category=nail-art" },
+    ],
+  };
 
-export default function CategoriesPage() {
-  const { data: categories, isLoading, isError } = useCategories();
+  // Breadcrumb Schema
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://glvia.com",
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Categories",
+        "item": "https://glvia.com/categories",
+      },
+    ],
+  };
 
   return (
-    <div className="min-h-dvh bg-surface-card pb-nav">
-      <div className="sticky top-0 z-40 bg-surface-card/95 backdrop-blur-xl border-b border-border px-5 py-3">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-dim">
-            <span className="material-icons-round text-[20px]">arrow_back</span>
-          </Link>
-          <h1 className="text-lg font-bold text-text-primary">Categories</h1>
-        </div>
-      </div>
-
-      <div className="px-5 pt-4 space-y-4 stagger">
-        {isLoading ? (
-          [1, 2, 3, 4, 5].map((n) => (
-            <div key={n} className="w-full h-24 bg-border/20 rounded-2xl animate-pulse" />
-          ))
-        ) : isError ? (
-          <div className="py-12 text-center text-error">
-             <span className="material-icons-round text-4xl mb-2">error_outline</span>
-             <p className="font-bold">Failed to load categories</p>
-          </div>
-        ) : (
-          categories?.map((cat: any, i: number) => {
-            const color = colorPalette[i % colorPalette.length];
-            return (
-              <Link
-                key={cat._id}
-                href={`/search?category=${cat.slug}`}
-                className="block card p-4 animate-fadeInUp hover:shadow-md transition-all border border-border"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
-                    style={{ background: `${color}12` }}
-                  >
-                    <span
-                      className="material-icons-round text-[28px]"
-                      style={{ color }}
-                    >
-                      {cat.icon}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-[16px] text-text-primary">
-                          {cat.name}
-                        </h3>
-                        <p className="text-[12px] text-text-tertiary mt-0.5">Explore the best {cat.name.toLowerCase()} salons</p>
-                      </div>
-                      <span className="material-icons-round text-[20px] text-text-tertiary">
-                        chevron_right
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })
-        )}
-      </div>
-
-      <BottomNav />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <CategoriesClient />
+    </>
   );
 }

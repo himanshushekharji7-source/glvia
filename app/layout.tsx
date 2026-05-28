@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} antialiased`}>
+    <html lang="en-IN" className={`${plusJakarta.variable} antialiased`}>
       <head>
         {/* Google Analytics 4 (Dynamic via .env) */}
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (

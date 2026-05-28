@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { supabase, TABLES } from "../../lib/supabase";
+import { getCityCoordinates } from "../../lib/cityCoordinates";
 import SalonDetailClient from "./SalonDetailClient";
 
 interface Props {
@@ -101,10 +102,8 @@ export default async function Page({ params }: Props) {
   const ratingValue = Number(salon.rating) || 4.5;
   const reviewCount = Number(salon.total_reviews) || 10;
   
-  // Local coordinates fallback (Lucknow) (Step 6)
-  // TODO: replace with DB coordinates once available
-  const lat = 26.8467;
-  const lng = 80.9462;
+  // Dynamic city-based GPS coordinates (no more hardcoded Lucknow for all salons)
+  const { lat, lng } = getCityCoordinates(city);
 
   // JSON-LD BeautySalon + LocalBusiness Schema combined (Step 4 & 5)
   const salonSchema = {
