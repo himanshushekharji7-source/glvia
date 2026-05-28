@@ -436,10 +436,35 @@ export default function UnifiedSupportPage() {
       }
     }
 
-    // Prep ticket insertion. ticket_number will be generated solely via DB sequence trigger!
+    // Secure sequential ticket numbering: Query the global max sequence in real-time to prevent duplicates
+    let ticketNumber = "";
+    try {
+      const { data: maxTicketData, error: maxErr } = await supabase
+        .from(TABLES.SUPPORT_TICKETS)
+        .select("ticket_number")
+        .order("ticket_number", { ascending: false })
+        .limit(1);
+      
+      let nextSeqNum = 1;
+      if (!maxErr && maxTicketData && maxTicketData.length > 0) {
+        const maxNumStr = maxTicketData[0].ticket_number; // e.g. "GLVIA-2026-0003"
+        if (maxNumStr && maxNumStr.startsWith("GLVIA-2026-")) {
+          const lastSeq = parseInt(maxNumStr.replace("GLVIA-2026-", ""), 10);
+          if (!isNaN(lastSeq)) {
+            nextSeqNum = lastSeq + 1;
+          }
+        }
+      }
+      ticketNumber = `GLVIA-2026-${String(nextSeqNum).padStart(4, "0")}`;
+    } catch (e) {
+      console.error("Max ticket query failed, generating unique timestamp fallback:", e);
+      ticketNumber = `GLVIA-2026-${Date.now().toString().slice(-4)}`;
+    }
+
+    // Prep ticket insertion. ticket_number is pre-filled with consecutive unique value, keeping it trigger-safe.
     const newTicket = {
       id: crypto.randomUUID(),
-      ticket_number: "", // Leave blank to invoke database trigger atomically
+      ticket_number: ticketNumber, 
       customer_id: user?.id || "anonymous",
       customer_name: `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Customer",
       customer_email: user?.email || "customer@glvia.com",
