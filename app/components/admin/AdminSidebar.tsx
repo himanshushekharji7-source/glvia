@@ -16,6 +16,7 @@ const adminNav = [
   { icon: "card_membership", label: "Membership", href: "/admin/membership" },
   { icon: "featured_seasonal_and_gifts", label: "Banners & Trust", href: "/admin/banners" },
   { icon: "settings", label: "Site Settings", href: "/admin/site-settings" },
+  { icon: "confirmation_number", label: "Support Tickets", href: "/admin/tickets" },
   { icon: "event_note", label: "Appointments", href: "/admin/appointments" },
   { icon: "group", label: "Users", href: "/admin/users" },
 ];

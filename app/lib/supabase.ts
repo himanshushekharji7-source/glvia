@@ -51,5 +51,6 @@ export const TABLES = {
   SITE_SETTINGS: 'site_settings',
   BOOKINGS: 'bookings',
   STAFF: 'staff',
+  SUPPORT_TICKETS: 'support_tickets',
 } as const;
 
