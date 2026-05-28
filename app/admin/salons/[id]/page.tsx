@@ -107,48 +107,6 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const router = useRouter();
 
-  const dynamicServiceFields = useMemo(() => {
-    const currentGender = formValues.gender || serviceGender || "female";
-    const catOptions = currentGender === "male" 
-      ? [
-          { value: "hair-cut-style", label: "Hair Cut & Style" },
-          { value: "skin-care", label: "Skin Care" },
-          { value: "hair-colour", label: "Hair Colour" },
-          { value: "hair-chemical", label: "Hair Chemical" },
-          { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
-          { value: "spa-massage", label: "Spa & Massage" },
-          { value: "body-polishing", label: "Body Polishing" },
-          { value: "hair-treatments", label: "Hair Treatments" },
-          { value: "pre-groom", label: "Pre Groom" },
-          { value: "makeup", label: "Makeup" },
-        ]
-      : [
-          { value: "hair-cut-style", label: "Hair Cut & Style" },
-          { value: "hair-colour", label: "Hair Colour" },
-          { value: "hair-treatments", label: "Hair Treatments" },
-          { value: "hair-chemical", label: "Hair Chemical" },
-          { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
-          { value: "skin-care", label: "Skin Care" },
-          { value: "spa-massage", label: "Spa & Massage" },
-          { value: "makeup", label: "Makeup" },
-          { value: "nail-art", label: "Nail Art" },
-          { value: "bridal-packages", label: "Bridal Packages" },
-        ];
-
-    return [
-      { name: "name", label: "Service Name", type: "text" as const, required: true },
-      { name: "description", label: "Description", type: "textarea" as const },
-      { name: "products_used", label: "Products Used (comma-separated)", type: "text" as const, placeholder: "e.g. Shampoo, Hair spa cream" },
-      { name: "duration", label: "Duration (min)", type: "text" as const, placeholder: "e.g. 30" },
-      { name: "price", label: "Price (₹)", type: "number" as const, required: true },
-      { name: "old_price", label: "Old Price (₹)", type: "number" as const },
-      { name: "category", label: "Category Name", type: "select" as const, required: true, options: catOptions },
-      { name: "image", label: "Image URL", type: "url" as const, required: true },
-      { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
-      { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
-    ];
-  }, [formValues.gender, serviceGender]);
-
   // --- Dynamic Tab Registry Selection ---
   const activeModules = salonWorkspaceModules.filter((m) => m.enabled);
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -522,6 +480,48 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   const [editing, setEditing] = useState<any>(null);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [savingEntity, setSavingEntity] = useState(false);
+
+  const dynamicServiceFields = useMemo(() => {
+    const currentGender = formValues.gender || serviceGender || "female";
+    const catOptions = currentGender === "male" 
+      ? [
+          { value: "hair-cut-style", label: "Hair Cut & Style" },
+          { value: "skin-care", label: "Skin Care" },
+          { value: "hair-colour", label: "Hair Colour" },
+          { value: "hair-chemical", label: "Hair Chemical" },
+          { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
+          { value: "spa-massage", label: "Spa & Massage" },
+          { value: "body-polishing", label: "Body Polishing" },
+          { value: "hair-treatments", label: "Hair Treatments" },
+          { value: "pre-groom", label: "Pre Groom" },
+          { value: "makeup", label: "Makeup" },
+        ]
+      : [
+          { value: "hair-cut-style", label: "Hair Cut & Style" },
+          { value: "hair-colour", label: "Hair Colour" },
+          { value: "hair-treatments", label: "Hair Treatments" },
+          { value: "hair-chemical", label: "Hair Chemical" },
+          { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
+          { value: "skin-care", label: "Skin Care" },
+          { value: "spa-massage", label: "Spa & Massage" },
+          { value: "makeup", label: "Makeup" },
+          { value: "nail-art", label: "Nail Art" },
+          { value: "bridal-packages", label: "Bridal Packages" },
+        ];
+
+    return [
+      { name: "name", label: "Service Name", type: "text" as const, required: true },
+      { name: "description", label: "Description", type: "textarea" as const },
+      { name: "products_used", label: "Products Used (comma-separated)", type: "text" as const, placeholder: "e.g. Shampoo, Hair spa cream" },
+      { name: "duration", label: "Duration (min)", type: "text" as const, placeholder: "e.g. 30" },
+      { name: "price", label: "Price (₹)", type: "number" as const, required: true },
+      { name: "old_price", label: "Old Price (₹)", type: "number" as const },
+      { name: "category", label: "Category Name", type: "select" as const, required: true, options: catOptions },
+      { name: "image", label: "Image URL", type: "url" as const, required: true },
+      { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
+      { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
+    ];
+  }, [formValues.gender, serviceGender]);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deletingEntity, setDeletingEntity] = useState(false);
 
