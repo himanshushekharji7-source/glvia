@@ -6,9 +6,9 @@ export default function PrivacyPolicyPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-dvh bg-white flex flex-col justify-between text-slate-800 antialiased">
+    <div className="min-h-dvh bg-white flex flex-col justify-between text-slate-800 antialiased select-text">
       
-      {/* ─── Header (Exactly like the provided screenshot) ─── */}
+      {/* ─── Header ─── */}
       <header className="bg-white text-slate-900 px-4 py-4 flex items-center border-b border-slate-100 sticky top-0 z-50 shrink-0">
         <button 
           onClick={() => router.back()} 
@@ -20,10 +20,10 @@ export default function PrivacyPolicyPage() {
         <span className="font-extrabold text-[20px] tracking-tight text-slate-900">Privacy Policy</span>
       </header>
 
-      {/* ─── Content (Minimalist Document Style matching the mockup) ─── */}
-      <main className="flex-1 overflow-y-auto px-6 py-8 max-w-2xl mx-auto space-y-8 select-text">
+      {/* ─── Body Content ─── */}
+      <main className="flex-1 overflow-y-auto px-6 py-8 max-w-2xl mx-auto space-y-8">
         
-        {/* Main Title Header */}
+        {/* Title Block */}
         <div className="border-b border-slate-100 pb-5">
           <h1 className="text-[15px] font-black text-slate-900 tracking-wider uppercase">
             GLVIA PRIVACY POLICY
@@ -33,255 +33,272 @@ export default function PrivacyPolicyPage() {
           </p>
         </div>
 
-        {/* Introduction */}
+        {/* Intro */}
         <div className="text-[13px] leading-relaxed text-slate-600 font-semibold space-y-4">
           <p>
-            Welcome to GLVIA (“GLVIA”, “we”, “our”, “us”), accessible through{" "}
-            <a href="https://glvia.com" className="text-sky-500 hover:underline">
-              https://glvia.com
-            </a>.
+            Welcome to GLVIA (“GLVIA”, “we”, “our”, “us”). This Privacy Policy explains how we collect, use, disclose, protect, and process your information when you use our website{" "}
+            <a href="https://glvia.com" className="text-sky-500 hover:underline">https://glvia.com</a>, mobile browser experience, installed Progressive Web App (PWA), salon marketplace, booking services, review systems, support tools, and associated services (“Platform”).
           </p>
-          <p>
-            At GLVIA, we respect your privacy and are committed to protecting your
-            personal information. This Privacy Policy explains how we collect, use,
-            process, store, and protect your information when you access or use our
-            website, web application, installed Progressive Web App (PWA), services,
-            booking platform, salon marketplace, support systems, and associated
-            technologies (collectively referred to as the “Platform”).
+          <p className="text-[12px] text-red-500 font-bold uppercase tracking-wide">
+            PLEASE READ THIS POLICY CAREFULLY BEFORE USING GLVIA.
           </p>
         </div>
 
-        {/* Section Blocks */}
+        {/* Content Clauses */}
         <div className="space-y-6 text-[13px] leading-relaxed text-slate-600 font-semibold">
           
-          {/* Who We Are */}
+          {/* Section 1 */}
           <div className="space-y-2">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              WHO WE ARE
+              1. WHO WE ARE
             </h2>
             <p>
-              GLVIA is a luxury beauty-tech salon discovery and booking platform that connects 
-              customers with salons, beauty professionals, and personal care services.
+              GLVIA is a luxury beauty-tech salon discovery and booking marketplace connecting customers with salons, beauty professionals, and personal care services.
             </p>
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[11px] space-y-1 mt-1 text-slate-500 font-bold">
-              <div><span className="text-slate-700">Support Email:</span> care@glvia.com</div>
-              <div><span className="text-slate-700">Website:</span> https://glvia.com</div>
-              <div><span className="text-slate-700">Location:</span> Ballia, Uttar Pradesh, India</div>
+            <p>GLVIA enables:</p>
+            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
+              <li>Salon discovery</li>
+              <li>Instant salon bookings</li>
+              <li>Verified customer reviews & ratings</li>
+              <li>Salon owner business management</li>
+              <li>Media and gallery management</li>
+              <li>Customer support & help center</li>
+              <li>Promotional campaigns and offers</li>
+            </ul>
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[11px] space-y-1 mt-2 text-slate-500 font-bold">
+              <div><span className="text-slate-800">Website:</span> https://glvia.com</div>
+              <div><span className="text-slate-800">Email:</span> care@glvia.com</div>
+              <div><span className="text-slate-800">Location:</span> Ballia, Uttar Pradesh, India</div>
             </div>
           </div>
 
-          {/* Applicability */}
+          {/* Section 2 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              APPLICABILITY
+              2. APPLICABILITY OF THIS POLICY
             </h2>
             <p>This policy applies to:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
               <li>Customers</li>
-              <li>Salon Owners / Business Partners</li>
-              <li>Administrative Users</li>
+              <li>Salon owners and business partners</li>
+              <li>Administrative users</li>
+              <li>Visitors browsing GLVIA</li>
+            </ul>
+            <p className="mt-2">It covers:</p>
+            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
+              <li>Website access</li>
+              <li>Installed web app (PWA)</li>
+              <li>Login systems</li>
+              <li>Bookings</li>
+              <li>Reviews & ratings</li>
+              <li>Media uploads</li>
+              <li>Customer support</li>
             </ul>
           </div>
 
-          {/* Information We Collect */}
+          {/* Section 3 */}
           <div className="space-y-3 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              INFORMATION WE COLLECT
+              3. INFORMATION WE COLLECT
             </h2>
             
             <div className="space-y-1">
-              <span className="text-[12px] font-black text-slate-800">Account Information:</span>
-              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-                <li>Full name</li>
-                <li>Mobile number</li>
-                <li>Email address</li>
-                <li>Profile photo (optional)</li>
-                <li>Gender preferences</li>
-                <li>Account role</li>
-              </ul>
+              <span className="text-[12px] font-black text-slate-800">A. ACCOUNT INFORMATION:</span>
+              <p>We may collect: Name, Mobile number, Email address, Profile image (optional), Gender preferences, and Account role (customer, salon owner, admin).</p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <span className="text-[12px] font-black text-slate-800">B. AUTHENTICATION INFORMATION:</span>
+              <div className="pl-3 space-y-1">
+                <span className="text-[11px] font-black text-slate-700">1. Mobile OTP Login:</span>
+                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
+                  <li>Phone number</li>
+                  <li>OTP verification status</li>
+                  <li>Authentication logs</li>
+                  <li>Session information</li>
+                </ul>
+                <span className="text-[11px] font-black text-slate-700 block pt-1.5">2. Google Sign-In (If you sign in using Google):</span>
+                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
+                  <li>Name</li>
+                  <li>Email</li>
+                  <li>Profile image</li>
+                  <li>Basic account information allowed by Google</li>
+                </ul>
+                <p className="text-[11px] text-slate-400 italic">GLVIA never accesses your Google password.</p>
+              </div>
             </div>
 
             <div className="space-y-1 pt-1">
-              <span className="text-[12px] font-black text-slate-800">Authentication:</span>
-              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-                <li>Mobile OTP login</li>
-                <li>Google Sign-In</li>
-              </ul>
+              <span className="text-[12px] font-black text-slate-800">C. BOOKING INFORMATION:</span>
+              <p>When booking services: Salon selected, Services selected, Booking ID, Appointment date/time, Booking status, Customer preferences, Visit history, and Cancellation details.</p>
             </div>
 
             <div className="space-y-1 pt-1">
-              <span className="text-[12px] font-black text-slate-800">Booking Information:</span>
-              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-                <li>Salon details</li>
-                <li>Appointment time/date</li>
-                <li>Services selected</li>
-                <li>Booking history</li>
-              </ul>
+              <span className="text-[12px] font-black text-slate-800">D. VERIFIED REVIEWS & RATINGS:</span>
+              <p>GLVIA supports verified customer reviews. We may collect: Star rating, Review text, Review images, Booking verification status, Owner replies, and Moderation status.</p>
+              <p className="text-xs text-slate-500 italic">Only completed bookings may submit verified reviews. GLVIA may moderate, approve, reject, hide, or remove harmful, misleading, abusive, fake, or spam content.</p>
             </div>
 
             <div className="space-y-1 pt-1">
-              <span className="text-[12px] font-black text-slate-800">Reviews & Ratings:</span>
-              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-                <li>Star ratings</li>
-                <li>Review text</li>
-                <li>Uploaded images</li>
-                <li>Verified booking information</li>
-              </ul>
+              <span className="text-[12px] font-black text-slate-800">E. SALON OWNER INFORMATION:</span>
+              <p>Salon partners may provide: Salon name, Logo, Address, Contact number, Email, Service details, Pricing, Timings, Staff information, Business description, and Portfolio/gallery uploads.</p>
             </div>
 
             <div className="space-y-1 pt-1">
-              <span className="text-[12px] font-black text-slate-800">Salon Owner Information:</span>
-              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-                <li>Salon/business name</li>
-                <li>Logo</li>
-                <li>Address</li>
-                <li>Phone/email</li>
-                <li>Services and pricing</li>
-                <li>Staff information</li>
-                <li>Media uploads</li>
-              </ul>
+              <span className="text-[12px] font-black text-slate-800">F. MEDIA & IMAGE UPLOADS:</span>
+              <p>Users and salon owners may upload profile images, review images, salon gallery photos, service images, and branding assets.</p>
+              <p className="text-xs text-slate-500 italic">You confirm that you own the uploaded content or have permission to upload it. GLVIA reserves moderation rights.</p>
+            </div>
+
+            <div className="space-y-1 pt-1">
+              <span className="text-[12px] font-black text-slate-800">G. SUPPORT & HELP CENTER INFORMATION:</span>
+              <p>We may collect: Support requests, Help center messages, Feedback, Complaint details, Chat information, and FAQ usefulness ratings.</p>
             </div>
           </div>
 
-          {/* Location Information */}
+          {/* Section 4 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              LOCATION INFORMATION
+              4. INFORMATION COLLECTED AUTOMATICALLY
             </h2>
-            <p>GLVIA may request approximate location to:</p>
+            <p>We may automatically collect browser type, device information, operating system, device identifiers, session logs, IP address, usage behavior, app interaction behavior, and crash logs.</p>
+            <p>We use this to improve security, improve speed, detect abuse, improve UI/UX, and improve reliability.</p>
+          </div>
+
+          {/* Section 5 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              5. LOCATION SERVICES
+            </h2>
+            <p>GLVIA may request approximate location access to recommend nearby salons, improve search relevance, show nearby services, and improve booking experience.</p>
+            <p className="text-xs text-slate-400 italic">Location access is optional and can be disabled anytime.</p>
+          </div>
+
+          {/* Section 6 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              6. PWA / WEB APP INSTALLATION
+            </h2>
+            <p>GLVIA supports Progressive Web App (PWA) installation. If installed, we may collect browser compatibility, installation status, device type, and app performance behavior.</p>
+            <p className="text-red-500 text-xs uppercase">GLVIA DOES NOT access photos, messages, device storage, or private files unless explicitly uploaded by you.</p>
+          </div>
+
+          {/* Section 7 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              7. PAYMENTS
+            </h2>
+            <p>Currently GLVIA supports: Cash payments at the salon.</p>
+            <p>Future payment support may include: UPI, Razorpay, Credit/Debit Cards, and Wallet payments.</p>
+            <p className="text-xs text-slate-400 italic">Payment processing will be handled securely. GLVIA does not store complete card credentials.</p>
+          </div>
+
+          {/* Section 8 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              8. COOKIES & TRACKING
+            </h2>
+            <p>We may use cookies to remember preferences, keep users signed in, improve performance, improve personalization, and improve loading speeds.</p>
+          </div>
+
+          {/* Section 9 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              9. HOW WE USE YOUR INFORMATION
+            </h2>
+            <p>We use data to provide bookings, authenticate users, send OTP messages, improve recommendations, prevent fraud, improve platform performance, enable customer support, moderate reviews, and improve security.</p>
+          </div>
+
+          {/* Section 10 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              10. COMMUNICATIONS
+            </h2>
+            <p>GLVIA may contact users regarding: OTP verification, booking confirmation, appointment reminders, booking cancellation, support replies, platform updates, and promotional notifications (where applicable).</p>
+          </div>
+
+          {/* Section 11 */}
+          <div className="space-y-2 border-t border-slate-50 pt-5">
+            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+              11. SHARING OF INFORMATION
+            </h2>
+            <p>GLVIA does NOT sell user data under any circumstances.</p>
+            <p>Limited information may be shared:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-              <li>Recommend nearby salons</li>
-              <li>Improve search experience</li>
+              <li><strong>With Salon Partners:</strong> For bookings (customer name, appointment details, selected services).</li>
+              <li><strong>With Service Providers:</strong> Trusted infrastructure and analytics providers (Firebase, Google services).</li>
+              <li><strong>For Legal Requirements:</strong> If required by courts, law enforcement, or fraud investigations.</li>
             </ul>
           </div>
 
-          {/* PWA / Web App */}
+          {/* Section 12 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              PWA / WEB APP
+              12. VERIFIED REVIEWS & MODERATION
             </h2>
-            <p>
-              GLVIA supports Progressive Web App installation. We may collect limited 
-              device information to improve app performance.
-            </p>
+            <p>GLVIA operates a verified review system. Only completed appointments may review. Fake or spam reviews will be removed. Salon owners may respectfully reply.</p>
           </div>
 
-          {/* Payments */}
+          {/* Section 13 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              PAYMENTS
+              13. USER GENERATED CONTENT
             </h2>
-            <p>
-              Currently GLVIA supports cash payments at the salon. Future integrated digital payment 
-              methods may include:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-              <li>UPI</li>
-              <li>Razorpay</li>
-              <li>Debit/Credit Cards</li>
-            </ul>
+            <p>Users retain ownership of uploaded content. However, you grant GLVIA limited rights to display it for platform functionality. Prohibited uploads include illegal content, hate speech, or copyright violations.</p>
           </div>
 
-          {/* Cookies */}
+          {/* Section 14 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              COOKIES
+              14. DATA SECURITY
             </h2>
-            <p>We may use cookies to:</p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-              <li>Remember login preferences</li>
-              <li>Improve performance</li>
-              <li>Save custom settings</li>
-            </ul>
+            <p>We implement security practices including OTP verification, Google OAuth, role-based permissions, and secure database encryption. However, no online system is 100% secure.</p>
           </div>
 
-          {/* How We Use Information */}
+          {/* Section 15 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              HOW WE USE INFORMATION
+              15. DATA RETENTION
             </h2>
-            <p>We use data to:</p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-              <li>Provide and facilitate salon bookings</li>
-              <li>Verify OTP logins securely</li>
-              <li>Improve platform performance and database query speed</li>
-              <li>Send booking confirmation and slot updates</li>
-              <li>Prevent fraud and ensure marketplace safety</li>
-            </ul>
+            <p>We retain information only as necessary for active account maintenance, booking history, legal obligations, fraud prevention, and support operations.</p>
           </div>
 
-          {/* Data Sharing */}
+          {/* Section 16 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              DATA SHARING
+              16. ACCOUNT DELETION
             </h2>
-            <p>GLVIA does not sell personal information under any circumstances.</p>
-            <p>We may share limited information with:</p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-              <li>Salon partners for executing booking reservations</li>
-              <li>Secure authentication providers</li>
-              <li>Legal authorities if required by active regulations</li>
-            </ul>
+            <p>Users may request account deletion (profile removal, login termination, data cleanup) by contacting us at: <a href="mailto:care@glvia.com" className="text-sky-500 hover:underline">care@glvia.com</a></p>
           </div>
 
-          {/* Data Security */}
+          {/* Section 17 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              DATA SECURITY
+              17. CHILDREN’S PRIVACY
             </h2>
-            <p>We implement security protocols including:</p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-500">
-              <li>Secure Mobile OTP verification</li>
-              <li>Google OAuth credentials</li>
-              <li>Role-based operational permissions</li>
-              <li>Secure encryption layers for data transmittal</li>
-            </ul>
+            <p>GLVIA is not intended for persons under 18 years of age. We do not knowingly collect information from minors.</p>
           </div>
 
-          {/* Verified Reviews */}
+          {/* Section 18 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              VERIFIED REVIEWS
+              18. THIRD-PARTY SERVICES
             </h2>
-            <p>
-              Only customers with completed appointments may submit reviews on salons. GLVIA 
-              may moderate, approve, reject, or remove reviews that violate community policies.
-            </p>
+            <p>GLVIA may include links to third-party services. We are not responsible for their privacy practices.</p>
           </div>
 
-          {/* Account Deletion */}
+          {/* Section 19 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              ACCOUNT DELETION
+              19. POLICY CHANGES
             </h2>
-            <p>
-              Users may request account deletion at any time by contacting our support team at:{" "}
-              <a href="mailto:care@glvia.com" className="text-sky-500 hover:underline">
-                care@glvia.com
-              </a>
-            </p>
+            <p>GLVIA may modify this Privacy Policy at any time. Continued use of GLVIA means acceptance of revised policies.</p>
           </div>
 
-          {/* Children's Privacy */}
+          {/* Section 20 */}
           <div className="space-y-2 border-t border-slate-50 pt-5">
             <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              CHILDREN’S PRIVACY
-            </h2>
-            <p>GLVIA is not intended for users under 18 years of age.</p>
-          </div>
-
-          {/* Changes to Policy */}
-          <div className="space-y-2 border-t border-slate-50 pt-5">
-            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              CHANGES TO POLICY
-            </h2>
-            <p>We may update this policy from time to time to match legal guidelines.</p>
-          </div>
-
-          {/* Contact */}
-          <div className="space-y-2 border-t border-slate-50 pt-5">
-            <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
-              CONTACT GLVIA SUPPORT
+              20. CONTACT US
             </h2>
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-xs text-slate-500 font-bold space-y-1.5">
               <div><span className="text-slate-800">Support Team Email:</span> care@glvia.com</div>
