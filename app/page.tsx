@@ -162,8 +162,8 @@ export default function HomePage() {
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({
     app_name: "glvia",
     referral_amount: "100",
-    billu_cash_points: "1000",
-    billu_cash_value: "10"
+    glvia_cash_points: "1000",
+    glvia_cash_value: "10"
   });
 
   useEffect(() => {
@@ -658,7 +658,7 @@ export default function HomePage() {
             <div className="mt-4 bg-surface-card border border-border rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between relative">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-text-primary mb-1">{siteSettings.billu_cash_points}</div>
+                  <div className="text-2xl font-black text-text-primary mb-1">{siteSettings.glvia_cash_points}</div>
                   <div className="text-[11px] font-bold text-text-primary tracking-wide">{(siteSettings.app_name || 'glvia').toUpperCase()} Cash Points</div>
                 </div>
                 
@@ -670,7 +670,7 @@ export default function HomePage() {
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-2xl font-black text-text-primary mb-1">₹{siteSettings.billu_cash_value}</div>
+                  <div className="text-2xl font-black text-text-primary mb-1">₹{siteSettings.glvia_cash_value}</div>
                   <div className="text-[11px] font-bold text-text-primary tracking-wide">Real Money</div>
                 </div>
               </div>

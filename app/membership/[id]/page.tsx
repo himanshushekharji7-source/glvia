@@ -203,12 +203,12 @@ export default function MembershipDetailPage() {
 
            <div className="flex gap-4">
             <div className="w-16 h-16 rounded-full bg-surface-dim flex items-center justify-center shrink-0 border border-border">
-               <span className="text-text-primary font-black text-3xl italic">B</span>
+               <span className="text-text-primary font-black text-3xl italic">G</span>
             </div>
             <div>
-              <h4 className="text-[15px] font-black text-text-primary mb-1">Extra BCP (Cash Points)</h4>
+              <h4 className="text-[15px] font-black text-text-primary mb-1">Extra GCP (Cash Points)</h4>
               <p className="text-text-secondary text-sm leading-snug">
-                Earn extra BCP and save more on services.
+                Earn extra GCP and save more on services.
               </p>
             </div>
           </div>

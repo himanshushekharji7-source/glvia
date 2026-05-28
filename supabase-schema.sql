@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS site_settings (
 INSERT INTO site_settings (key, value) VALUES
   ('app_name', 'glvia'),
   ('referral_amount', '100'),
-  ('billu_cash_points', '1000'),
-  ('billu_cash_value', '10')
+  ('glvia_cash_points', '1000'),
+  ('glvia_cash_value', '10')
 ON CONFLICT (key) DO NOTHING;
 
 -- 3. Categories (global service categories)
