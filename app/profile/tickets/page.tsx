@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, TABLES } from "../../lib/supabase";
 import { useUser, useSupportTickets, useCreateSupportTicket } from "../../lib/hooks";
@@ -62,6 +62,16 @@ export default function SupportTicketsPage() {
     "Other"
   ];
 
+  // Route security: Redirect to login if user is not present
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/login");
+      }
+    }
+  }, [router]);
+
   // Submit Support Ticket Flow (Supabase first & atomic DB sequence)
   const handleAddTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,34 +123,9 @@ export default function SupportTicketsPage() {
       }
     }
 
-    // Dynamic Client-side atomic ticket number sequence generator
-    let ticketNumber = "";
-    try {
-      const { data: maxTicketData, error: maxErr } = await supabase
-        .from(TABLES.SUPPORT_TICKETS)
-        .select("ticket_number")
-        .order("ticket_number", { ascending: false })
-        .limit(1);
-      
-      let nextSeqNum = 1;
-      if (!maxErr && maxTicketData && maxTicketData.length > 0) {
-        const maxNumStr = maxTicketData[0].ticket_number;
-        if (maxNumStr && maxNumStr.startsWith("GLVIA-2026-")) {
-          const lastSeq = parseInt(maxNumStr.replace("GLVIA-2026-", ""), 10);
-          if (!isNaN(lastSeq)) {
-            nextSeqNum = lastSeq + 1;
-          }
-        }
-      }
-      ticketNumber = `GLVIA-2026-${String(nextSeqNum).padStart(4, "0")}`;
-    } catch (e) {
-      console.error("Max ticket query failed, generating fallback:", e);
-      ticketNumber = `GLVIA-2026-${Date.now().toString().slice(-4)}`;
-    }
-
+    // Atomic DB Sequence trigger generation (ticket_number is generated entirely DB-side on insert)
     const newTicket = {
       id: crypto.randomUUID(),
-      ticket_number: ticketNumber,
       customer_id: user?.id || "anonymous",
       customer_name: `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Customer",
       customer_email: user?.email || "customer@glvia.com",
@@ -223,14 +208,23 @@ export default function SupportTicketsPage() {
       
       {/* ─── Premium Header (Strictly matching the mock screenshot) ─── */}
       <header className="bg-white text-slate-900 px-4 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 z-40 shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button 
             onClick={handleBack} 
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all"
+            className="w-8 h-8 flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all rounded-full"
+            aria-label="Back"
           >
-            <span className="material-icons-round text-[28px] text-slate-900 font-medium">chevron_left</span>
+            <svg 
+              className="w-6 h-6 text-slate-950" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
-          <span className="font-extrabold text-[20px] tracking-tight text-slate-900">
+          <span className="font-bold text-[20px] tracking-tight text-slate-950">
             {isAdding ? "Add Ticket" : "Support Ticket"}
           </span>
         </div>
@@ -238,42 +232,43 @@ export default function SupportTicketsPage() {
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-1.5 px-3 py-1.8 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-xl active:scale-95 text-xs font-black transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-white text-slate-950 border border-slate-900 rounded-[10px] active:scale-95 text-[14px] font-semibold transition-all hover:bg-slate-50 shadow-xs"
           >
-            <span className="material-icons-round text-[16px] text-slate-900 font-black">add</span>
-            Add Ticket
+            <span className="text-[18px] font-medium leading-none">+</span> Add Ticket
           </button>
         )}
       </header>
 
-      {/* ─── Tabs Navigator (Matches open queries and close queries with solid pink line) ─── */}
+      {/* ─── Tabs Navigator (Matches mockup with custom inline alignment and solid pink line) ─── */}
       {!isAdding && (
-        <div className="bg-white border-b border-slate-100 flex sticky top-[73px] z-30">
-          <button
-            onClick={() => setCurrentTab("open")}
-            className="flex-1 py-4 text-center text-xs font-black tracking-wide relative transition-colors"
-            style={{ color: currentTab === "open" ? "#ec4899" : "#64748b" }}
-          >
-            Open Queries ({tickets.filter(t => t.status === "open").length})
-            {currentTab === "open" && (
-              <div className="absolute bottom-0 left-4 right-4 h-[3px] bg-pink-500 rounded-t-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setCurrentTab("closed")}
-            className="flex-1 py-4 text-center text-xs font-black tracking-wide relative transition-colors"
-            style={{ color: currentTab === "closed" ? "#ec4899" : "#64748b" }}
-          >
-            Close Queries ({tickets.filter(t => t.status === "closed").length})
-            {currentTab === "closed" && (
-              <div className="absolute bottom-0 left-4 right-4 h-[3px] bg-pink-500 rounded-t-full" />
-            )}
-          </button>
+        <div className="bg-white border-b border-slate-100 sticky top-[73px] z-30 px-6">
+          <div className="flex gap-8">
+            <button
+              onClick={() => setCurrentTab("open")}
+              className="py-4 text-[14px] font-semibold tracking-wide relative transition-colors"
+              style={{ color: currentTab === "open" ? "#ec4899" : "#0f172a" }}
+            >
+              Open Queries ({tickets.filter(t => t.status === "open").length})
+              {currentTab === "open" && (
+                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-pink-500 rounded-t-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setCurrentTab("closed")}
+              className="py-4 text-[14px] font-semibold tracking-wide relative transition-colors"
+              style={{ color: currentTab === "closed" ? "#ec4899" : "#0f172a" }}
+            >
+              Close Queries ({tickets.filter(t => t.status === "closed").length})
+              {currentTab === "closed" && (
+                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-pink-500 rounded-t-full" />
+              )}
+            </button>
+          </div>
         </div>
       )}
 
       {/* ─── Main Content Canvas ─── */}
-      <main className="flex-1 overflow-y-auto px-5 py-6 max-w-md mx-auto w-full space-y-4">
+      <main className={`flex-1 overflow-y-auto px-5 py-6 max-w-md mx-auto w-full ${!isAdding && activeQueries.length === 0 ? 'flex flex-col justify-center items-center' : 'space-y-4'}`}>
         
         {/* CASE A: ADD TICKET VIEW (SPA Form) */}
         {isAdding && (
@@ -425,7 +420,7 @@ export default function SupportTicketsPage() {
 
         {/* CASE B: TICKET RESOLVED / OPEN FEEDS */}
         {!isAdding && (
-          <div className="space-y-4">
+          <div className="w-full space-y-4">
             
             {loadingTickets ? (
               <div className="flex flex-col items-center justify-center py-20">
@@ -447,9 +442,9 @@ export default function SupportTicketsPage() {
                 </button>
               </div>
             ) : activeQueries.length > 0 ? (
-              <div className="space-y-4 animate-fadeInUp">
+              <div className="space-y-4 animate-fadeInUp w-full">
                 {activeQueries.map((t) => (
-                  <div key={t.id} className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs space-y-4">
+                  <div key={t.id} className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs space-y-4 w-full">
                     
                     {/* Ticket Header details */}
                     <div className="flex justify-between items-start border-b border-slate-50 pb-3">
@@ -540,7 +535,7 @@ export default function SupportTicketsPage() {
               </div>
             ) : (
               /* NO DATA FOUND (Centered precisely matching the screenshot) */
-              <div className="flex flex-col items-center justify-center py-40 select-none animate-fadeIn">
+              <div className="flex flex-col items-center justify-center select-none animate-fadeIn py-20">
                 <span className="text-base font-semibold text-slate-900 tracking-tight">No data found</span>
               </div>
             )}
@@ -582,13 +577,6 @@ export default function SupportTicketsPage() {
           </div>
         </div>
       )}
-
-      {/* ─── Footer ─── */}
-      <footer className="w-full p-4 bg-white border-t border-slate-100 flex flex-col items-center gap-1.5 shrink-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
-        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-          Powered by <span className="text-slate-600 font-extrabold flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 inline-block"></span>freshworks</span>
-        </span>
-      </footer>
 
     </div>
   );
