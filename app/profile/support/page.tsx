@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { supabase, TABLES } from "../../lib/supabase";
+import { useUser } from "../../lib/hooks";
 
 interface FAQItem {
   id: string;
@@ -17,6 +18,24 @@ interface FAQCategory {
   items: FAQItem[];
 }
 
+interface Ticket {
+  id: string;
+  ticket_number: string;
+  customer_id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  topic: string;
+  description: string;
+  attachment_url?: string;
+  request_callback: boolean;
+  status: "open" | "closed";
+  admin_reply?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Unified FAQ Content ───
 const faqData: FAQCategory[] = [
   {
     name: "General",
@@ -31,7 +50,7 @@ const faqData: FAQCategory[] = [
       {
         id: "g2",
         question: "I have made booking but salon denied to provide service.",
-        answer: "We apologize for this inconvenience. Please click the 'Message Us' button below or call our helpline immediately so we can re-assign your appointment or process a full refund."
+        answer: "We apologize for this inconvenience. Please raise a Support Ticket or contact our helpline immediately so we can re-assign your appointment or process a full refund."
       },
       {
         id: "g3",
@@ -81,7 +100,7 @@ const faqData: FAQCategory[] = [
       {
         id: "g12",
         question: "I purchased a 30-day and 60-day service package, but unfortunately, circumstances prevented me from using the services. Is it possible to get a refund for the unused days or can I reschedule my services for a later date?",
-        answer: "Please contact our customer support team via the 'Message Us' button. We handle package extension requests on a case-by-case basis."
+        answer: "Please contact our customer support team by raising a Support Ticket. We handle package extension requests on a case-by-case basis."
       },
       {
         id: "g13",
@@ -187,7 +206,7 @@ const faqData: FAQCategory[] = [
       {
         id: "s1",
         question: "How to contact glvia support.",
-        answer: "You can contact GLVIA Support via multiple channels ::\n\nYou can email care@glvia.com\nYou can also contact via whatsapp at +91-9375133233\nYou can reach out us via app chat messenger\n\nOur support team timings are .Monday to Saturday 9 AM to 6 PM."
+        answer: "You can contact GLVIA Support via multiple channels ::\n\nYou can email care@glvia.com\nYou can also contact via whatsapp at +91-9375133233\nYou can reach out us via app chat messenger\n\nOur support team timings are Monday to Saturday 9 AM to 6 PM."
       }
     ]
   },
@@ -246,7 +265,7 @@ const faqData: FAQCategory[] = [
       {
         id: "r7",
         question: "If salon deny to provide service then what to do ?",
-        answer: "In the rare event that a salon denies service, please contact our support immediately using the 'Message Us' chat below or call our helpline. We will either re-assign you to a nearby salon or process an instant full refund."
+        answer: "In the rare event that a salon denies service, please contact our support immediately by raising a support ticket. We will either re-assign you to a nearby salon or process an instant full refund."
       },
       {
         id: "r8",
@@ -317,29 +336,141 @@ const faqData: FAQCategory[] = [
   }
 ];
 
-export default function FAQPage() {
+export default function UnifiedSupportPage() {
   const router = useRouter();
-  
-  // Navigation states
+  const { data: user } = useUser();
+
+  // Primary navigation tab
+  const [currentTab, setCurrentTab] = useState<"faqs" | "open" | "closed">("faqs");
+
+  // View detail states
   const [activeCategory, setActiveCategory] = useState<FAQCategory | null>(null);
   const [activeQuestion, setActiveQuestion] = useState<FAQItem | null>(null);
-  
-  // Search state
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Tickets states (Supabase-first only)
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [dbError, setDbError] = useState(false);
+
+  // Search states (FAQs only)
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // Useful rating state
-  const [ratingSubmitted, setRatingSubmitted] = useState<string | null>(null); // "yes" | "no" | null
-  
-  // Chat modal state
-  const [chatOpen, setChatOpen] = useState(false);
+  const [faqFeedbackSubmitted, setFaqFeedbackSubmitted] = useState<string | null>(null);
 
-  // Filter questions globally if search query is entered
-  const filteredQuestions = useMemo(() => {
+  // Form states
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [description, setDescription] = useState("");
+  const [attachmentName, setAttachmentName] = useState("");
+  const [requestCallback, setRequestCallback] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const topics = [
+    "Issue On Booking!",
+    "Offers",
+    "Salons",
+    "Transaction & Refund",
+    "Other"
+  ];
+
+  // Fetch tickets for the active authenticated customer only (Security rules)
+  const fetchTickets = async () => {
+    if (!user?.id) return;
+    setLoadingTickets(true);
+    setDbError(false);
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.SUPPORT_TICKETS)
+        .select("*")
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTickets(data || []);
+    } catch (err) {
+      console.error("Database failed to load support tickets:", err);
+      setDbError(true);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchTickets();
+    }
+  }, [user?.id]);
+
+  // Handle support ticket creation (Supabase first only)
+  const handleAddTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTopic) {
+      alert("Please choose a topic.");
+      return;
+    }
+    if (!description.trim()) {
+      alert("Please write a brief description of your query.");
+      return;
+    }
+
+    setSubmitting(true);
+    
+    // Proper ticket numbering: GLVIA-2026-0001
+    const ticketSeqNum = String(tickets.length + 1).padStart(4, "0");
+    const ticketNumber = `GLVIA-2026-${ticketSeqNum}`;
+
+    const newTicket = {
+      id: crypto.randomUUID(),
+      ticket_number: ticketNumber,
+      customer_id: user?.id || "anonymous",
+      customer_name: `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Customer",
+      customer_email: user?.email || "customer@glvia.com",
+      customer_phone: user?.phone_number || "",
+      topic: selectedTopic,
+      description: description,
+      attachment_url: attachmentName || null,
+      request_callback: requestCallback,
+      status: "open" as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase.from(TABLES.SUPPORT_TICKETS).insert(newTicket);
+      if (error) throw error;
+      
+      setTickets(prev => [newTicket as Ticket, ...prev]);
+      
+      // Reset form
+      setSelectedTopic("");
+      setDescription("");
+      setAttachmentName("");
+      setRequestCallback(false);
+      setIsAdding(false);
+      setCurrentTab("open");
+      
+      alert(`Support Ticket ${ticketNumber} raised successfully!`);
+    } catch (err: any) {
+      console.error("Failed to add support ticket in Supabase:", err);
+      alert("Unable to submit support ticket. Please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Mock file selector click helper
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAttachmentName(e.target.files[0].name);
+    }
+  };
+
+  // Search FAQ filtering
+  const filteredFAQs = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     const list: { category: FAQCategory; item: FAQItem }[] = [];
-    
     faqData.forEach((cat) => {
       cat.items.forEach((item) => {
         if (item.question.toLowerCase().includes(q) || item.answer.toLowerCase().includes(q)) {
@@ -351,14 +482,24 @@ export default function FAQPage() {
   }, [searchQuery]);
 
   const handleBack = () => {
-    if (activeQuestion) {
+    if (isAdding) {
+      setIsAdding(false);
+    } else if (activeQuestion) {
       setActiveQuestion(null);
-      setRatingSubmitted(null);
+      setFaqFeedbackSubmitted(null);
     } else if (activeCategory) {
       setActiveCategory(null);
     } else {
       router.push("/profile");
     }
+  };
+
+  // Switch tabs
+  const handleTabChange = (tab: "faqs" | "open" | "closed") => {
+    setCurrentTab(tab);
+    setIsAdding(false);
+    setActiveQuestion(null);
+    setActiveCategory(null);
   };
 
   const selectCategory = (cat: FAQCategory) => {
@@ -370,266 +511,480 @@ export default function FAQPage() {
 
   const selectQuestion = (item: FAQItem) => {
     setActiveQuestion(item);
-    setRatingSubmitted(null);
+    setFaqFeedbackSubmitted(null);
   };
 
-  const handleSearchSelect = (cat: FAQCategory, item: FAQItem) => {
-    setActiveCategory(cat);
-    setActiveQuestion(item);
-    setSearchQuery("");
-    setSearchOpen(false);
-  };
-
-  const submitFeedback = (type: "yes" | "no") => {
-    setRatingSubmitted(type);
-  };
+  // Filter queries based on active Queries tab
+  const activeQueries = tickets.filter(t => t.status === (currentTab === "open" ? "open" : "closed"));
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex flex-col justify-between text-slate-800">
+    <div className="min-h-dvh bg-slate-50 flex flex-col justify-between text-slate-800 antialiased">
       
       {/* ─── Header ─── */}
-      <header className="bg-zinc-800 text-white px-4 py-4 flex items-center justify-between shadow-md shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={handleBack} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-zinc-700 active:scale-95 transition-all">
-            <span className="material-icons-round text-[20px]">arrow_back</span>
+      <header className="bg-white text-slate-900 px-4 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 z-40 shrink-0">
+        <div className="flex items-center">
+          <button 
+            onClick={handleBack} 
+            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 active:scale-95 transition-all mr-2"
+          >
+            <span className="material-icons-round text-[28px] text-slate-900 font-medium">chevron_left</span>
           </button>
-          <span className="font-bold text-[16px] tracking-tight">
-            {activeQuestion 
-              ? activeCategory?.name 
-              : activeCategory 
-                ? activeCategory.name 
-                : "GLVIA Customer FAQ"}
+          <span className="font-extrabold text-[20px] tracking-tight text-slate-900">
+            {isAdding 
+              ? "Add Ticket" 
+              : activeQuestion 
+                ? activeCategory?.name 
+                : activeCategory 
+                  ? activeCategory.name 
+                  : "Help & Support"}
           </span>
         </div>
         
-        {/* Search toggle trigger */}
-        {!activeQuestion && (
-          <button 
-            onClick={() => setSearchOpen(!searchOpen)} 
-            className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-zinc-700 transition-colors ${searchOpen ? 'text-sky-400' : ''}`}
-          >
-            <span className="material-icons-round text-[20px]">search</span>
-          </button>
-        )}
-      </header>
-
-      {/* ─── Search Overlay input ─── */}
-      {searchOpen && !activeQuestion && (
-        <div className="bg-white border-b border-slate-200 px-4 py-3 shrink-0 animate-fadeInUp">
-          <div className="relative">
-            <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-            <input 
-              type="text" 
-              placeholder="Search for questions or keywords..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] shadow-inner focus:outline-none focus:border-sky-500 placeholder-slate-400 text-slate-800 transition-all"
-              autoFocus
-            />
-            {searchQuery && (
+        {/* Contextual top right buttons */}
+        {!isAdding && !activeQuestion && (
+          <div className="flex items-center gap-2">
+            {currentTab === "faqs" ? (
               <button 
-                onClick={() => setSearchQuery("")} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-300"
+                onClick={() => setSearchOpen(!searchOpen)} 
+                className={`w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors ${searchOpen ? 'text-pink-600 bg-pink-50' : 'text-slate-600'}`}
               >
-                <span className="material-icons-round text-[12px]">close</span>
+                <span className="material-icons-round text-[22px]">search</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAdding(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl active:scale-95 text-xs font-bold transition-all shadow-xs"
+              >
+                <span className="material-icons-round text-[16px] text-white font-black">add</span>
+                Add Ticket
               </button>
             )}
           </div>
+        )}
+      </header>
+
+      {/* ─── Consolidated 3-Tab Navigator (Hide in form / detail view) ─── */}
+      {!isAdding && !activeQuestion && !activeCategory && (
+        <div className="bg-white border-b border-slate-100 flex shadow-xs sticky top-[65px] z-30">
+          <button
+            onClick={() => handleTabChange("faqs")}
+            className="flex-1 py-4 text-center text-xs font-black tracking-wide relative"
+            style={{ color: currentTab === "faqs" ? "#ec4899" : "#64748b" }}
+          >
+            FAQs
+            {currentTab === "faqs" && (
+              <div className="absolute bottom-0 left-4 right-4 h-1 bg-pink-500 rounded-t-full" />
+            )}
+          </button>
+          <button
+            onClick={() => handleTabChange("open")}
+            className="flex-1 py-4 text-center text-xs font-black tracking-wide relative"
+            style={{ color: currentTab === "open" ? "#ec4899" : "#64748b" }}
+          >
+            Open Queries ({tickets.filter(t => t.status === "open").length})
+            {currentTab === "open" && (
+              <div className="absolute bottom-0 left-4 right-4 h-1 bg-pink-500 rounded-t-full" />
+            )}
+          </button>
+          <button
+            onClick={() => handleTabChange("closed")}
+            className="flex-1 py-4 text-center text-xs font-black tracking-wide relative"
+            style={{ color: currentTab === "closed" ? "#ec4899" : "#64748b" }}
+          >
+            Closed Queries ({tickets.filter(t => t.status === "closed").length})
+            {currentTab === "closed" && (
+              <div className="absolute bottom-0 left-4 right-4 h-1 bg-pink-500 rounded-t-full" />
+            )}
+          </button>
         </div>
       )}
 
-      {/* ─── Content ─── */}
-      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+      {/* ─── Main Content Canvas ─── */}
+      <main className="flex-1 overflow-y-auto px-5 py-6 max-w-md mx-auto w-full space-y-4">
         
-        {/* CASE A: Search Results are active */}
-        {searchOpen && searchQuery.trim().length > 0 && !activeQuestion && (
-          <div className="space-y-3">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Search Results</div>
-            {filteredQuestions.length > 0 ? (
-              <div className="bg-white border border-slate-100 rounded-2xl shadow-sm divide-y divide-slate-100 overflow-hidden">
-                {filteredQuestions.map(({ category, item }) => (
-                  <button 
-                    key={item.id}
-                    onClick={() => handleSearchSelect(category, item)}
-                    className="w-full text-left px-4 py-3.5 hover:bg-slate-50 active:bg-slate-100 transition-colors flex justify-between items-center text-xs font-semibold text-slate-700"
-                  >
-                    <span className="truncate pr-4">{item.question}</span>
-                    <span className="material-icons-round text-slate-300 text-[18px]">chevron_right</span>
-                  </button>
+        {/* CASE A: ADD TICKET VIEW (SPA Form Overlay) */}
+        {isAdding && (
+          <form onSubmit={handleAddTicket} className="space-y-6">
+            
+            {/* Topic selector trigger */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider">Choose a topic</label>
+              <div 
+                onClick={() => setSheetOpen(true)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+              >
+                <span className={`text-[13px] font-bold ${selectedTopic ? 'text-slate-800' : 'text-slate-400'}`}>
+                  {selectedTopic || "Select"}
+                </span>
+                <span className="material-icons-round text-slate-400 text-[20px]">unfold_more</span>
+              </div>
+            </div>
+
+            {/* Description Area */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider">Write a brief description of your query</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add text"
+                rows={5}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-[13px] font-semibold focus:outline-none focus:border-pink-500 placeholder-slate-400 text-slate-800 transition-colors resize-none"
+              />
+            </div>
+
+            {/* File Selector */}
+            <div className="space-y-2">
+              <label className="relative block w-full">
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  onChange={handleFileChange}
+                />
+                <div className="w-full px-4 py-3.5 bg-white border border-slate-200 border-dashed rounded-2xl flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors">
+                  <span className="text-[13px] font-bold text-slate-500 truncate max-w-[80%]">
+                    {attachmentName || "Click here to upload file"}
+                  </span>
+                  <span className="material-icons-round text-slate-500 text-[20px]">upload</span>
+                </div>
+              </label>
+            </div>
+
+            {/* Callback requested checkbox */}
+            <div className="flex items-center gap-3">
+              <label className="relative flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={requestCallback}
+                  onChange={(e) => setRequestCallback(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-6 h-6 border-2 border-slate-300 rounded-lg flex items-center justify-center peer-checked:border-pink-600 peer-checked:bg-pink-600 transition-colors">
+                  {requestCallback && (
+                    <span className="material-icons-round text-white text-[16px] font-bold">check</span>
+                  )}
+                </div>
+                <span className="text-[13px] font-black text-slate-800 ml-3">Request A Call Back</span>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button 
+              type="submit"
+              disabled={submitting}
+              className="w-full py-4 bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                "Add Support Ticket"
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* CASE B: TICKET RESOLVED / OPEN FEEDS */}
+        {!isAdding && (currentTab === "open" || currentTab === "closed") && (
+          <div className="space-y-4">
+            
+            {loadingTickets ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+              </div>
+            ) : dbError ? (
+              /* PREMIUM DB FAIL STATE WITH RETRY BUTTON */
+              <div className="text-center py-20 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col items-center">
+                <span className="material-icons-round text-red-500 text-5xl mb-4">cloud_off</span>
+                <h3 className="text-[14px] font-black text-slate-900">Unable to load support tickets</h3>
+                <p className="text-xs text-slate-400 leading-relaxed font-semibold mt-1 max-w-xs">
+                  Please try again shortly. Our databases are undergoing scheduled synchronization.
+                </p>
+                <button
+                  onClick={fetchTickets}
+                  className="mt-5 px-6 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-sm transition-transform active:scale-95"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : activeQueries.length > 0 ? (
+              <div className="space-y-4 animate-fadeInUp">
+                {activeQueries.map((t) => (
+                  <div key={t.id} className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs space-y-4">
+                    
+                    {/* Header stats */}
+                    <div className="flex justify-between items-start border-b border-slate-50 pb-3">
+                      <div>
+                        <span className="text-[11px] font-black text-pink-600 tracking-wider font-mono">
+                          {t.ticket_number}
+                        </span>
+                        <div className="text-[10px] text-slate-400 font-bold mt-0.5">
+                          {new Date(t.created_at).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                          })}
+                        </div>
+                      </div>
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                        t.status === "open" ? 'bg-sky-50 text-sky-600' : 'bg-emerald-50 text-emerald-600'
+                      }`}>
+                        {t.status}
+                      </span>
+                    </div>
+
+                    {/* Topic and description details */}
+                    <div className="space-y-1.5">
+                      <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-wide">
+                        {t.topic}
+                      </h4>
+                      <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                        {t.description}
+                      </p>
+                    </div>
+
+                    {/* Attachment and callback indicators */}
+                    {(t.attachment_url || t.request_callback) && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {t.attachment_url && (
+                          <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                            <span className="material-icons-round text-[12px]">attachment</span>
+                            {t.attachment_url}
+                          </div>
+                        )}
+                        {t.request_callback && (
+                          <div className="flex items-center gap-1 bg-pink-50 text-pink-600 text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                            <span className="material-icons-round text-[12px]">phone_callback</span>
+                            Callback Requested
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Customer Ticket UX tab logic updates */}
+                    {t.status === "open" ? (
+                      /* Open queries: Admin Reply Preview */
+                      t.admin_reply && (
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1 mt-2">
+                          <span className="text-[10px] font-black text-pink-600 uppercase tracking-wider block">GLVIA Support Reply Preview:</span>
+                          <p className="text-xs text-slate-600 font-semibold leading-relaxed line-clamp-2">
+                            {t.admin_reply}
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      /* Closed queries: Resolved by GLVIA Support with timestamp */
+                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-3.5 space-y-2 mt-2">
+                        <div className="flex items-center gap-1.5 text-emerald-700 text-[11px] font-black">
+                          <span className="material-icons-round text-[16px]">verified</span>
+                          Resolved by GLVIA Support
+                        </div>
+                        {t.admin_reply && (
+                          <p className="text-xs text-slate-600 font-semibold leading-relaxed border-t border-emerald-100/50 pt-2">
+                            {t.admin_reply}
+                          </p>
+                        )}
+                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider pt-1">
+                          Closed on: {new Date(t.updated_at).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-10 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                <span className="material-icons-round text-slate-300 text-4xl mb-2">find_in_page</span>
-                <p className="text-xs text-slate-400 font-semibold">No matches found. Try another term.</p>
+              <div className="text-center py-24 flex flex-col items-center justify-center">
+                <span className="material-icons-round text-slate-200 text-6xl mb-4 font-light">confirmation_number</span>
+                <p className="text-[14px] text-slate-400 font-black">No data found</p>
               </div>
             )}
+
           </div>
         )}
 
-        {/* CASE B: View Question detail */}
-        {activeQuestion && (
-          <div className="space-y-6">
-            <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
-              <h2 className="text-base font-black text-slate-900 leading-snug tracking-tight">
-                {activeQuestion.question}
-              </h2>
-              
-              <div className="text-[13px] text-slate-600 leading-relaxed font-semibold whitespace-pre-line border-t border-slate-100 pt-4">
-                {activeQuestion.answer}
-              </div>
-            </div>
-
-            {/* Answer helpful rating box */}
-            <div className="bg-slate-100 border border-slate-200/50 rounded-2xl p-4 text-center space-y-3">
-              <span className="text-xs font-black text-slate-500 tracking-wide uppercase">
-                {ratingSubmitted ? "Thank you for your feedback!" : "Was this answer useful?"}
-              </span>
-              
-              {!ratingSubmitted ? (
-                <div className="flex gap-3 justify-center">
-                  <button 
-                    onClick={() => submitFeedback("no")}
-                    className="flex-1 max-w-[120px] py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-700 active:scale-95 shadow-sm hover:bg-slate-50 transition-all"
-                  >
-                    NO
-                  </button>
-                  <button 
-                    onClick={() => submitFeedback("yes")}
-                    className="flex-1 max-w-[120px] py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-700 active:scale-95 shadow-sm hover:bg-slate-50 transition-all"
-                  >
-                    YES
-                  </button>
-                </div>
-              ) : (
-                <div className="text-xs font-semibold text-sky-600 flex items-center justify-center gap-1.5 animate-fadeInUp">
-                  <span className="material-icons-round text-[16px]">thumb_up</span>
-                  Glad we could help!
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* CASE C: View category questions list */}
-        {activeCategory && !activeQuestion && !searchQuery && (
-          <div className="space-y-3 animate-fadeInUp">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
-              Select Question
-            </div>
+        {/* CASE C: FAQ SYSTEM TAB VIEW */}
+        {!isAdding && currentTab === "faqs" && (
+          <div className="space-y-4">
             
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm divide-y divide-slate-100 overflow-hidden">
-              {activeCategory.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => selectQuestion(item)}
-                  className="w-full text-left px-4 py-3.5 hover:bg-slate-50 active:bg-slate-100 transition-colors flex justify-between items-center text-xs font-semibold text-slate-700"
-                >
-                  <span className="pr-4">{item.question}</span>
-                  <span className="material-icons-round text-slate-300 text-[18px]">chevron_right</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* CASE D: Default Root FAQ Categories Grid */}
-        {!activeCategory && !activeQuestion && !searchQuery && (
-          <div className="grid grid-cols-2 gap-4 animate-scaleIn">
-            {faqData.map((cat) => (
-              <div 
-                key={cat.slug}
-                onClick={() => selectCategory(cat)}
-                className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm text-center flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-sky-300 hover:shadow-md transition-all active:scale-[0.97]"
-              >
-                {/* Category Icon */}
-                <div className="w-12 h-12 rounded-2xl bg-sky-500 shadow-md shadow-sky-100 flex items-center justify-center text-white text-lg font-black shrink-0">
-                  {cat.iconLetter}
-                </div>
-                
-                {/* Category Title */}
-                <span className="text-[13px] font-black text-slate-800 tracking-tight leading-snug">
-                  {cat.name}
-                </span>
+            {/* Search overlays active */}
+            {searchOpen && searchQuery.trim().length > 0 && !activeQuestion && (
+              <div className="space-y-3">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Search Results</div>
+                {filteredFAQs.length > 0 ? (
+                  <div className="bg-white border border-slate-100 rounded-2xl shadow-sm divide-y divide-slate-100 overflow-hidden">
+                    {filteredFAQs.map(({ category, item }) => (
+                      <button 
+                        key={item.id}
+                        onClick={() => handleSearchSelect(category, item)}
+                        className="w-full text-left px-4 py-3.5 hover:bg-slate-50 active:bg-slate-100 transition-colors flex justify-between items-center text-xs font-semibold text-slate-700"
+                      >
+                        <span className="truncate pr-4">{item.question}</span>
+                        <span className="material-icons-round text-slate-300 text-[18px]">chevron_right</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                    <span className="material-icons-round text-slate-300 text-4xl mb-2">find_in_page</span>
+                    <p className="text-xs text-slate-400 font-semibold">No matches found. Try another term.</p>
+                  </div>
+                )}
               </div>
-            ))}
+            )}
+
+            {/* Keyword Search Input Bar */}
+            {searchOpen && !activeQuestion && !activeCategory && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-3 shrink-0 mb-2">
+                <div className="relative">
+                  <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                  <input 
+                    type="text" 
+                    placeholder="Search for questions or keywords..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] shadow-inner focus:outline-none focus:border-sky-500 placeholder-slate-400 text-slate-800 transition-all font-semibold"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* View Question Detail screen */}
+            {activeQuestion && (
+              <div className="space-y-6 animate-scaleIn">
+                <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs space-y-4">
+                  <h2 className="text-base font-black text-slate-900 leading-snug tracking-tight">
+                    {activeQuestion.question}
+                  </h2>
+                  <div className="text-[13px] text-slate-600 leading-relaxed font-semibold whitespace-pre-line border-t border-slate-100 pt-4">
+                    {activeQuestion.answer}
+                  </div>
+                </div>
+
+                <div className="bg-slate-100 border border-slate-200/50 rounded-2xl p-4 text-center space-y-3">
+                  <span className="text-xs font-black text-slate-500 tracking-wide uppercase">
+                    {faqFeedbackSubmitted ? "Thank you for your feedback!" : "Was this answer useful?"}
+                  </span>
+                  {!faqFeedbackSubmitted ? (
+                    <div className="flex gap-3 justify-center">
+                      <button 
+                        onClick={() => setFaqFeedbackSubmitted("no")}
+                        className="flex-1 max-w-[120px] py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-700 active:scale-95 shadow-sm hover:bg-slate-50 transition-all"
+                      >
+                        NO
+                      </button>
+                      <button 
+                        onClick={() => setFaqFeedbackSubmitted("yes")}
+                        className="flex-1 max-w-[120px] py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-700 active:scale-95 shadow-sm hover:bg-slate-50 transition-all"
+                      >
+                        YES
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-xs font-semibold text-sky-600 flex items-center justify-center gap-1.5 animate-fadeInUp">
+                      <span className="material-icons-round text-[16px]">thumb_up</span>
+                      Glad we could help!
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* View Category Question Lists */}
+            {activeCategory && !activeQuestion && (
+              <div className="space-y-3 animate-fadeInUp">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Select Question</div>
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm divide-y divide-slate-100 overflow-hidden">
+                  {activeCategory.items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => selectQuestion(item)}
+                      className="w-full text-left px-4 py-3.5 hover:bg-slate-50 active:bg-slate-100 transition-colors flex justify-between items-center text-xs font-semibold text-slate-700"
+                    >
+                      <span className="pr-4">{item.question}</span>
+                      <span className="material-icons-round text-slate-300 text-[18px]">chevron_right</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Category selection grids */}
+            {!activeCategory && !activeQuestion && (
+              <div className="grid grid-cols-2 gap-4 animate-scaleIn">
+                {faqData.map((cat) => (
+                  <div 
+                    key={cat.slug}
+                    onClick={() => selectCategory(cat)}
+                    className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs text-center flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-pink-300 hover:shadow-md transition-all active:scale-[0.97]"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-pink-500 shadow-md shadow-pink-100 flex items-center justify-center text-white text-lg font-black shrink-0">
+                      {cat.iconLetter}
+                    </div>
+                    <span className="text-[13px] font-black text-slate-800 tracking-tight leading-snug">
+                      {cat.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
         )}
 
       </main>
 
-      {/* ─── Footer with freshworks brand ─── */}
-      <footer className="w-full p-4 bg-white border-t border-slate-100 flex flex-col items-center gap-1.5 shrink-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
-        <button 
-          onClick={() => setChatOpen(true)}
-          className="w-full py-3.5 bg-sky-500 text-white font-extrabold text-sm rounded-xl shadow-md shadow-sky-100 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-sky-600 uppercase tracking-wide"
-        >
-          <span className="material-icons-round text-[18px]">chat_bubble</span>
-          Message Us
-        </button>
-        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-          Powered by <span className="text-slate-600 font-extrabold flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 inline-block"></span>freshworks</span>
-        </span>
-      </footer>
-
-      {/* ─── Freshworks Support Chat Modal Mockup ─── */}
-      {chatOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setChatOpen(false)} />
-          
-          <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-sm h-[75vh] overflow-hidden flex flex-col justify-between animate-scaleIn">
-            
-            {/* Chat Header */}
-            <div className="bg-sky-500 text-white px-5 py-4 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">
-                  G
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm leading-none">GLVIA Customer Care</h3>
-                  <span className="text-[10px] text-sky-100 mt-1 inline-block font-semibold">Active Support Agent</span>
-                </div>
+      {/* ─── Drag Sheet Bottom Drawer (Raise topic choice) ─── */}
+      {sheetOpen && isAdding && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300" onClick={() => setSheetOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-xl overflow-hidden animate-slideUp z-10 border-t border-slate-100">
+            <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto my-3" />
+            <div className="px-5 pb-5">
+              <div className="flex justify-between items-center border-b border-slate-50 pb-3 mb-2">
+                <span className="text-sm font-black text-slate-900">Choose a topic</span>
+                <button onClick={() => setSheetOpen(false)} className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="material-icons-round text-[16px]">close</span>
+                </button>
               </div>
-              <button 
-                onClick={() => setChatOpen(false)} 
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 active:scale-95 transition-all"
-              >
-                <span className="material-icons-round text-[18px]">close</span>
-              </button>
-            </div>
-
-            {/* Chat Body */}
-            <div className="flex-1 bg-slate-50 p-4 overflow-y-auto space-y-4 font-semibold text-xs leading-relaxed text-slate-700">
-              <div className="flex gap-2 items-end max-w-[85%]">
-                <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-white text-[9px] font-black shrink-0">G</div>
-                <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-none p-3 shadow-xs">
-                  Hi there! Welcome to GLVIA Customer Care Support. How can we help you today?
-                </div>
+              <div className="divide-y divide-slate-50">
+                {topics.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTopic(t);
+                      setSheetOpen(false);
+                    }}
+                    className="w-full text-left py-3.5 text-slate-800 font-bold hover:bg-slate-50 active:bg-slate-100 text-[13px] transition-colors"
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
-              <div className="flex gap-2 items-end max-w-[85%]">
-                <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-white text-[9px] font-black shrink-0">G</div>
-                <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-none p-3 shadow-xs">
-                  Timings: Mon - Sat 9:00 AM to 6:00 PM. Drop us a message here and we'll reply instantly!
-                </div>
-              </div>
-            </div>
-
-            {/* Chat Input */}
-            <div className="p-3 bg-white border-t border-slate-100 flex items-center gap-2">
-              <input 
-                type="text" 
-                placeholder="Type your message..." 
-                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-sky-500"
-                disabled
-              />
-              <button className="w-9 h-9 rounded-xl bg-sky-500 text-white flex items-center justify-center active:scale-95 shadow-sm opacity-50 shrink-0">
-                <span className="material-icons-round text-[16px]">send</span>
-              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ─── Footer ─── */}
+      <footer className="w-full p-4 bg-white border-t border-slate-100 flex flex-col items-center gap-1.5 shrink-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+          Powered by <span className="text-slate-600 font-extrabold flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 inline-block"></span>freshworks</span>
+        </span>
+      </footer>
+
     </div>
   );
+
+  function handleSearchSelect(cat: FAQCategory, item: FAQItem) {
+    setActiveCategory(cat);
+    setActiveQuestion(item);
+    setSearchQuery("");
+    setSearchOpen(false);
+  }
 }

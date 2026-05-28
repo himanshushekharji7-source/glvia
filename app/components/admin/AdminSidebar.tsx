@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAdminAuth } from "../../lib/adminAuth";
 import Image from "next/image";
+import { supabase, TABLES } from "../../lib/supabase";
 
 const adminNav = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
@@ -16,7 +18,7 @@ const adminNav = [
   { icon: "card_membership", label: "Membership", href: "/admin/membership" },
   { icon: "featured_seasonal_and_gifts", label: "Banners & Trust", href: "/admin/banners" },
   { icon: "settings", label: "Site Settings", href: "/admin/site-settings" },
-  { icon: "confirmation_number", label: "Support Tickets", href: "/admin/tickets" },
+  { icon: "confirmation_number", label: "Support Tickets", href: "/admin/support-tickets" },
   { icon: "event_note", label: "Appointments", href: "/admin/appointments" },
   { icon: "group", label: "Users", href: "/admin/users" },
 ];
@@ -24,6 +26,27 @@ const adminNav = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { admin, logout } = useAdminAuth();
+  const [openCount, setOpenCount] = useState(0);
+
+  useEffect(() => {
+    const fetchOpenCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from(TABLES.SUPPORT_TICKETS)
+          .select("*", { count: "exact", head: true })
+          .eq("status", "open");
+        if (error) throw error;
+        setOpenCount(count || 0);
+      } catch (err) {
+        console.warn("Sidebar count fetch failed:", err);
+      }
+    };
+    fetchOpenCount();
+    
+    // Realtime interval refresh every 8 seconds
+    const interval = setInterval(fetchOpenCount, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <aside className="w-64 min-h-dvh bg-surface-card border-r border-border hidden lg:flex flex-col fixed left-0 top-0">
@@ -44,7 +67,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
                 isActive
                   ? "bg-primary/[0.08] text-primary font-semibold"
                   : "text-text-secondary hover:bg-surface-dim hover:text-text-primary font-medium"
@@ -53,7 +76,14 @@ export default function AdminSidebar() {
               <span className={`material-icons-round text-[20px] ${isActive ? "text-primary" : "text-text-tertiary"}`}>
                 {item.icon}
               </span>
-              <span className="text-[14px]">{item.label}</span>
+              <span className="text-[14px] flex items-center justify-between w-full">
+                <span>{item.label}</span>
+                {item.href === "/admin/support-tickets" && openCount > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-[10px] font-black text-white bg-pink-500 rounded-full animate-pulse">
+                    {openCount}
+                  </span>
+                )}
+              </span>
             </Link>
           );
         })}

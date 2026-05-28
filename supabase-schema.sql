@@ -623,14 +623,17 @@ FOR EACH ROW EXECUTE FUNCTION public.recalculate_salon_ratings();
 -- 15. Support Tickets Table
 CREATE TABLE IF NOT EXISTS public.support_tickets (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ticket_number TEXT UNIQUE,
   customer_id TEXT,
   customer_name TEXT,
   customer_email TEXT,
+  customer_phone TEXT,
   topic TEXT NOT NULL,
   description TEXT NOT NULL,
   attachment_url TEXT,
   request_callback BOOLEAN DEFAULT false,
   status TEXT NOT NULL DEFAULT 'open', -- 'open' or 'closed'
+  admin_reply TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
