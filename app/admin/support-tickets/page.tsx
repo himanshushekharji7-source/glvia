@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase, TABLES } from "../../lib/supabase";
+import { useAllSupportTickets, useUpdateSupportTicket } from "../../lib/hooks";
 
 interface Ticket {
   id: string;
@@ -18,59 +19,59 @@ interface Ticket {
   admin_reply?: string;
   created_at: string;
   updated_at: string;
-}
-
-export default function AdminSupportTicketsPage() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
+}export default function AdminSupportTicketsPage() {
   const [filter, setFilter] = useState<"all" | "open" | "closed">("open");
   const [search, setSearch] = useState("");
   
   // Drawer Detail State
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [submittingReply, setSubmittingReply] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  // Fetch all support tickets
-  const fetchTickets = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.SUPPORT_TICKETS)
-        .select("*")
-        .order("created_at", { ascending: false });
+  // TanStack React Query hooks integration (8s admin polling frequency, refetchOnWindowFocus)
+  const ticketsQuery = useAllSupportTickets();
+  const updateTicketMutation = useUpdateSupportTicket();
 
-      if (error) throw error;
-      setTickets(data || []);
-    } catch (err) {
-      console.error("Supabase admin fetch tickets failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const tickets = ticketsQuery.data || [];
+  const loading = ticketsQuery.isLoading;
+  const submittingReply = updateTicketMutation.isPending;
+  const updatingStatus = updateTicketMutation.isPending;
 
+  // Drawer loading skeleton state
+  const [drawerLoading, setDrawerLoading] = useState(false);
+
+  // Drawer accessibility: ESC key down event listener to close drawer
   useEffect(() => {
-    fetchTickets();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedTicket(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Trigger loading skeleton briefly when selected ticket changes to simulate fluid native transition
+  useEffect(() => {
+    setImageError(false);
+    if (selectedTicket?.id) {
+      setDrawerLoading(true);
+      const timer = setTimeout(() => {
+        setDrawerLoading(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedTicket?.id]);
 
   // Update Status from Drawer or Table
   const handleUpdateStatus = async (ticketId: string, newStatus: "open" | "closed") => {
-    setUpdatingStatus(true);
     try {
-      const { error } = await supabase
-        .from(TABLES.SUPPORT_TICKETS)
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", ticketId);
+      await updateTicketMutation.mutateAsync({
+        id: ticketId,
+        updates: { status: newStatus }
+      });
 
-      if (error) throw error;
-
-      // Update state
-      setTickets(prev => 
-        prev.map(t => t.id === ticketId ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t)
-      );
-
-      // Update drawer
+      // Update local state copy of drawer if it's currently open
       if (selectedTicket && selectedTicket.id === ticketId) {
         setSelectedTicket(prev => prev ? { ...prev, status: newStatus, updated_at: new Date().toISOString() } : null);
       }
@@ -79,8 +80,6 @@ export default function AdminSupportTicketsPage() {
     } catch (err) {
       console.error("Status update failed:", err);
       alert("Failed to update status. Please try again.");
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -93,29 +92,19 @@ export default function AdminSupportTicketsPage() {
       return;
     }
 
-    setSubmittingReply(true);
     try {
-      const { error } = await supabase
-        .from(TABLES.SUPPORT_TICKETS)
-        .update({ admin_reply: replyText, updated_at: new Date().toISOString() })
-        .eq("id", selectedTicket.id);
+      await updateTicketMutation.mutateAsync({
+        id: selectedTicket.id,
+        updates: { admin_reply: replyText }
+      });
 
-      if (error) throw error;
-
-      // Update state
-      setTickets(prev => 
-        prev.map(t => t.id === selectedTicket.id ? { ...t, admin_reply: replyText, updated_at: new Date().toISOString() } : t)
-      );
-
-      // Update drawer
+      // Update local state copy of drawer
       setSelectedTicket(prev => prev ? { ...prev, admin_reply: replyText, updated_at: new Date().toISOString() } : null);
       setReplyText("");
       alert("Reply sent successfully!");
     } catch (err) {
       console.error("Reply submission failed:", err);
       alert("Failed to send reply. Please try again.");
-    } finally {
-      setSubmittingReply(false);
     }
   };
 
@@ -312,169 +301,283 @@ export default function AdminSupportTicketsPage() {
               </button>
             </div>
 
-            {/* Drawer Body details */}
-            <div className="flex-1 p-6 space-y-6">
-              
-              {/* Customer details info block */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Customer Info</h4>
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-400 font-bold block">Customer Name</span>
-                    <span className="text-slate-800 font-extrabold text-[13px]">{selectedTicket.customer_name}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-bold block">Mobile Number</span>
-                    <span className="text-slate-800 font-extrabold text-[13px]">{selectedTicket.customer_phone || "Not provided"}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 font-bold block">Email Address</span>
-                    <span className="text-slate-800 font-extrabold text-[13px] break-all">{selectedTicket.customer_email}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ticket details queries info block */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Query Details</h4>
-                <div className="grid grid-cols-2 gap-4 text-xs mb-2">
-                  <div>
-                    <span className="text-slate-400 font-bold block">Topic Category</span>
-                    <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-black mt-1 inline-block">{selectedTicket.topic}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-bold block">Ticket Status</span>
-                    <span className={`px-2 py-0.5 rounded font-black uppercase tracking-wider text-[10px] mt-1 inline-block ${
-                      selectedTicket.status === "open" ? 'bg-sky-50 text-sky-600' : 'bg-emerald-50 text-emerald-600'
-                    }`}>
-                      {selectedTicket.status}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-bold block">Callback Request</span>
-                    <span className={`font-black ${selectedTicket.request_callback ? 'text-pink-600' : 'text-slate-400'}`}>
-                      {selectedTicket.request_callback ? "YES (Required Call)" : "NO"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-bold block">Created Date</span>
-                    <span className="text-slate-700 font-bold">
-                      {new Date(selectedTicket.created_at).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
-                  <span className="text-slate-400 text-[10px] font-black uppercase block tracking-wider mb-1.5">Query Description:</span>
-                  <p className="text-xs text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
-                    {selectedTicket.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* Attachment Preview Card */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Attachment Preview</h4>
-                {selectedTicket.attachment_url ? (
-                  <div className="flex items-center gap-3 p-3 bg-sky-50/50 border border-sky-100 rounded-2xl">
-                    <span className="material-icons-round text-sky-600 text-3xl shrink-0">attachment</span>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-slate-800 text-xs font-extrabold truncate block">{selectedTicket.attachment_url}</span>
-                      <span className="text-[10px] text-sky-500 font-bold">Attachment Uploaded</span>
+              {/* Drawer Body details */}
+              {drawerLoading ? (
+                /* PULSING SHIMMER LOADING SKELETON */
+                <div className="flex-1 p-6 space-y-6 animate-pulse">
+                  <div className="space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-12 bg-slate-100 rounded-xl"></div>
+                      <div className="h-12 bg-slate-100 rounded-xl"></div>
                     </div>
                   </div>
-                ) : (
-                  <span className="text-xs text-slate-400 font-semibold italic">No files attached to this support query.</span>
-                )}
-              </div>
-
-              {/* Active Admin Reply Box */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Reply History</h4>
-                {selectedTicket.admin_reply ? (
-                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 space-y-2">
-                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 border-b border-emerald-100/50 pb-2">
-                      <span className="text-emerald-700 font-black flex items-center gap-1">
-                        <span className="material-icons-round text-[14px]">reply</span>
-                        Admin Reply Sent
-                      </span>
-                      <span>
-                        {new Date(selectedTicket.updated_at).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-700 font-semibold leading-relaxed">
-                      {selectedTicket.admin_reply}
-                    </p>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+                    <div className="h-28 bg-slate-50 rounded-2xl"></div>
                   </div>
-                ) : (
-                  <span className="text-xs text-slate-400 font-semibold italic">No reply has been submitted yet. Use the action block below.</span>
-                )}
-              </div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                    <div className="h-20 bg-slate-100 rounded-2xl"></div>
+                  </div>
+                </div>
+              ) : (
+                /* ACTUAL DETAILS (SCROLL CONTAINER BODY) */
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  
+                  {/* Customer details info block */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Customer Info</h4>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-400 font-bold block">Customer Name</span>
+                        <span className="text-slate-800 font-extrabold text-[13px]">{selectedTicket.customer_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold block">Mobile Number</span>
+                        <span className="text-slate-800 font-extrabold text-[13px]">{selectedTicket.customer_phone || "Not provided"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-400 font-bold block">Email Address</span>
+                        <span className="text-slate-800 font-extrabold text-[13px] break-all">{selectedTicket.customer_email}</span>
+                      </div>
+                    </div>
+                  </div>
 
-            </div>
+                  {/* Ticket details queries info block */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Query Details</h4>
+                    <div className="grid grid-cols-2 gap-4 text-xs mb-2">
+                      <div>
+                        <span className="text-slate-400 font-bold block">Topic Category</span>
+                        <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-black mt-1 inline-block">{selectedTicket.topic}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold block">Ticket Status</span>
+                        <span className={`px-2 py-0.5 rounded font-black uppercase tracking-wider text-[10px] mt-1 inline-block ${
+                          selectedTicket.status === "open" ? 'bg-sky-50 text-sky-600' : 'bg-emerald-50 text-emerald-600'
+                        }`}>
+                          {selectedTicket.status}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold block">Callback Request</span>
+                        <span className={`font-black ${selectedTicket.request_callback ? 'text-pink-600' : 'text-slate-400'}`}>
+                          {selectedTicket.request_callback ? "YES (Required Call)" : "NO"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold block">Created Date</span>
+                        <span className="text-slate-700 font-bold">
+                          {new Date(selectedTicket.created_at).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </span>
+                      </div>
+                    </div>
 
-            {/* Action panel footer */}
-            <div className="bg-slate-50 border-t border-slate-100 p-5 space-y-4">
-              
-              {/* Submit Reply form */}
-              <form onSubmit={handleSubmitReply} className="space-y-2">
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Type your support reply here..."
-                  rows={2}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-pink-500 placeholder-slate-400 text-slate-800 transition-colors resize-none shadow-inner"
-                />
-                <button
-                  type="submit"
-                  disabled={submittingReply}
-                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-                >
-                  {submittingReply ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
+                      <span className="text-slate-400 text-[10px] font-black uppercase block tracking-wider mb-1.5">Query Description:</span>
+                      <p className="text-xs text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
+                        {selectedTicket.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Attachment Preview & Fallback Cards */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Attachment Preview</h4>
+                    {selectedTicket.attachment_url ? (
+                      (() => {
+                        const isPdf = selectedTicket.attachment_url.toLowerCase().endsWith(".pdf");
+                        
+                        if (isPdf) {
+                          /* Whitelist PDF Document Card Layout */
+                          return (
+                            <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-2xl flex flex-col gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="material-icons-round text-sky-600 text-3xl shrink-0">picture_as_pdf</span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-slate-800 text-[11px] font-black break-all block truncate max-w-[240px]">
+                                    {selectedTicket.attachment_url.split("/").pop()}
+                                  </span>
+                                  <span className="text-[10px] text-sky-500 font-bold">PDF Document Attachment</span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => window.open(selectedTicket.attachment_url, "_blank")}
+                                  className="flex-1 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-extrabold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 shadow-xs transition-all active:scale-95"
+                                >
+                                  <span className="material-icons-round text-[14px]">open_in_new</span>
+                                  Open File
+                                </button>
+                                <a 
+                                  href={selectedTicket.attachment_url}
+                                  download
+                                  className="flex-1 py-2.5 bg-white border border-sky-200 hover:bg-slate-50 text-sky-700 rounded-xl font-extrabold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 shadow-xs transition-all active:scale-95 text-center"
+                                >
+                                  <span className="material-icons-round text-[14px]">download</span>
+                                  Download File
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        } else if (imageError) {
+                          /* Premium Fallback Card for Broken URLs/Render failures */
+                          return (
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col gap-3 animate-fadeIn">
+                              <div className="flex items-center gap-2 text-red-600 text-xs font-bold leading-none">
+                                <span className="material-icons-round text-[18px]">error_outline</span>
+                                Unable to preview attachment
+                              </div>
+                              <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
+                                The file preview could not be loaded locally. You can open or download the physical attachment securely.
+                              </p>
+                              <div className="flex gap-2 border-t border-slate-100 pt-3">
+                                <button 
+                                  onClick={() => window.open(selectedTicket.attachment_url, "_blank")}
+                                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-extrabold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 shadow-xs transition-all active:scale-95"
+                                >
+                                  <span className="material-icons-round text-[14px]">open_in_new</span>
+                                  Open File
+                                </button>
+                                <a 
+                                  href={selectedTicket.attachment_url}
+                                  download
+                                  className="flex-1 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-extrabold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 shadow-xs transition-all active:scale-95 text-center"
+                                >
+                                  <span className="material-icons-round text-[14px]">download</span>
+                                  Download File
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          /* Whitelist Inline Image Rendering (with click-to-expand) */
+                          return (
+                            <div className="space-y-2.5">
+                              <div 
+                                onClick={() => window.open(selectedTicket.attachment_url, "_blank")}
+                                className="relative w-full rounded-2xl overflow-hidden border border-slate-100 max-h-[160px] flex items-center justify-center bg-slate-50 cursor-zoom-in hover:opacity-90 transition-all group"
+                                title="Click to view full-size"
+                              >
+                                <img 
+                                  src={selectedTicket.attachment_url}
+                                  alt="Support query attachment" 
+                                  onError={() => setImageError(true)}
+                                  className="object-cover max-h-[160px] w-full"
+                                />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <span className="material-icons-round text-white text-3xl">zoom_in</span>
+                                </div>
+                              </div>
+                              
+                              {/* File info card with beautifully wrapped filename */}
+                              <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl min-w-0">
+                                <span className="material-icons-round text-pink-500 text-2xl shrink-0">image</span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-slate-800 text-[11px] font-black break-all block leading-tight">
+                                    {selectedTicket.attachment_url.split("/").pop()}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Image Attachment</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()
+                    ) : (
+                      <span className="text-xs text-slate-400 font-semibold italic">No files attached to this support query.</span>
+                    )}
+                  </div>
+
+                  {/* Active Admin Reply Box */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Reply History</h4>
+                    {selectedTicket.admin_reply ? (
+                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 space-y-2 animate-scaleIn">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 border-b border-emerald-100/50 pb-2">
+                          <span className="text-emerald-700 font-black flex items-center gap-1">
+                            <span className="material-icons-round text-[14px]">reply</span>
+                            Admin Reply Sent
+                          </span>
+                          <span>
+                            {new Date(selectedTicket.updated_at).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 font-semibold leading-relaxed whitespace-pre-wrap">
+                          {selectedTicket.admin_reply}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-semibold italic">No reply has been submitted yet. Use the action block below.</span>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* Sticky Action Panel Footer */}
+              <div className="bg-slate-50 border-t border-slate-100 p-5 space-y-4 shrink-0">
+                
+                {/* Submit Reply form */}
+                <form onSubmit={handleSubmitReply} className="space-y-2">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your support reply here..."
+                    rows={2}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-pink-500 placeholder-slate-400 text-slate-800 transition-colors resize-none shadow-inner"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submittingReply}
+                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-1.5"
+                  >
+                    {submittingReply ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span className="material-icons-round text-[16px]">send</span>
+                        Send Reply
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Status Action Buttons: Close, Reopen */}
+                <div className="flex gap-3">
+                  {selectedTicket.status === "open" ? (
+                    <button
+                      onClick={() => handleUpdateStatus(selectedTicket.id, "closed")}
+                      disabled={updatingStatus}
+                      className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-icons-round text-[16px]">done</span>
+                      Close Ticket
+                    </button>
                   ) : (
-                    <>
-                      <span className="material-icons-round text-[16px]">send</span>
-                      Send Reply
-                    </>
+                    <button
+                      onClick={() => handleUpdateStatus(selectedTicket.id, "open")}
+                      disabled={updatingStatus}
+                      className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold text-xs uppercase tracking-widest rounded-xl transition-transform active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-icons-round text-[16px]">undo</span>
+                      Reopen Ticket
+                    </button>
                   )}
-                </button>
-              </form>
+                </div>
 
-              {/* Status Action Buttons: Reply, Close, Reopen */}
-              <div className="flex gap-3">
-                {selectedTicket.status === "open" ? (
-                  <button
-                    onClick={() => handleUpdateStatus(selectedTicket.id, "closed")}
-                    disabled={updatingStatus}
-                    className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-                  >
-                    <span className="material-icons-round text-[16px]">done</span>
-                    Close Ticket
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleUpdateStatus(selectedTicket.id, "open")}
-                    disabled={updatingStatus}
-                    className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold text-xs uppercase tracking-widest rounded-xl transition-transform active:scale-95 flex items-center justify-center gap-1.5"
-                  >
-                    <span className="material-icons-round text-[16px]">undo</span>
-                    Reopen Ticket
-                  </button>
-                )}
               </div>
-
-            </div>
 
           </div>
         </div>

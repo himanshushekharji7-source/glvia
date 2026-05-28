@@ -119,6 +119,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // Explicit path injection block
+    if (folder.includes("..") || folder.includes(".") || folder.includes("\\")) {
+      return NextResponse.json({ error: "Access Denied: Unsafe directory path parameter" }, { status: 400 });
+    }
+
     // Sanitize folder path to prevent directory traversal
     const safeFolder = folder
       .replace(/\\/g, "/")
@@ -127,22 +132,47 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
       .join("/");
 
+    // Strict validation for support tickets uploads namespace
+    const isSupportTicket = safeFolder.startsWith("support-tickets");
+    if (isSupportTicket) {
+      // Validate folder pattern matches support-tickets/YYYY/MM strictly
+      const folderPattern = /^support-tickets\/\d{4}\/\d{2}$/;
+      if (!folderPattern.test(safeFolder)) {
+        return NextResponse.json({ error: "Access Denied: Support ticket uploads must strictly match /uploads/support-tickets/YYYY/MM/ structure" }, { status: 400 });
+      }
+    }
+
+    const originalName = file.name || "unnamed_file";
+    const ext = path.extname(originalName).toLowerCase();
+    const mime = file.type.toLowerCase();
+
+    // Whitelist check for extensions and MIME types
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".pdf"];
+    const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+
+    // Validate BOTH extension and MIME type
+    if (!allowedExtensions.includes(ext) || !allowedMimes.includes(mime)) {
+      return NextResponse.json({ error: "Upload Rejected: File format is unsupported. Allowed formats: JPG, JPEG, PNG, PDF" }, { status: 400 });
+    }
+
+    // Max 5MB hard limit validation
+    const maxLimitBytes = 5 * 1024 * 1024;
+    if (file.size > maxLimitBytes) {
+      return NextResponse.json({ error: "Upload Rejected: File size exceeds the 5MB maximum limit" }, { status: 400 });
+    }
+
     const targetDir = path.join(UPLOAD_DIR, safeFolder);
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    const originalName = file.name || "unnamed_file";
-    const ext = path.extname(originalName);
-    const baseName = path.basename(originalName, ext)
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "-") // replace non-alphanumeric with dashes
-      .replace(/-+/g, "-")        // compress multiple dashes
-      .replace(/^-|-$/g, "");     // trim dashes from ends
+    // Generate unique hashed filename to avoid conflicts and prevent leakage
+    const timestamp = Date.now();
+    const randomHex = Math.random().toString(36).substring(2, 10);
+    const uniqueFileName = isSupportTicket
+      ? `glvia-ticket-${timestamp}-${randomHex}${ext}`
+      : `${path.basename(originalName, ext).toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")}-${timestamp}${ext}`;
 
-    // Generate unique file name to avoid overwrite
-    const uniqueId = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const uniqueFileName = `${baseName}-${uniqueId}${ext}`;
     const filePath = path.join(targetDir, uniqueFileName);
 
     // Convert file to Buffer and save
@@ -154,11 +184,16 @@ export async function POST(req: NextRequest) {
     const relativePath = path.relative(UPLOAD_DIR, filePath).replace(/\\/g, "/");
     const stats = fs.statSync(filePath);
 
+    // Format output URL dynamically
+    const returnUrl = isSupportTicket
+      ? `/uploads/${relativePath}` // Returns /uploads/support-tickets/YYYY/MM/glvia-ticket-[ts]-[hex].ext
+      : `/uploads/media/${relativePath}`;
+
     return NextResponse.json({
       success: true,
       file: {
         name: uniqueFileName,
-        url: `/uploads/media/${relativePath}`,
+        url: returnUrl,
         size: stats.size,
         createdAt: stats.birthtimeMs || stats.mtimeMs,
         updatedAt: stats.mtimeMs,

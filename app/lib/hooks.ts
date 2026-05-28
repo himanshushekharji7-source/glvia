@@ -995,3 +995,84 @@ export const useUpdateReviewStatus = () => {
     }
   });
 };
+
+// --- Support Tickets TanStack React Query Hooks ---
+
+export const useSupportTickets = (customerId?: string) => {
+  return useQuery({
+    queryKey: ['supportTickets', customerId],
+    queryFn: async () => {
+      if (!customerId) return [];
+      const { data, error } = await supabase
+        .from(TABLES.SUPPORT_TICKETS)
+        .select("*")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!customerId,
+    refetchInterval: 12000, // Optimized polling interval for customer feed
+    refetchOnWindowFocus: true, // Instant sync on window return
+  });
+};
+
+export const useCreateSupportTicket = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (newTicket: any) => {
+      const { data, error } = await supabase
+        .from(TABLES.SUPPORT_TICKETS)
+        .insert(newTicket)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['supportTickets', data.customer_id] });
+      queryClient.invalidateQueries({ queryKey: ['adminSupportTickets'] });
+    }
+  });
+};
+
+export const useAllSupportTickets = () => {
+  return useQuery({
+    queryKey: ['adminSupportTickets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(TABLES.SUPPORT_TICKETS)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 8000, // Optimized polling interval for admin dashboard
+    refetchOnWindowFocus: true, // Instant sync on window return
+  });
+};
+
+export const useUpdateSupportTicket = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const { data, error } = await supabase
+        .from(TABLES.SUPPORT_TICKETS)
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['adminSupportTickets'] });
+      queryClient.invalidateQueries({ queryKey: ['supportTickets', data.customer_id] });
+    }
+  });
+};
+

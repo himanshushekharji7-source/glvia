@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, TABLES } from "../../lib/supabase";
-import { useUser } from "../../lib/hooks";
+import { useUser, useSupportTickets, useCreateSupportTicket } from "../../lib/hooks";
+import axios from "axios";
 
 interface FAQItem {
   id: string;
@@ -348,10 +349,14 @@ export default function UnifiedSupportPage() {
   const [activeQuestion, setActiveQuestion] = useState<FAQItem | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Tickets states (Supabase-first only)
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
-  const [dbError, setDbError] = useState(false);
+  // Caching polling & mutations integration (12s customer frequency, refetchOnWindowFocus)
+  const ticketsQuery = useSupportTickets(user?.id);
+  const createTicketMutation = useCreateSupportTicket();
+
+  const tickets = ticketsQuery.data || [];
+  const loadingTickets = ticketsQuery.isLoading;
+  const dbError = ticketsQuery.isError;
+  const fetchTickets = () => ticketsQuery.refetch();
 
   // Search states (FAQs only)
   const [searchOpen, setSearchOpen] = useState(false);
@@ -366,6 +371,12 @@ export default function UnifiedSupportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Premium file upload states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [validationError, setValidationError] = useState("");
+
   const topics = [
     "Issue On Booking!",
     "Offers",
@@ -374,37 +385,11 @@ export default function UnifiedSupportPage() {
     "Other"
   ];
 
-  // Fetch tickets for the active authenticated customer only (Security rules)
-  const fetchTickets = async () => {
-    if (!user?.id) return;
-    setLoadingTickets(true);
-    setDbError(false);
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.SUPPORT_TICKETS)
-        .select("*")
-        .eq("customer_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTickets(data || []);
-    } catch (err) {
-      console.error("Database failed to load support tickets:", err);
-      setDbError(true);
-    } finally {
-      setLoadingTickets(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchTickets();
-    }
-  }, [user?.id]);
-
-  // Handle support ticket creation (Supabase first only)
+  // Handle support ticket creation (Supabase first & DB Atomic sequence)
   const handleAddTicket = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || uploading) return; // Prevent double submit
+
     if (!selectedTopic) {
       alert("Please choose a topic.");
       return;
@@ -415,21 +400,53 @@ export default function UnifiedSupportPage() {
     }
 
     setSubmitting(true);
-    
-    // Proper ticket numbering: GLVIA-2026-0001
-    const ticketSeqNum = String(tickets.length + 1).padStart(4, "0");
-    const ticketNumber = `GLVIA-2026-${ticketSeqNum}`;
+    let finalAttachmentUrl = null;
 
+    if (selectedFile) {
+      setUploading(true);
+      try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const folderPath = `support-tickets/${year}/${month}`;
+        
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("folder", folderPath);
+
+        const uploadRes = await axios.post("/api/media", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        });
+
+        if (uploadRes.data && uploadRes.data.success) {
+          finalAttachmentUrl = uploadRes.data.file.url;
+        } else {
+          throw new Error("File manager upload failed");
+        }
+      } catch (err: any) {
+        console.error("Physical uploader failure:", err);
+        alert("Upload failed. Please check file properties and network connections.");
+        setSubmitting(false);
+        setUploading(false);
+        return;
+      } finally {
+        setUploading(false);
+      }
+    }
+
+    // Prep ticket insertion. ticket_number will be generated solely via DB sequence trigger!
     const newTicket = {
       id: crypto.randomUUID(),
-      ticket_number: ticketNumber,
+      ticket_number: "", // Leave blank to invoke database trigger atomically
       customer_id: user?.id || "anonymous",
       customer_name: `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Customer",
       customer_email: user?.email || "customer@glvia.com",
       customer_phone: user?.phone_number || "",
       topic: selectedTopic,
       description: description,
-      attachment_url: attachmentName || null,
+      attachment_url: finalAttachmentUrl,
       request_callback: requestCallback,
       status: "open" as const,
       created_at: new Date().toISOString(),
@@ -437,20 +454,20 @@ export default function UnifiedSupportPage() {
     };
 
     try {
-      const { error } = await supabase.from(TABLES.SUPPORT_TICKETS).insert(newTicket);
-      if (error) throw error;
+      await createTicketMutation.mutateAsync(newTicket);
       
-      setTickets(prev => [newTicket as Ticket, ...prev]);
-      
-      // Reset form
+      // Auto-reset uploader and form states on success
       setSelectedTopic("");
       setDescription("");
       setAttachmentName("");
+      setSelectedFile(null);
+      setPreviewUrl("");
+      setValidationError("");
       setRequestCallback(false);
       setIsAdding(false);
       setCurrentTab("open");
       
-      alert(`Support Ticket ${ticketNumber} raised successfully!`);
+      alert("Support Ticket raised successfully! Our support agents will respond shortly.");
     } catch (err: any) {
       console.error("Failed to add support ticket in Supabase:", err);
       alert("Unable to submit support ticket. Please check your connection and try again.");
@@ -459,10 +476,37 @@ export default function UnifiedSupportPage() {
     }
   };
 
-  // Mock file selector click helper
+  // File selector validation (JPG, PNG, PDF & max 5MB size limit)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValidationError("");
     if (e.target.files && e.target.files[0]) {
-      setAttachmentName(e.target.files[0].name);
+      const file = e.target.files[0];
+      
+      // Check extension and mime
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+      const allowedExtensions = [".jpg", ".jpeg", ".png", ".pdf"];
+      const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+      
+      if (!allowedExtensions.includes(ext) || !allowedMimes.includes(file.type.toLowerCase())) {
+        setValidationError("Upload Rejected: File format is unsupported. Allowed formats: JPG, JPEG, PNG, PDF");
+        return;
+      }
+
+      // Check file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setValidationError("Upload Rejected: File size exceeds the 5MB maximum limit");
+        return;
+      }
+
+      setSelectedFile(file);
+      setAttachmentName(file.name);
+      
+      if (file.type.toLowerCase().startsWith("image/")) {
+        setPreviewUrl(URL.createObjectURL(file));
+      } else {
+        setPreviewUrl("");
+      }
     }
   };
 
@@ -632,22 +676,98 @@ export default function UnifiedSupportPage() {
               />
             </div>
 
-            {/* File Selector */}
+            {/* File Selector & Interactive Preview Card */}
             <div className="space-y-2">
-              <label className="relative block w-full">
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleFileChange}
-                />
-                <div className="w-full px-4 py-3.5 bg-white border border-slate-200 border-dashed rounded-2xl flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors">
-                  <span className="text-[13px] font-bold text-slate-500 truncate max-w-[80%]">
-                    {attachmentName || "Click here to upload file"}
-                  </span>
-                  <span className="material-icons-round text-slate-500 text-[20px]">upload</span>
+              <label className="block text-xs font-black text-slate-900 uppercase tracking-wider">Attachment (Optional)</label>
+              
+              {/* Whitelist validation error card */}
+              {validationError && (
+                <div className="p-3.5 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-2.5 text-red-600 text-xs font-bold animate-fadeIn">
+                  <span className="material-icons-round text-[18px] shrink-0 mt-0.5">error_outline</span>
+                  <div>
+                    <div className="font-extrabold text-[12px]">Validation Failed</div>
+                    <div className="text-[10px] text-red-500 font-bold mt-0.5">{validationError}</div>
+                  </div>
                 </div>
-              </label>
+              )}
+
+              {!selectedFile ? (
+                /* Empty state: Click to upload */
+                <label className="relative block w-full">
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    accept=".jpg,.jpeg,.png,.pdf"
+                  />
+                  <div className="w-full px-4 py-4 bg-white border-2 border-slate-200 border-dashed rounded-2xl flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="material-icons-round text-slate-400 text-3xl">upload_file</span>
+                      <div className="text-left">
+                        <span className="text-[13px] font-black text-slate-800 block">Click here to upload file</span>
+                        <span className="text-[10px] text-slate-400 font-bold">Supports JPG, PNG, PDF up to 5MB</span>
+                      </div>
+                    </div>
+                    <span className="material-icons-round text-slate-400 text-[20px]">upload</span>
+                  </div>
+                </label>
+              ) : (
+                /* Selected active preview card */
+                <div className="bg-white border border-slate-200 rounded-2xl p-3 space-y-3 relative shadow-sm animate-scaleIn">
+                  
+                  {/* Image attachment preview card */}
+                  {previewUrl ? (
+                    <div className="relative w-full rounded-xl overflow-hidden border border-slate-100 max-h-[140px] flex items-center justify-center bg-slate-50">
+                      <img 
+                        src={previewUrl} 
+                        alt="Upload success preview" 
+                        className="object-cover max-h-[140px] w-full"
+                      />
+                    </div>
+                  ) : null}
+
+                  {/* File info footer detail rows */}
+                  <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {previewUrl ? (
+                        <span className="material-icons-round text-pink-500 text-2xl shrink-0">image</span>
+                      ) : (
+                        <span className="material-icons-round text-sky-500 text-2xl shrink-0">picture_as_pdf</span>
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-[12px] font-extrabold text-slate-800 break-all block truncate max-w-[200px]">{selectedFile.name}</span>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • {previewUrl ? "Image ready" : "PDF ready"}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setAttachmentName("");
+                        setPreviewUrl("");
+                        setValidationError("");
+                      }}
+                      className="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors active:scale-90 shrink-0"
+                    >
+                      <span className="material-icons-round text-sm font-bold">close</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Active upload status tracker */}
+            {uploading && (
+              <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 flex items-center gap-3 animate-pulse">
+                <div className="w-5 h-5 border-2 border-sky-600/30 border-t-sky-600 rounded-full animate-spin shrink-0" />
+                <div className="text-left">
+                  <span className="text-xs font-black text-sky-800 block">Uploading attachment...</span>
+                  <span className="text-[10px] text-sky-500 font-bold">Saving file securely to Hostinger file manager...</span>
+                </div>
+              </div>
+            )}
 
             {/* Callback requested checkbox */}
             <div className="flex items-center gap-3">
@@ -670,11 +790,14 @@ export default function UnifiedSupportPage() {
             {/* Submit Button */}
             <button 
               type="submit"
-              disabled={submitting}
-              className="w-full py-4 bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              disabled={submitting || uploading}
+              className="w-full py-4 bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-md active:scale-[0.98] disabled:bg-slate-300 disabled:shadow-none disabled:active:scale-100 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
               {submitting ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Processing...</span>
+                </div>
               ) : (
                 "Add Support Ticket"
               )}
@@ -797,9 +920,34 @@ export default function UnifiedSupportPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-24 flex flex-col items-center justify-center">
-                <span className="material-icons-round text-slate-200 text-6xl mb-4 font-light">confirmation_number</span>
-                <p className="text-[14px] text-slate-400 font-black">No data found</p>
+              <div className="text-center py-16 bg-white border border-slate-100 rounded-3xl p-6 shadow-xs flex flex-col items-center justify-center">
+                {currentTab === "open" ? (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 mb-4">
+                      <span className="material-icons-round text-3xl">pending_actions</span>
+                    </div>
+                    <h3 className="text-[14px] font-black text-slate-900">No open queries found</h3>
+                    <p className="text-xs text-slate-400 font-semibold mt-1.5 max-w-[240px] leading-relaxed">
+                      Have an issue with booking, payment, or salons? Raise a new support ticket right now.
+                    </p>
+                    <button
+                      onClick={() => setIsAdding(true)}
+                      className="mt-5 px-6 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-transform active:scale-95"
+                    >
+                      Raise a Ticket
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 mb-4">
+                      <span className="material-icons-round text-3xl">check_circle</span>
+                    </div>
+                    <h3 className="text-[14px] font-black text-slate-900">No closed queries found</h3>
+                    <p className="text-xs text-slate-400 font-semibold mt-1.5 max-w-[240px] leading-relaxed">
+                      Your resolved support queries and completed callback request history will appear here.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 

@@ -639,4 +639,29 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
 );
 
 
+-- 16. Support Ticket Sequence & Trigger
+CREATE SEQUENCE IF NOT EXISTS public.support_ticket_number_seq START WITH 1;
+
+CREATE OR REPLACE FUNCTION public.generate_support_ticket_number()
+RETURNS TRIGGER AS $$
+DECLARE
+  next_val INT;
+  year_val TEXT;
+BEGIN
+  next_val := nextval('public.support_ticket_number_seq');
+  year_val := to_char(CURRENT_DATE, 'YYYY');
+  NEW.ticket_number := 'GLVIA-' || year_val || '-' || lpad(next_val::text, 4, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_generate_support_ticket_number ON public.support_tickets;
+CREATE TRIGGER trg_generate_support_ticket_number
+BEFORE INSERT ON public.support_tickets
+FOR EACH ROW
+WHEN (NEW.ticket_number IS NULL OR NEW.ticket_number = '')
+EXECUTE FUNCTION public.generate_support_ticket_number();
+
+
+
 
