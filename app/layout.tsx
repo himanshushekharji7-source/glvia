@@ -12,10 +12,33 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "glvia — Premium Beauty Marketplace",
+  metadataBase: new URL("https://glvia.com"),
+  title: {
+    default: "glvia — Premium Beauty Marketplace",
+    template: "%s | glvia"
+  },
   description:
-    "Discover and book premium salon, spa & beauty services near you. Exclusive deals, top-rated professionals, and seamless booking.",
-  keywords: ["salon", "beauty", "spa", "booking", "haircut", "nails", "massage"],
+    "Discover and book premium salon, spa & beauty services near you in Uttar Pradesh. Exclusive deals, top-rated professionals, and seamless online booking.",
+  keywords: [
+    "salon booking Uttar Pradesh",
+    "premium beauty salon Lucknow",
+    "best spa Kanpur",
+    "haircut booking Noida",
+    "salon near me",
+    "best salon in UP",
+    "haircut booking",
+    "bridal makeup salon",
+    "beauty salon booking",
+    "spa and grooming"
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+  }
 };
 
 export const viewport: Viewport = {
