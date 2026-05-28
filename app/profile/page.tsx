@@ -13,7 +13,7 @@ const menuItems = [
   { icon: "favorite", label: "Wishlist", href: "/wishlist", badge: "" },
   { icon: "notifications", label: "Notifications", href: "/notifications", badge: "" },
   { icon: "account_balance_wallet", label: "Wallet", href: "/wallet", badge: "" },
-  { icon: "support_agent", label: "Help & Support (8004642110)", href: "tel:8004642110", badge: "" },
+  { icon: "support_agent", label: "Help & Support", href: "/profile/support", badge: "" },
   { icon: "download_for_offline", label: "Install App", href: "#", badge: "Install Now", isInstall: true },
   { icon: "settings", label: "Settings", href: "#", badge: "" },
 ];
