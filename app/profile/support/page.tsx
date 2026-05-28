@@ -385,6 +385,16 @@ export default function UnifiedSupportPage() {
     "Other"
   ];
 
+  // Trigger Raise Ticket SPA overlay immediately if navigated from Profile direct link
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("raise") === "true") {
+        setIsAdding(true);
+      }
+    }
+  }, []);
+
   // Handle support ticket creation (Supabase first & DB Atomic sequence)
   const handleAddTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -552,7 +562,11 @@ export default function UnifiedSupportPage() {
 
   const handleBack = () => {
     if (isAdding) {
-      setIsAdding(false);
+      if (typeof window !== "undefined" && window.location.search.includes("raise=true")) {
+        router.push("/profile");
+      } else {
+        setIsAdding(false);
+      }
     } else if (activeQuestion) {
       setActiveQuestion(null);
       setFaqFeedbackSubmitted(null);
@@ -612,20 +626,12 @@ export default function UnifiedSupportPage() {
         {/* Contextual top right buttons */}
         {!isAdding && !activeQuestion && (
           <div className="flex items-center gap-2">
-            {currentTab === "faqs" ? (
+            {currentTab === "faqs" && (
               <button 
                 onClick={() => setSearchOpen(!searchOpen)} 
                 className={`w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors ${searchOpen ? 'text-pink-600 bg-pink-50' : 'text-slate-600'}`}
               >
                 <span className="material-icons-round text-[22px]">search</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsAdding(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl active:scale-95 text-xs font-bold transition-all shadow-xs"
-              >
-                <span className="material-icons-round text-[16px] text-white font-black">add</span>
-                Add Ticket
               </button>
             )}
           </div>
@@ -953,14 +959,8 @@ export default function UnifiedSupportPage() {
                     </div>
                     <h3 className="text-[14px] font-black text-slate-900">No open queries found</h3>
                     <p className="text-xs text-slate-400 font-semibold mt-1.5 max-w-[240px] leading-relaxed">
-                      Have an issue with booking, payment, or salons? Raise a new support ticket right now.
+                      Your active open support queries and callback request logs will appear here.
                     </p>
-                    <button
-                      onClick={() => setIsAdding(true)}
-                      className="mt-5 px-6 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-transform active:scale-95"
-                    >
-                      Raise a Ticket
-                    </button>
                   </>
                 ) : (
                   <>
