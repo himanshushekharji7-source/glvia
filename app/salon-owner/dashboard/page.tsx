@@ -426,8 +426,51 @@ function BookingsTab({ salonId }: { salonId: string }) {
       )}
     </div>
   );
-}
+}const getCategoryLabel = (slug: string, gender: string) => {
+  const list = gender === "male" ? [
+    { label: "Hair Cut & Style", slug: "hair-cut-style" },
+    { label: "Skin Care", slug: "skin-care" },
+    { label: "Hair Colour", slug: "hair-colour" },
+    { label: "Hair Chemical", slug: "hair-chemical" },
+    { label: "Mani Pedi & Hygiene", slug: "mani-pedi-hygiene" },
+    { label: "Spa & Massage", slug: "spa-massage" },
+    { label: "Body Polishing", slug: "body-polishing" },
+    { label: "Hair Treatments", slug: "hair-treatments" },
+    { label: "Pre Groom", slug: "pre-groom" },
+    { label: "Makeup", slug: "makeup" },
+  ] : [
+    { label: "Hair Cut & Style", slug: "hair-cut-style" },
+    { label: "Hair Colour", slug: "hair-colour" },
+    { label: "Hair Treatments", slug: "hair-treatments" },
+    { label: "Hair Chemical", slug: "hair-chemical" },
+    { label: "Mani Pedi & Hygiene", slug: "mani-pedi-hygiene" },
+    { label: "Skin Care", slug: "skin-care" },
+    { label: "Spa & Massage", slug: "spa-massage" },
+    { label: "Makeup", slug: "makeup" },
+    { label: "Nail Art", slug: "nail-art" },
+    { label: "Bridal Packages", slug: "bridal-packages" },
+  ];
+  const found = list.find(c => c.slug === slug);
+  return found ? found.label : (slug || "Unassigned");
+};
 
+const normalizeCategorySlug = (category: string) => {
+  if (!category) return "";
+  const clean = category.trim().toLowerCase();
+  if (clean.includes("cut") && clean.includes("style")) return "hair-cut-style";
+  if (clean.includes("skin") && clean.includes("care")) return "skin-care";
+  if (clean.includes("clour") || clean.includes("colour") || clean.includes("color")) return "hair-colour";
+  if (clean.includes("chemical")) return "hair-chemical";
+  if (clean.includes("mani") || clean.includes("pedi") || clean.includes("hygiene")) return "mani-pedi-hygiene";
+  if (clean.includes("spa") || clean.includes("massage")) return "spa-massage";
+  if (clean.includes("body") && clean.includes("polishing")) return "body-polishing";
+  if (clean.includes("treatments") || clean.includes("treatment")) return "hair-treatments";
+  if (clean.includes("pre") && clean.includes("groom")) return "pre-groom";
+  if (clean.includes("makeup")) return "makeup";
+  if (clean.includes("nail") && clean.includes("art")) return "nail-art";
+  if (clean.includes("bridal") && clean.includes("package")) return "bridal-packages";
+  return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
+};
 
 // ─── Services Tab ─────────────────────────────────────────────────────────────
 function ServicesTab({ salonId }: { salonId: string }) {
@@ -467,7 +510,7 @@ function ServicesTab({ salonId }: { salonId: string }) {
         name: form.name,
         price: Number(form.price),
         duration: form.duration,
-        category: form.category,
+        category: normalizeCategorySlug(form.category),
         gender: form.gender,
         description: form.description,
         image: form.image || "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80",
@@ -508,7 +551,43 @@ function ServicesTab({ salonId }: { salonId: string }) {
           </select>
         </div>
       </div>
-      <Input label="Category" value={form.category} onChange={(e: any) => setForm(p => ({ ...p, category: e.target.value }))} placeholder="e.g., Hair Cut & Style" />
+      <div>
+        <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Category</label>
+        <select
+          value={form.category}
+          onChange={(e: any) => setForm(p => ({ ...p, category: e.target.value }))}
+          className="w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-[#191c1d] text-sm focus:outline-none focus:border-[#b10e6b] transition-all"
+        >
+          <option value="">Select Category</option>
+          {form.gender === "male" ? (
+            <>
+              <option value="hair-cut-style">Hair Cut & Style</option>
+              <option value="skin-care">Skin Care</option>
+              <option value="hair-colour">Hair Colour</option>
+              <option value="hair-chemical">Hair Chemical</option>
+              <option value="mani-pedi-hygiene">Mani Pedi & Hygiene</option>
+              <option value="spa-massage">Spa & Massage</option>
+              <option value="body-polishing">Body Polishing</option>
+              <option value="hair-treatments">Hair Treatments</option>
+              <option value="pre-groom">Pre Groom</option>
+              <option value="makeup">Makeup</option>
+            </>
+          ) : (
+            <>
+              <option value="hair-cut-style">Hair Cut & Style</option>
+              <option value="hair-colour">Hair Colour</option>
+              <option value="hair-treatments">Hair Treatments</option>
+              <option value="hair-chemical">Hair Chemical</option>
+              <option value="mani-pedi-hygiene">Mani Pedi & Hygiene</option>
+              <option value="skin-care">Skin Care</option>
+              <option value="spa-massage">Spa & Massage</option>
+              <option value="makeup">Makeup</option>
+              <option value="nail-art">Nail Art</option>
+              <option value="bridal-packages">Bridal Packages</option>
+            </>
+          )}
+        </select>
+      </div>
       <MediaUploader
         label="Service Image (optional)"
         value={form.image}
@@ -573,7 +652,7 @@ function ServicesTab({ salonId }: { salonId: string }) {
               <div className="flex-1 min-w-0 flex flex-col justify-between">
                 <div>
                   <h4 className="font-bold text-[#191c1d] text-base truncate">{svc.name}</h4>
-                  <p className="text-xs text-[#574048] mt-0.5">{svc.category} · {svc.duration} min · <span className="capitalize">{svc.gender}</span></p>
+                  <p className="text-xs text-[#574048] mt-0.5">{getCategoryLabel(svc.category, svc.gender)} · {svc.duration} min · <span className="capitalize">{svc.gender}</span></p>
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">

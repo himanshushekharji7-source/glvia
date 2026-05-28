@@ -10,6 +10,7 @@ const adminNav = [
   { icon: "perm_media", label: "Media Library", href: "/admin/media" },
   { icon: "home", label: "Home Content", href: "/admin/home-content" },
   { icon: "delivery_dining", label: "At Home Content", href: "/admin/at-home-content" },
+  { icon: "campaign", label: "At The Salon Content", href: "/admin/at-the-salon-content" },
   { icon: "storefront", label: "Salons", href: "/admin/salons" },
   { icon: "category", label: "Categories", href: "/admin/categories" },
   { icon: "card_membership", label: "Membership", href: "/admin/membership" },
