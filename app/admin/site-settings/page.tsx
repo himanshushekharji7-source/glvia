@@ -6,7 +6,7 @@ import { supabase, TABLES } from "../../lib/supabase";
 const settingKeys = [
   { key: "app_name", label: "App Name", placeholder: "glvia" },
   { key: "referral_amount", label: "Referral Amount (₹)", placeholder: "100" },
-  { key: "billu_cash_points", label: "Billu Cash Points", placeholder: "1000" },
+  { key: "billu_cash_points", label: "GLVIA Cash Points", placeholder: "1000" },
   { key: "billu_cash_value", label: "Cash Points Value (₹)", placeholder: "10" },
 ];
 

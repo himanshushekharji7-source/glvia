@@ -65,18 +65,18 @@ const faqData: FAQCategory[] = [
       },
       {
         id: "g9",
-        question: "What is the use of BCP which I earned?",
-        answer: "BCP (Billu Cash Points) can be redeemed as discount points during checkout for any premium salon booking."
+        question: "What is the use of GCP which I earned?",
+        answer: "GCP (GLVIA Cash Points) can be redeemed as discount points during checkout for any premium salon booking."
       },
       {
         id: "g10",
-        question: "Can I use my BCP in each salon or in particular salon?",
-        answer: "BCP is universal and can be used at any approved salon partnered with GLIVAJI / Billu."
+        question: "Can I use my GCP in each salon or in particular salon?",
+        answer: "GCP is universal and can be used at any approved salon partnered with GLIVAJI / GLVIA."
       },
       {
         id: "g11",
-        question: "How many BCP will I earn if refer Billu customer app to someone ?",
-        answer: "You earn 1000 BCP (valued at ₹100) for every successful referral."
+        question: "How many GCP will I earn if refer GLVIA customer app to someone ?",
+        answer: "You earn 1000 GCP (valued at ₹100) for every successful referral."
       },
       {
         id: "g12",
@@ -95,13 +95,13 @@ const faqData: FAQCategory[] = [
       },
       {
         id: "g15",
-        question: "What are the benefits of Billu customer app ?",
+        question: "What are the benefits of GLVIA customer app ?",
         answer: "Access premium beauty salons, enjoy massive discounts, collect cash points, and schedule appointments instantly from your phone."
       },
       {
         id: "g16",
-        question: "What is Billu ?",
-        answer: "Billu / GLIVAJI is a luxury beauty-tech salon discovery and instant booking marketplace offering high-end grooming services."
+        question: "What is GLVIA ?",
+        answer: "GLVIA / GLIVAJI is a luxury beauty-tech salon discovery and instant booking marketplace offering high-end grooming services."
       }
     ]
   },
@@ -186,8 +186,8 @@ const faqData: FAQCategory[] = [
     items: [
       {
         id: "s1",
-        question: "How to contact billu support.",
-        answer: "You can contact Billu Support via multiple channels ::\n\nYou can email care@billu.care\nYou can also contact via whatsapp at +91-9375133233\nYou can reach out us via app chat messenger\n\nOur support team timings are .Monday to Saturday 9 AM to 6 PM."
+        question: "How to contact glvia support.",
+        answer: "You can contact GLVIA Support via multiple channels ::\n\nYou can email care@glvia.com\nYou can also contact via whatsapp at +91-9375133233\nYou can reach out us via app chat messenger\n\nOur support team timings are .Monday to Saturday 9 AM to 6 PM."
       }
     ]
   },
@@ -308,7 +308,7 @@ export default function FAQPage() {
               ? activeCategory?.name 
               : activeCategory 
                 ? activeCategory.name 
-                : "Billu Customer FAQ"}
+                : "GLVIA Customer FAQ"}
           </span>
         </div>
         
@@ -493,10 +493,10 @@ export default function FAQPage() {
             <div className="bg-sky-500 text-white px-5 py-4 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">
-                  B
+                  G
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm leading-none">Billu Customer Care</h3>
+                  <h3 className="font-extrabold text-sm leading-none">GLVIA Customer Care</h3>
                   <span className="text-[10px] text-sky-100 mt-1 inline-block font-semibold">Active Support Agent</span>
                 </div>
               </div>
@@ -511,13 +511,13 @@ export default function FAQPage() {
             {/* Chat Body */}
             <div className="flex-1 bg-slate-50 p-4 overflow-y-auto space-y-4 font-semibold text-xs leading-relaxed text-slate-700">
               <div className="flex gap-2 items-end max-w-[85%]">
-                <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-white text-[9px] font-black shrink-0">B</div>
+                <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-white text-[9px] font-black shrink-0">G</div>
                 <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-none p-3 shadow-xs">
-                  Hi there! Welcome to Billu Customer Care Support. How can we help you today?
+                  Hi there! Welcome to GLVIA Customer Care Support. How can we help you today?
                 </div>
               </div>
               <div className="flex gap-2 items-end max-w-[85%]">
-                <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-white text-[9px] font-black shrink-0">B</div>
+                <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-white text-[9px] font-black shrink-0">G</div>
                 <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-none p-3 shadow-xs">
                   Timings: Mon - Sat 9:00 AM to 6:00 PM. Drop us a message here and we'll reply instantly!
                 </div>

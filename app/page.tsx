@@ -301,7 +301,7 @@ export default function HomePage() {
         merged={true}
       />
 
-      {/* ─── Hero Banner (100% width, like Billu) ─── */}
+      {/* ─── Hero Banner (100% width, like glvia) ─── */}
       <div className="relative w-full h-[260px] -mt-[64px] pt-[64px] bg-gradient-to-br from-[#db2777] via-[#ec4899] to-[#7c3aed] overflow-hidden animate-fadeInUp flex items-center">
         {/* Background Texture blended in */}
         <div className="absolute inset-0 opacity-15 mix-blend-overlay pointer-events-none">
