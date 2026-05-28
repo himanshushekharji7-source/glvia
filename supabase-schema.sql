@@ -663,5 +663,55 @@ WHEN (NEW.ticket_number IS NULL OR NEW.ticket_number = '')
 EXECUTE FUNCTION public.generate_support_ticket_number();
 
 
+-- 17. updated_at Auto Trigger
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_update_support_ticket_updated_at ON public.support_tickets;
+CREATE TRIGGER trg_update_support_ticket_updated_at
+BEFORE UPDATE ON public.support_tickets
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
+
+-- 18. Database Indexes (Performance)
+CREATE INDEX IF NOT EXISTS idx_support_tickets_customer ON public.support_tickets(customer_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON public.support_tickets(created_at DESC);
+
+
+-- 19. RLS Security (MANDATORY)
+ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Customers can view own tickets" ON public.support_tickets;
+CREATE POLICY "Customers can view own tickets"
+ON public.support_tickets
+FOR SELECT
+USING (
+  auth.uid()::text = customer_id
+);
+
+DROP POLICY IF EXISTS "Customers can create own tickets" ON public.support_tickets;
+CREATE POLICY "Customers can create own tickets"
+ON public.support_tickets
+FOR INSERT
+WITH CHECK (
+  auth.uid()::text = customer_id
+);
+
+DROP POLICY IF EXISTS "Admins full support access" ON public.support_tickets;
+CREATE POLICY "Admins full support access"
+ON public.support_tickets
+FOR ALL
+USING (true)
+WITH CHECK (true);
+
+
+
 
 
