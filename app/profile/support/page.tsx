@@ -385,16 +385,25 @@ export default function UnifiedSupportPage() {
     "Other"
   ];
 
+  // Dynamic view toggler: Toggles between Help & Support FAQ mode and Support Ticket ticketing mode
+  const [isTicketingMode, setIsTicketingMode] = useState(false);
+
   // Parse starting tab from URL query params (avoids Next.js build Suspense boundary constraints)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "open" || tabParam === "closed") {
-        setCurrentTab(tabParam);
-      } else if (tabParam === "add") {
-        setCurrentTab("open");
-        setIsAdding(true);
+      if (tabParam === "open" || tabParam === "closed" || tabParam === "add") {
+        setIsTicketingMode(true);
+        if (tabParam === "open" || tabParam === "closed") {
+          setCurrentTab(tabParam);
+        } else if (tabParam === "add") {
+          setCurrentTab("open");
+          setIsAdding(true);
+        }
+      } else {
+        setIsTicketingMode(false);
+        setCurrentTab("faqs");
       }
     }
   }, []);
@@ -619,14 +628,15 @@ export default function UnifiedSupportPage() {
                 ? activeCategory?.name 
                 : activeCategory 
                   ? activeCategory.name 
-                  : (currentTab === "faqs" ? "Help & Support" : "Support Ticket")}
+                  : (isTicketingMode ? "Support Ticket" : "Help & Support")}
           </span>
         </div>
         
         {/* Contextual top right buttons */}
         {!isAdding && !activeQuestion && (
           <div className="flex items-center gap-2">
-            {currentTab === "faqs" ? (
+            {!isTicketingMode ? (
+              /* FAQ Help Mode: Search tool toggle */
               <button 
                 onClick={() => setSearchOpen(!searchOpen)} 
                 className={`w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors ${searchOpen ? 'text-pink-600 bg-pink-50' : 'text-slate-600'}`}
@@ -634,6 +644,7 @@ export default function UnifiedSupportPage() {
                 <span className="material-icons-round text-[22px]">search</span>
               </button>
             ) : (
+              /* Support Tickets Mode: Add Ticket CTA */
               <button
                 onClick={() => setIsAdding(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl active:scale-95 text-xs font-bold transition-all shadow-xs"
@@ -646,21 +657,11 @@ export default function UnifiedSupportPage() {
         )}
       </header>
 
-      {/* ─── Consolidated 3-Tab Navigator (Hide in form / detail view) ─── */}
-      {!isAdding && !activeQuestion && !activeCategory && (
+      {/* ─── Hardened 2-Tab Navigator (ONLY in Support Ticket Mode, Hide in FAQ / form / details) ─── */}
+      {isTicketingMode && !isAdding && !activeQuestion && !activeCategory && (
         <div className="bg-white border-b border-slate-100 flex shadow-xs sticky top-[65px] z-30">
           <button
-            onClick={() => handleTabChange("faqs")}
-            className="flex-1 py-4 text-center text-xs font-black tracking-wide relative"
-            style={{ color: currentTab === "faqs" ? "#ec4899" : "#64748b" }}
-          >
-            FAQs
-            {currentTab === "faqs" && (
-              <div className="absolute bottom-0 left-4 right-4 h-1 bg-pink-500 rounded-t-full" />
-            )}
-          </button>
-          <button
-            onClick={() => handleTabChange("open")}
+            onClick={() => setCurrentTab("open")}
             className="flex-1 py-4 text-center text-xs font-black tracking-wide relative"
             style={{ color: currentTab === "open" ? "#ec4899" : "#64748b" }}
           >
@@ -670,7 +671,7 @@ export default function UnifiedSupportPage() {
             )}
           </button>
           <button
-            onClick={() => handleTabChange("closed")}
+            onClick={() => setCurrentTab("closed")}
             className="flex-1 py-4 text-center text-xs font-black tracking-wide relative"
             style={{ color: currentTab === "closed" ? "#ec4899" : "#64748b" }}
           >
