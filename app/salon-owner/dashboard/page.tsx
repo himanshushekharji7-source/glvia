@@ -15,6 +15,7 @@ import {
 import SalonOnboardingWizard from "../../components/admin/SalonOnboardingWizard";
 import MediaUploader from "../../components/admin/MediaUploader";
 import { supabase, TABLES } from "../../lib/supabase";
+import { getCategoriesForGender, getServicesForCategory, getCategoryLabelFromSlug } from "../../lib/predefinedServices";
 
 type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "reviews" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -427,32 +428,10 @@ function BookingsTab({ salonId }: { salonId: string }) {
       )}
     </div>
   );
-}const getCategoryLabel = (slug: string, gender: string) => {
-  const list = gender === "male" ? [
-    { label: "Hair Cut & Style", slug: "hair-cut-style" },
-    { label: "Skin Care", slug: "skin-care" },
-    { label: "Hair Colour", slug: "hair-colour" },
-    { label: "Hair Chemical", slug: "hair-chemical" },
-    { label: "Mani Pedi & Hygiene", slug: "mani-pedi-hygiene" },
-    { label: "Spa & Massage", slug: "spa-massage" },
-    { label: "Body Polishing", slug: "body-polishing" },
-    { label: "Hair Treatments", slug: "hair-treatments" },
-    { label: "Pre Groom", slug: "pre-groom" },
-    { label: "Makeup", slug: "makeup" },
-  ] : [
-    { label: "Hair Cut & Style", slug: "hair-cut-style" },
-    { label: "Hair Colour", slug: "hair-colour" },
-    { label: "Hair Treatments", slug: "hair-treatments" },
-    { label: "Hair Chemical", slug: "hair-chemical" },
-    { label: "Mani Pedi & Hygiene", slug: "mani-pedi-hygiene" },
-    { label: "Skin Care", slug: "skin-care" },
-    { label: "Spa & Massage", slug: "spa-massage" },
-    { label: "Makeup", slug: "makeup" },
-    { label: "Nail Art", slug: "nail-art" },
-    { label: "Bridal Packages", slug: "bridal-packages" },
-  ];
-  const found = list.find(c => c.slug === slug);
-  return found ? found.label : (slug || "Unassigned");
+}
+
+const getCategoryLabel = (slug: string, gender: string) => {
+  return getCategoryLabelFromSlug(slug, gender);
 };
 
 const normalizeCategorySlug = (category: string) => {
@@ -468,7 +447,6 @@ const normalizeCategorySlug = (category: string) => {
   if (clean.includes("treatments") || clean.includes("treatment")) return "hair-treatments";
   if (clean.includes("pre") && clean.includes("groom")) return "pre-groom";
   if (clean.includes("makeup")) return "makeup";
-  if (clean.includes("nail") && clean.includes("art")) return "nail-art";
   if (clean.includes("bridal") && clean.includes("package")) return "bridal-packages";
   return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
 };
@@ -482,14 +460,19 @@ function ServicesTab({ salonId }: { salonId: string }) {
 
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [selected, setSelected] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", price: "", duration: "", category: "", gender: "female", description: "", image: "", old_price: "" });
+  const [form, setForm] = useState({
+    name: "", price: "", duration: "", category: "", gender: "female",
+    description: "", image: "", old_price: "", products_used: "",
+  });
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-
+  // Derived dropdown data from predefined services
+  const categoriesForGender = getCategoriesForGender(form.gender);
+  const servicesForCategory = form.category ? getServicesForCategory(form.gender, form.category) : [];
 
   const openAdd = () => {
-    setForm({ name: "", price: "", duration: "", category: "", gender: "female", description: "", image: "", old_price: "" });
+    setForm({ name: "", price: "", duration: "", category: "", gender: "female", description: "", image: "", old_price: "", products_used: "" });
     setModal("add");
   };
 
@@ -500,12 +483,23 @@ function ServicesTab({ salonId }: { salonId: string }) {
       category: svc.category || "", gender: svc.gender || "female",
       description: svc.description || "", image: svc.image || "",
       old_price: String(svc.old_price || ""),
+      products_used: svc.products_used || "",
     });
     setModal("edit");
   };
 
+  const handleGenderChange = (newGender: string) => {
+    // Reset category & service name when gender changes
+    setForm(p => ({ ...p, gender: newGender, category: "", name: "" }));
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    // Reset service name when category changes
+    setForm(p => ({ ...p, category: newCategory, name: "" }));
+  };
+
   const handleSave = async () => {
-    if (!form.name.trim() || !form.price) return;
+    if (!form.name.trim() || !form.price || !form.category) return;
     setSaving(true);
     try {
       const payload: any = {
@@ -513,9 +507,10 @@ function ServicesTab({ salonId }: { salonId: string }) {
         name: form.name,
         price: Number(form.price),
         duration: form.duration,
-        category: normalizeCategorySlug(form.category),
+        category: form.category,
         gender: form.gender,
         description: form.description,
+        products_used: form.products_used || null,
         image: form.image || "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80",
         old_price: form.old_price ? Number(form.old_price) : null,
       };
@@ -535,75 +530,87 @@ function ServicesTab({ salonId }: { salonId: string }) {
 
   const formFields = (
     <div className="space-y-4">
-      <Input label="Service Name *" value={form.name} onChange={(e: any) => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Haircut" />
+      {/* Step 1: Gender */}
+      <div>
+        <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Gender *</label>
+        <div className="grid grid-cols-2 gap-2">
+          {["female", "male"].map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => handleGenderChange(g)}
+              className={`px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
+                form.gender === g
+                  ? "bg-[#b10e6b] text-white border-[#b10e6b] shadow-ambient-primary"
+                  : "bg-white text-[#574048] border-[#e1e3e4] hover:border-[#b10e6b] hover:text-[#b10e6b]"
+              }`}
+            >
+              <span className="material-icons-round text-[16px] mr-1.5 align-middle">{g === "female" ? "female" : "male"}</span>
+              <span className="capitalize">{g}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 2: Category dropdown (changes based on gender) */}
+      <div>
+        <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Category *</label>
+        <select
+          value={form.category}
+          onChange={(e: any) => handleCategoryChange(e.target.value)}
+          className="w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-[#191c1d] text-sm focus:outline-none focus:border-[#b10e6b] transition-all"
+        >
+          <option value="">Select Category</option>
+          {categoriesForGender.map((cat) => (
+            <option key={cat.slug} value={cat.slug}>
+              {cat.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Step 3: Service Name dropdown (changes based on category) */}
+      <div>
+        <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Service Name *</label>
+        <select
+          value={form.name}
+          onChange={(e: any) => setForm(p => ({ ...p, name: e.target.value }))}
+          disabled={!form.category}
+          className={`w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-sm focus:outline-none focus:border-[#b10e6b] transition-all ${
+            !form.category ? "text-[#8b7079] cursor-not-allowed opacity-60" : "text-[#191c1d]"
+          }`}
+        >
+          <option value="">{form.category ? "Select Service" : "Select a category first"}</option>
+          {servicesForCategory.map((svcName) => (
+            <option key={svcName} value={svcName}>
+              {svcName}
+            </option>
+          ))}
+        </select>
+        {form.category && servicesForCategory.length === 0 && (
+          <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+            <span className="material-icons-round text-[14px]">warning</span>
+            No predefined services found for this category.
+          </p>
+        )}
+      </div>
+
+      {/* Editable fields: Description, Product Used, Duration, Price, Old Price */}
       <div className="grid grid-cols-2 gap-3">
         <Input label="Price (₹) *" type="number" value={form.price} onChange={(e: any) => setForm(p => ({ ...p, price: e.target.value }))} placeholder="350" />
         <Input label="Old Price (₹)" type="number" value={form.old_price} onChange={(e: any) => setForm(p => ({ ...p, old_price: e.target.value }))} placeholder="500" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Duration (min)" type="number" value={form.duration} onChange={(e: any) => setForm(p => ({ ...p, duration: e.target.value }))} placeholder="30" />
-        <div>
-          <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Gender</label>
-          <select
-            value={form.gender}
-            onChange={(e: any) => setForm(p => ({ ...p, gender: e.target.value }))}
-            className="w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-[#191c1d] text-sm focus:outline-none focus:border-[#b10e6b] transition-all"
-          >
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-          </select>
-        </div>
-      </div>
+      <Input label="Duration (min)" type="number" value={form.duration} onChange={(e: any) => setForm(p => ({ ...p, duration: e.target.value }))} placeholder="30" />
       <div>
-        <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Category</label>
-        <select
-          value={form.category}
-          onChange={(e: any) => setForm(p => ({ ...p, category: e.target.value }))}
-          className="w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-[#191c1d] text-sm focus:outline-none focus:border-[#b10e6b] transition-all"
-        >
-          <option value="">Select Category</option>
-          {(() => {
-            const currentGender = form.gender || "female";
-            const defaultCats = currentGender === "male"
-              ? [
-                  { value: "hair-cut-style", label: "Hair Cut & Style" },
-                  { value: "skin-care", label: "Skin Care" },
-                  { value: "hair-colour", label: "Hair Colour" },
-                  { value: "hair-chemical", label: "Hair Chemical" },
-                  { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
-                  { value: "spa-massage", label: "Spa & Massage" },
-                  { value: "body-polishing", label: "Body Polishing" },
-                  { value: "hair-treatments", label: "Hair Treatments" },
-                  { value: "pre-groom", label: "Pre Groom" },
-                  { value: "makeup", label: "Makeup" },
-                ]
-              : [
-                  { value: "hair-cut-style", label: "Hair Cut & Style" },
-                  { value: "hair-colour", label: "Hair Colour" },
-                  { value: "hair-treatments", label: "Hair Treatments" },
-                  { value: "hair-chemical", label: "Hair Chemical" },
-                  { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
-                  { value: "skin-care", label: "Skin Care" },
-                  { value: "spa-massage", label: "Spa & Massage" },
-                  { value: "makeup", label: "Makeup" },
-                  { value: "nail-art", label: "Nail Art" },
-                  { value: "bridal-packages", label: "Bridal Packages" },
-                ];
-
-            return defaultCats.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ));
-          })()}
-        </select>
+        <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Product Used</label>
+        <input
+          type="text"
+          value={form.products_used}
+          onChange={(e: any) => setForm(p => ({ ...p, products_used: e.target.value }))}
+          placeholder="e.g., L'Oreal, Schwarzkopf..."
+          className="w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-[#191c1d] placeholder-[#8b7079] text-sm focus:outline-none focus:border-[#b10e6b] focus:ring-2 focus:ring-[#ffd9e4] transition-all"
+        />
       </div>
-      <MediaUploader
-        label="Service Image (optional)"
-        value={form.image}
-        onChange={(url) => setForm(p => ({ ...p, image: url }))}
-        folder="services"
-      />
       <div>
         <label className="block text-xs font-bold text-[#574048] mb-1.5 uppercase tracking-wider">Description</label>
         <textarea
@@ -616,7 +623,7 @@ function ServicesTab({ salonId }: { salonId: string }) {
       </div>
       <button
         onClick={handleSave}
-        disabled={saving || !form.name.trim() || !form.price}
+        disabled={saving || !form.name.trim() || !form.price || !form.category}
         className="w-full py-3 rounded-xl bg-[#b10e6b] hover:bg-[#a12e70] text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
       >
         {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : <>{modal === "edit" ? "Update Service" : "Add Service"}</>}
@@ -663,8 +670,11 @@ function ServicesTab({ salonId }: { salonId: string }) {
                 <div>
                   <h4 className="font-bold text-[#191c1d] text-base truncate">{svc.name}</h4>
                   <p className="text-xs text-[#574048] mt-0.5">
-                    {getCategoryLabel(svc.category, svc.gender)} · {svc.duration} min · <span className="capitalize">{svc.gender}</span>
+                    {getCategoryLabel(svc.category, svc.gender)} · {svc.duration ? `${svc.duration} min` : "—"} · <span className="capitalize">{svc.gender}</span>
                   </p>
+                  {svc.products_used && (
+                    <p className="text-[10px] text-[#8b7079] mt-0.5 truncate">Product: {svc.products_used}</p>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
