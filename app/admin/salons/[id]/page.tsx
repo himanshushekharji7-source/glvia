@@ -94,72 +94,8 @@ const normalizeCategorySlug = (category: string) => {
 };
 
 const getCategoryUniversalImage = (slug: string, gender: string): string => {
-  const cleanSlug = slug.toLowerCase().replace(/&/g, "and");
-  if (gender === "male") {
-    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
-      return "/Male category image /Hair Cut & Style.svg";
-    }
-    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
-      return "/Male category image /Skin Care.svg";
-    }
-    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
-      return "/Male category image /Hair Color.svg";
-    }
-    if (cleanSlug.includes("chemical")) {
-      return "/Male category image /Hair Chemical.svg";
-    }
-    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
-      return "/Male category image /Mani Pedi & Hygiene.svg";
-    }
-    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
-      return "/Male category image /Spa & Massage.svg";
-    }
-    if (cleanSlug.includes("body") || cleanSlug.includes("polish")) {
-      return "/Male category image /Body Polishhing.svg";
-    }
-    if (cleanSlug.includes("treatment")) {
-      return "/Male category image /Hair Treatments.svg";
-    }
-    if (cleanSlug.includes("pre") || cleanSlug.includes("groom")) {
-      return "/Male category image /Pre Groom.svg";
-    }
-    if (cleanSlug.includes("makeup")) {
-      return "/Male category image /Makeup.svg";
-    }
-    return "/Male category image /Hair Cut & Style.svg";
-  } else {
-    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
-      return "/femail category image/hair cut and style female.svg";
-    }
-    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
-      return "/femail category image/Hair color femaile.svg";
-    }
-    if (cleanSlug.includes("treatment")) {
-      return "/femail category image/Hair Treatments.svg";
-    }
-    if (cleanSlug.includes("chemical")) {
-      return "/femail category image/Hair Chemical.svg";
-    }
-    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
-      return "/femail category image/mani pedi & hygiene.svg";
-    }
-    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
-      return "/femail category image/skin care feamle.svg";
-    }
-    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
-      return "/femail category image/Spa & Massage.svg";
-    }
-    if (cleanSlug.includes("makeup")) {
-      return "/femail category image/makeup Female.svg";
-    }
-    if (cleanSlug.includes("nail") || cleanSlug.includes("art")) {
-      return "/femail category image/nail art .svg";
-    }
-    if (cleanSlug.includes("bridal") || cleanSlug.includes("package")) {
-      return "/femail category image/Bridal package feamle.svg";
-    }
-    return "/femail category image/hair cut and style female.svg";
-  }
+  const normSlug = normalizeCategorySlug(slug);
+  return `/categories/${gender}/${normSlug}.svg`;
 };
 
 // Configuration schemas for Form Modals (services & categories)
