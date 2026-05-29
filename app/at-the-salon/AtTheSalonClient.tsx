@@ -81,6 +81,24 @@ const getCategoryFallbackImage = (slug: string) => {
   return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=250&q=80";
 };
 
+const normalizeCategorySlug = (category: string) => {
+  if (!category) return "";
+  const clean = category.trim().toLowerCase();
+  if (clean.includes("cut") && clean.includes("style")) return "hair-cut-style";
+  if (clean.includes("skin") && clean.includes("care")) return "skin-care";
+  if (clean.includes("clour") || clean.includes("colour") || clean.includes("color")) return "hair-colour";
+  if (clean.includes("chemical")) return "hair-chemical";
+  if (clean.includes("mani") || clean.includes("pedi") || clean.includes("hygiene")) return "mani-pedi-hygiene";
+  if (clean.includes("spa") || clean.includes("massage")) return "spa-massage";
+  if (clean.includes("body") && clean.includes("polishing")) return "body-polishing";
+  if (clean.includes("treatments") || clean.includes("treatment")) return "hair-treatments";
+  if (clean.includes("pre") && clean.includes("groom")) return "pre-groom";
+  if (clean.includes("makeup")) return "makeup";
+  if (clean.includes("nail") && clean.includes("art")) return "nail-art";
+  if (clean.includes("bridal") && clean.includes("package")) return "bridal-packages";
+  return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
+};
+
 export default function AtTheSalonClient() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Holds the selected category slug
