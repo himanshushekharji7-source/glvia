@@ -14,6 +14,7 @@ import {
 } from "../../lib/hooks";
 import SalonOnboardingWizard from "../../components/admin/SalonOnboardingWizard";
 import MediaUploader from "../../components/admin/MediaUploader";
+import { supabase, TABLES } from "../../lib/supabase";
 
 type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "reviews" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -485,6 +486,8 @@ function ServicesTab({ salonId }: { salonId: string }) {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+
+
   const openAdd = () => {
     setForm({ name: "", price: "", duration: "", category: "", gender: "female", description: "", image: "", old_price: "" });
     setModal("add");
@@ -559,33 +562,40 @@ function ServicesTab({ salonId }: { salonId: string }) {
           className="w-full px-4 py-3 bg-white border border-[#e1e3e4] rounded-xl text-[#191c1d] text-sm focus:outline-none focus:border-[#b10e6b] transition-all"
         >
           <option value="">Select Category</option>
-          {form.gender === "male" ? (
-            <>
-              <option value="hair-cut-style">Hair Cut & Style</option>
-              <option value="skin-care">Skin Care</option>
-              <option value="hair-colour">Hair Colour</option>
-              <option value="hair-chemical">Hair Chemical</option>
-              <option value="mani-pedi-hygiene">Mani Pedi & Hygiene</option>
-              <option value="spa-massage">Spa & Massage</option>
-              <option value="body-polishing">Body Polishing</option>
-              <option value="hair-treatments">Hair Treatments</option>
-              <option value="pre-groom">Pre Groom</option>
-              <option value="makeup">Makeup</option>
-            </>
-          ) : (
-            <>
-              <option value="hair-cut-style">Hair Cut & Style</option>
-              <option value="hair-colour">Hair Colour</option>
-              <option value="hair-treatments">Hair Treatments</option>
-              <option value="hair-chemical">Hair Chemical</option>
-              <option value="mani-pedi-hygiene">Mani Pedi & Hygiene</option>
-              <option value="skin-care">Skin Care</option>
-              <option value="spa-massage">Spa & Massage</option>
-              <option value="makeup">Makeup</option>
-              <option value="nail-art">Nail Art</option>
-              <option value="bridal-packages">Bridal Packages</option>
-            </>
-          )}
+          {(() => {
+            const currentGender = form.gender || "female";
+            const defaultCats = currentGender === "male"
+              ? [
+                  { value: "hair-cut-style", label: "Hair Cut & Style" },
+                  { value: "skin-care", label: "Skin Care" },
+                  { value: "hair-colour", label: "Hair Colour" },
+                  { value: "hair-chemical", label: "Hair Chemical" },
+                  { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
+                  { value: "spa-massage", label: "Spa & Massage" },
+                  { value: "body-polishing", label: "Body Polishing" },
+                  { value: "hair-treatments", label: "Hair Treatments" },
+                  { value: "pre-groom", label: "Pre Groom" },
+                  { value: "makeup", label: "Makeup" },
+                ]
+              : [
+                  { value: "hair-cut-style", label: "Hair Cut & Style" },
+                  { value: "hair-colour", label: "Hair Colour" },
+                  { value: "hair-treatments", label: "Hair Treatments" },
+                  { value: "hair-chemical", label: "Hair Chemical" },
+                  { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
+                  { value: "skin-care", label: "Skin Care" },
+                  { value: "spa-massage", label: "Spa & Massage" },
+                  { value: "makeup", label: "Makeup" },
+                  { value: "nail-art", label: "Nail Art" },
+                  { value: "bridal-packages", label: "Bridal Packages" },
+                ];
+
+            return defaultCats.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ));
+          })()}
         </select>
       </div>
       <MediaUploader
@@ -652,7 +662,9 @@ function ServicesTab({ salonId }: { salonId: string }) {
               <div className="flex-1 min-w-0 flex flex-col justify-between">
                 <div>
                   <h4 className="font-bold text-[#191c1d] text-base truncate">{svc.name}</h4>
-                  <p className="text-xs text-[#574048] mt-0.5">{getCategoryLabel(svc.category, svc.gender)} · {svc.duration} min · <span className="capitalize">{svc.gender}</span></p>
+                  <p className="text-xs text-[#574048] mt-0.5">
+                    {getCategoryLabel(svc.category, svc.gender)} · {svc.duration} min · <span className="capitalize">{svc.gender}</span>
+                  </p>
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">

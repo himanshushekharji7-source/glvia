@@ -98,7 +98,7 @@ const serviceFieldsPlaceholder = [];
 
 const catFields = [
   { name: "name", label: "Category Name", type: "text" as const, required: true },
-  { name: "image", label: "Image URL", type: "url" as const, required: true },
+  { name: "image", label: "Category Image", type: "url" as const, required: true, folder: "category-images" },
   { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
   { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
 ];
@@ -475,6 +475,7 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   const [subTab, setSubTab] = useState<"services" | "categories">("services");
   const [servicesData, setServicesData] = useState<any[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [salonCategoriesList, setSalonCategoriesList] = useState<any[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -483,7 +484,9 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
 
   const dynamicServiceFields = useMemo(() => {
     const currentGender = formValues.gender || serviceGender || "female";
-    const catOptions = currentGender === "male" 
+    
+    // Fallback standard default categories
+    const defaultCats = currentGender === "male" 
       ? [
           { value: "hair-cut-style", label: "Hair Cut & Style" },
           { value: "skin-care", label: "Skin Care" },
@@ -516,8 +519,44 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
       { name: "duration", label: "Duration (min)", type: "text" as const, placeholder: "e.g. 30" },
       { name: "price", label: "Price (₹)", type: "number" as const, required: true },
       { name: "old_price", label: "Old Price (₹)", type: "number" as const },
-      { name: "category", label: "Category Name", type: "select" as const, required: true, options: catOptions },
+      { name: "category", label: "Category Name", type: "select" as const, required: true, options: defaultCats },
       { name: "image", label: "Image URL", type: "url" as const, required: true },
+      { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
+      { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
+    ];
+  }, [formValues.gender, serviceGender]);
+
+  const dynamicCatFields = useMemo(() => {
+    const currentGender = formValues.gender || serviceGender || "female";
+    const opts = currentGender === "male"
+      ? [
+          { value: "Hair Cut & Style", label: "Hair Cut & Style" },
+          { value: "Skin Care", label: "Skin Care" },
+          { value: "Hair Colour", label: "Hair Colour" },
+          { value: "Hair Chemical", label: "Hair Chemical" },
+          { value: "Mani Pedi & Hygiene", label: "Mani Pedi & Hygiene" },
+          { value: "Spa & Massage", label: "Spa & Massage" },
+          { value: "Body Polishing", label: "Body Polishing" },
+          { value: "Hair Treatments", label: "Hair Treatments" },
+          { value: "Pre Groom", label: "Pre Groom" },
+          { value: "Makeup", label: "Makeup" },
+        ]
+      : [
+          { value: "Hair Cut & Style", label: "Hair Cut & Style" },
+          { value: "Hair Colour", label: "Hair Colour" },
+          { value: "Hair Treatments", label: "Hair Treatments" },
+          { value: "Hair Chemical", label: "Hair Chemical" },
+          { value: "Mani Pedi & Hygiene", label: "Mani Pedi & Hygiene" },
+          { value: "Skin Care", label: "Skin Care" },
+          { value: "Spa & Massage", label: "Spa & Massage" },
+          { value: "Makeup", label: "Makeup" },
+          { value: "Nail Art", label: "Nail Art" },
+          { value: "Bridal Packages", label: "Bridal Packages" },
+        ];
+
+    return [
+      { name: "name", label: "Category Name", type: "select" as const, required: true, options: opts },
+      { name: "image", label: "Category Image", type: "url" as const, required: true, folder: "category-images" },
       { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
       { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
     ];
@@ -536,6 +575,13 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
         .eq("gender", serviceGender)
         .order("sort_order", { ascending: true });
       setServicesData(rows || []);
+
+      // Also dynamically fetch all category definitions for forms and labels
+      const { data: cats } = await supabase
+        .from(TABLES.SALON_CATEGORIES)
+        .select("*")
+        .eq("salon_id", id);
+      setSalonCategoriesList(cats || []);
     } catch (e: any) {
       console.error(e);
     } finally {
@@ -612,7 +658,10 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   const serviceColumns = [
     { key: "image", label: "Image", width: "70px", render: (v: string) => v ? <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border"><Image src={v} alt="" fill className="object-cover" /></div> : <div className="w-10 h-10 rounded-lg bg-surface-dim border border-border flex items-center justify-center text-text-tertiary"><span className="material-icons-round text-sm">spa</span></div> },
     { key: "name", label: "Service Name", render: (v: string, row: any) => <div><div className="font-bold text-text-primary">{v}</div>{row.description && <div className="text-xs text-text-secondary truncate max-w-xs mt-0.5">{row.description}</div>}</div> },
-    { key: "category", label: "Category", render: (v: string, row: any) => <span className="text-xs bg-surface-dim px-2 py-0.5 rounded border border-border">{getCategoryLabel(v, row.gender) || "Unassigned"}</span> },
+    { key: "category", label: "Category", render: (v: string, row: any) => {
+      const match = salonCategoriesList.find(c => normalizeCategorySlug(c.name) === v && c.gender === row.gender);
+      return <span className="text-xs bg-surface-dim px-2 py-0.5 rounded border border-border">{match ? match.name : (getCategoryLabel(v, row.gender) || "Unassigned")}</span>;
+    } },
     { key: "price", label: "Price", width: "100px", render: (v: number) => <span className="font-bold text-text-primary">₹{v}</span> },
     { key: "old_price", label: "Old Price", width: "100px", render: (v: number) => v ? <span className="text-xs text-text-tertiary line-through">₹{v}</span> : "—" },
     { key: "duration", label: "Duration", width: "100px", render: (v: string) => v ? `${v} min` : "—" },
@@ -1771,7 +1820,7 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
         isOpen={modalOpen} 
         onClose={() => setModalOpen(false)} 
         title={editing ? `Edit ${subTab === "services" ? "Service" : "Category"}` : `Add ${subTab === "services" ? "Service" : "Category"}`} 
-        fields={subTab === "services" ? dynamicServiceFields : catFields}
+        fields={subTab === "services" ? dynamicServiceFields : dynamicCatFields}
         values={formValues} 
         onChange={(name, value) => setFormValues((prev) => ({ ...prev, [name]: value }))} 
         onSubmit={handleSaveEntity} 

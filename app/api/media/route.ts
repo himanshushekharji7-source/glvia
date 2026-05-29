@@ -187,7 +187,9 @@ export async function POST(req: NextRequest) {
     // Format output URL dynamically
     const returnUrl = isSupportTicket
       ? `/uploads/${relativePath}` // Returns /uploads/support-tickets/YYYY/MM/glvia-ticket-[ts]-[hex].ext
-      : `/uploads/media/${relativePath}`;
+      : (safeFolder.startsWith("category-images")
+          ? `/uploads/${relativePath}` // Returns /uploads/category-images/...
+          : `/uploads/media/${relativePath}`);
 
     return NextResponse.json({
       success: true,

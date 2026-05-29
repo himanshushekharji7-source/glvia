@@ -8,6 +8,56 @@ import { useSalon, useSalonReviews } from "../../lib/hooks";
 import ServiceDetailModal from "../../components/ServiceDetailModal";
 import SalonInfoModal from "../../components/SalonInfoModal";
 
+const normalizeCategorySlug = (category: string) => {
+  if (!category) return "";
+  const clean = category.trim().toLowerCase();
+  if (clean.includes("cut") && clean.includes("style")) return "hair-cut-style";
+  if (clean.includes("skin") && clean.includes("care")) return "skin-care";
+  if (clean.includes("clour") || clean.includes("colour") || clean.includes("color")) return "hair-colour";
+  if (clean.includes("chemical")) return "hair-chemical";
+  if (clean.includes("mani") || clean.includes("pedi") || clean.includes("hygiene")) return "mani-pedi-hygiene";
+  if (clean.includes("spa") || clean.includes("massage")) return "spa-massage";
+  if (clean.includes("body") && clean.includes("polishing")) return "body-polishing";
+  if (clean.includes("treatments") || clean.includes("treatment")) return "hair-treatments";
+  if (clean.includes("pre") && clean.includes("groom")) return "pre-groom";
+  if (clean.includes("makeup")) return "makeup";
+  if (clean.includes("nail") && clean.includes("art")) return "nail-art";
+  if (clean.includes("bridal") && clean.includes("package")) return "bridal-packages";
+  return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
+};
+
+const getCategoryFallbackImage = (slug: string) => {
+  const clean = slug.toLowerCase();
+  if (clean.includes("cut") || clean.includes("style")) {
+    return "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("spa") || clean.includes("massage")) {
+    return "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("bridal") || clean.includes("package")) {
+    return "https://images.unsplash.com/photo-1594744803329-e58b31de215f?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("nail")) {
+    return "https://images.unsplash.com/photo-1604654894610-df4906b241af?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("colour") || clean.includes("color")) {
+    return "https://images.unsplash.com/photo-1605497746444-12d733b8395c?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("makeup")) {
+    return "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("skin") || clean.includes("care")) {
+    return "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("chemical")) {
+    return "https://images.unsplash.com/photo-1595891298406-ef9c95037f53?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("mani") || clean.includes("pedi") || clean.includes("hygiene")) {
+    return "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=250&q=80";
+  }
+  return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=250&q=80";
+};
+
 export default function SalonDetailClient() {
   const { id } = useParams();
   const router = useRouter();
@@ -79,7 +129,7 @@ export default function SalonDetailClient() {
   const filteredServices = useMemo(() => {
     let filtered = services;
     if (selectedCategory) {
-      filtered = filtered.filter((s: any) => s.category === selectedCategory);
+      filtered = filtered.filter((s: any) => normalizeCategorySlug(s.category) === normalizeCategorySlug(selectedCategory));
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -88,12 +138,13 @@ export default function SalonDetailClient() {
     return filtered;
   }, [services, selectedCategory, searchQuery]);
 
-  // Group filtered services by category
+  // Group filtered services by category slug
   const groupedServices = useMemo(() => {
     const groups: Record<string, any[]> = {};
     filteredServices.forEach((svc: any) => {
-      if (!groups[svc.category]) groups[svc.category] = [];
-      groups[svc.category].push(svc);
+      const groupKey = normalizeCategorySlug(svc.category);
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(svc);
     });
     return groups;
   }, [filteredServices]);
@@ -294,7 +345,7 @@ export default function SalonDetailClient() {
                   isActive ? "border-primary shadow-[0_0_0_2px_rgba(236,72,153,0.2)]" : "border-transparent"
                 }`}>
                   <Image
-                    src={cat.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80'}
+                    src={cat.image || getCategoryFallbackImage(normalizeCategorySlug(cat.name))}
                     alt={`${cat.name} service category at ${salon?.name || 'premium salon'} - best salon in ${salon?.address?.city || 'Uttar Pradesh'}`}
                     fill
                     loading="lazy"
@@ -314,71 +365,75 @@ export default function SalonDetailClient() {
 
       {/* ─── Service List (Grouped by Category) ─── */}
       <div className={`px-4 pb-4 ${selectedServices.length > 0 ? "pb-28" : "pb-8"}`}>
-        {Object.entries(groupedServices).map(([categoryName, categoryServices]) => (
-          <div key={categoryName} className="mb-6">
-            <h3 className="text-base font-black text-text-primary mb-4">
-              {categoryName} <span className="text-text-tertiary font-medium">({(categoryServices as any[]).length})</span>
-            </h3>
-            <div className="space-y-0">
-              {(categoryServices as any[]).map((svc: any, idx: number) => {
-                const added = isServiceAdded(svc._id);
-                return (
-                  <div key={svc._id}>
-                    <div className="flex gap-3 py-4">
-                      {/* Left: Info */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[15px] font-semibold text-text-primary leading-snug">{svc.name}</h4>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          {svc.oldPrice && (
-                            <span className="text-text-tertiary text-sm line-through">₹{svc.oldPrice}</span>
-                          )}
-                          <span className="text-primary font-bold text-sm">₹{svc.price}</span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-2.5">
+        {Object.entries(groupedServices).map(([categorySlug, categoryServices]) => {
+          const matchedCat = categories.find((c: any) => normalizeCategorySlug(c.name) === categorySlug);
+          const displayTitle = matchedCat ? matchedCat.name : (categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1).replace(/-/g, ' '));
+          return (
+            <div key={categorySlug} className="mb-6">
+              <h3 className="text-base font-black text-text-primary mb-4">
+                {displayTitle} <span className="text-text-tertiary font-medium">({(categoryServices as any[]).length})</span>
+              </h3>
+              <div className="space-y-0">
+                {(categoryServices as any[]).map((svc: any, idx: number) => {
+                  const added = isServiceAdded(svc._id);
+                  return (
+                    <div key={svc._id}>
+                      <div className="flex gap-3 py-4">
+                        {/* Left: Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[15px] font-semibold text-text-primary leading-snug">{svc.name}</h4>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {svc.oldPrice && (
+                              <span className="text-text-tertiary text-sm line-through">₹{svc.oldPrice}</span>
+                            )}
+                            <span className="text-primary font-bold text-sm">₹{svc.price}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-2.5">
+                            <button
+                              onClick={() => handleServiceToggle(svc)}
+                              className={`px-4 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                                added
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-text-primary border-gray-300 hover:border-primary"
+                              }`}
+                            >
+                              {added ? "✓ Added" : "Add"}
+                            </button>
+                            <span className="flex items-center gap-1 text-text-tertiary text-xs">
+                              <span className="material-icons-round text-[14px]">schedule</span>
+                              {svc.duration} mins.
+                            </span>
+                          </div>
                           <button
-                            onClick={() => handleServiceToggle(svc)}
-                            className={`px-4 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                              added
-                                ? "bg-primary text-white border-primary"
-                                : "bg-white text-text-primary border-gray-300 hover:border-primary"
-                            }`}
+                            onClick={() => setSelectedService(svc)}
+                            className="text-primary text-xs font-bold mt-2 hover:underline"
                           >
-                            {added ? "✓ Added" : "Add"}
+                            View Details
                           </button>
-                          <span className="flex items-center gap-1 text-text-tertiary text-xs">
-                            <span className="material-icons-round text-[14px]">schedule</span>
-                            {svc.duration} mins.
-                          </span>
                         </div>
-                        <button
-                          onClick={() => setSelectedService(svc)}
-                          className="text-primary text-xs font-bold mt-2 hover:underline"
-                        >
-                          View Details
-                        </button>
+                        {/* Right: Image */}
+                        {svc.image && (
+                          <div className="relative w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
+                            <Image
+                              src={svc.image}
+                              alt={`${svc.name} service at ${salon?.name || 'premium salon'} - best salon in ${salon?.address?.city || 'Uttar Pradesh'}`}
+                              fill
+                              loading="lazy"
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
                       </div>
-                      {/* Right: Image */}
-                      {svc.image && (
-                        <div className="relative w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
-                          <Image
-                            src={svc.image}
-                            alt={`${svc.name} service at ${salon?.name || 'premium salon'} - best salon in ${salon?.address?.city || 'Uttar Pradesh'}`}
-                            fill
-                            loading="lazy"
-                            className="object-cover"
-                          />
-                        </div>
+                      {idx < (categoryServices as any[]).length - 1 && (
+                        <div className="border-b border-gray-100" />
                       )}
                     </div>
-                    {idx < (categoryServices as any[]).length - 1 && (
-                      <div className="border-b border-gray-100" />
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filteredServices.length === 0 && (
           <div className="text-center py-12">

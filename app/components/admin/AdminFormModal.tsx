@@ -11,6 +11,7 @@ interface FormField {
   required?: boolean;
   placeholder?: string;
   options?: { value: string; label: string }[]; // for select
+  folder?: string; // custom upload folder namespace
 }
 
 interface AdminFormModalProps {
@@ -94,7 +95,7 @@ export default function AdminFormModal({
                   label={field.label}
                   value={values[field.name] || ""}
                   onChange={(url) => onChange(field.name, url)}
-                  folder={field.name === "image" ? "banners" : "services"}
+                  folder={field.folder || (field.name === "image" ? "banners" : "services")}
                   required={field.required}
                 />
               ) : (

@@ -49,6 +49,38 @@ const CATEGORY_VARIANTS: Record<string, string[]> = {
   "bridal-packages": ["bridal-packages", "Bridal Packages"]
 };
 
+const getCategoryFallbackImage = (slug: string) => {
+  const clean = slug.toLowerCase();
+  if (clean.includes("cut") || clean.includes("style")) {
+    return "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("spa") || clean.includes("massage")) {
+    return "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("bridal") || clean.includes("package")) {
+    return "https://images.unsplash.com/photo-1594744803329-e58b31de215f?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("nail")) {
+    return "https://images.unsplash.com/photo-1604654894610-df4906b241af?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("colour") || clean.includes("color")) {
+    return "https://images.unsplash.com/photo-1605497746444-12d733b8395c?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("makeup")) {
+    return "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("skin") || clean.includes("care")) {
+    return "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("chemical")) {
+    return "https://images.unsplash.com/photo-1595891298406-ef9c95037f53?auto=format&fit=crop&w=250&q=80";
+  }
+  if (clean.includes("mani") || clean.includes("pedi") || clean.includes("hygiene")) {
+    return "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=250&q=80";
+  }
+  return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=250&q=80";
+};
+
 export default function AtTheSalonClient() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Holds the selected category slug
@@ -58,6 +90,32 @@ export default function AtTheSalonClient() {
   const [matchingSalonIds, setMatchingSalonIds] = useState<string[] | null>(null);
   const [isFilteringLoading, setIsFilteringLoading] = useState(false);
   const [activeBanner, setActiveBanner] = useState<any>(null);
+  const [dbCategoryImages, setDbCategoryImages] = useState<Record<string, string>>({});
+
+  // Query custom category images dynamically across all salons
+  useEffect(() => {
+    const fetchCategoryImages = async () => {
+      try {
+        const { data } = await supabase
+          .from(TABLES.SALON_CATEGORIES)
+          .select("name, image, gender");
+        if (data) {
+          const mapping: Record<string, string> = {};
+          data.forEach((item) => {
+            const slug = normalizeCategorySlug(item.name);
+            const key = `${slug}_${item.gender}`;
+            if (item.image && !mapping[key]) {
+              mapping[key] = item.image;
+            }
+          });
+          setDbCategoryImages(mapping);
+        }
+      } catch (err) {
+        console.error("Error fetching db category images:", err);
+      }
+    };
+    fetchCategoryImages();
+  }, []);
 
   // Fetch salons and main list
   const { data: dbSalons, isLoading } = useSalons(searchQuery);
@@ -256,6 +314,7 @@ export default function AtTheSalonClient() {
       <div className="px-5 pb-5 overflow-x-auto no-scrollbar flex gap-4 scroll-smooth">
         {categories.map((cat) => {
           const isSelected = selectedCategory === cat.slug;
+          const dynamicImg = dbCategoryImages[`${cat.slug}_${gender}`] || cat.image || getCategoryFallbackImage(cat.slug);
           return (
             <div 
               key={cat.slug} 
@@ -276,9 +335,10 @@ export default function AtTheSalonClient() {
                 }`}
               >
                 <Image 
-                  src={cat.image} 
+                  src={dynamicImg} 
                   alt={cat.label} 
                   fill 
+                  loading="lazy"
                   className="object-cover" 
                 />
               </div>
