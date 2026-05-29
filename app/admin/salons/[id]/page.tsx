@@ -9,6 +9,7 @@ import { supabase, TABLES } from "../../../lib/supabase";
 import AdminTable from "../../../components/admin/AdminTable";
 import AdminFormModal from "../../../components/admin/AdminFormModal";
 import ConfirmDialog from "../../../components/admin/ConfirmDialog";
+import { getCategoriesForGender, getServicesForCategory, getCategoryLabelFromSlug } from "../../../lib/predefinedServices";
 
 // Import Shared Logic and Hooks (from Salon Owner system / shared layer)
 import {
@@ -48,31 +49,7 @@ const salonWorkspaceModules: ModuleRegistry[] = [
 ];
 
 const getCategoryLabel = (slug: string, gender: string) => {
-  const list = gender === "male" ? [
-    { label: "Hair Cut & Style", slug: "hair-cut-style" },
-    { label: "Skin Care", slug: "skin-care" },
-    { label: "Hair Colour", slug: "hair-colour" },
-    { label: "Hair Chemical", slug: "hair-chemical" },
-    { label: "Mani Pedi & Hygiene", slug: "mani-pedi-hygiene" },
-    { label: "Spa & Massage", slug: "spa-massage" },
-    { label: "Body Polishing", slug: "body-polishing" },
-    { label: "Hair Treatments", slug: "hair-treatments" },
-    { label: "Pre Groom", slug: "pre-groom" },
-    { label: "Makeup", slug: "makeup" },
-  ] : [
-    { label: "Hair Cut & Style", slug: "hair-cut-style" },
-    { label: "Hair Colour", slug: "hair-colour" },
-    { label: "Hair Treatments", slug: "hair-treatments" },
-    { label: "Hair Chemical", slug: "hair-chemical" },
-    { label: "Mani Pedi & Hygiene", slug: "mani-pedi-hygiene" },
-    { label: "Skin Care", slug: "skin-care" },
-    { label: "Spa & Massage", slug: "spa-massage" },
-    { label: "Makeup", slug: "makeup" },
-    { label: "Nail Art", slug: "nail-art" },
-    { label: "Bridal Packages", slug: "bridal-packages" },
-  ];
-  const found = list.find(c => c.slug === slug);
-  return found ? found.label : (slug || "Unassigned");
+  return getCategoryLabelFromSlug(slug, gender);
 };
 
 const normalizeCategorySlug = (category: string) => {
@@ -488,48 +465,52 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   const [savingEntity, setSavingEntity] = useState(false);
 
   const dynamicServiceFields = useMemo(() => {
-    const currentGender = formValues.gender || serviceGender || "female";
-    
-    // Fallback standard default categories
-    const defaultCats = currentGender === "male" 
-      ? [
-          { value: "hair-cut-style", label: "Hair Cut & Style" },
-          { value: "skin-care", label: "Skin Care" },
-          { value: "hair-colour", label: "Hair Colour" },
-          { value: "hair-chemical", label: "Hair Chemical" },
-          { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
-          { value: "spa-massage", label: "Spa & Massage" },
-          { value: "body-polishing", label: "Body Polishing" },
-          { value: "hair-treatments", label: "Hair Treatments" },
-          { value: "pre-groom", label: "Pre Groom" },
-          { value: "makeup", label: "Makeup" },
-        ]
-      : [
-          { value: "hair-cut-style", label: "Hair Cut & Style" },
-          { value: "hair-colour", label: "Hair Colour" },
-          { value: "hair-treatments", label: "Hair Treatments" },
-          { value: "hair-chemical", label: "Hair Chemical" },
-          { value: "mani-pedi-hygiene", label: "Mani Pedi & Hygiene" },
-          { value: "skin-care", label: "Skin Care" },
-          { value: "spa-massage", label: "Spa & Massage" },
-          { value: "makeup", label: "Makeup" },
-          { value: "nail-art", label: "Nail Art" },
-          { value: "bridal-packages", label: "Bridal Packages" },
-        ];
+    const currentGender = formValues.gender || "female";
+    const currentCategory = formValues.category || "";
+
+    const categories = getCategoriesForGender(currentGender).map(c => ({
+      value: c.slug,
+      label: c.label
+    }));
+
+    const services = currentCategory 
+      ? getServicesForCategory(currentGender, currentCategory).map(s => ({
+          value: s,
+          label: s
+        }))
+      : [];
 
     return [
-      { name: "name", label: "Service Name", type: "text" as const, required: true },
+      { 
+        name: "gender", 
+        label: "Gender", 
+        type: "select" as const, 
+        required: true, 
+        options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] 
+      },
+      { 
+        name: "category", 
+        label: "Category Name", 
+        type: "select" as const, 
+        required: true, 
+        options: categories 
+      },
+      { 
+        name: "name", 
+        label: "Service Name", 
+        type: "select" as const, 
+        required: true, 
+        options: services,
+        placeholder: currentCategory ? "Select Service" : "Select a category first"
+      },
       { name: "description", label: "Description", type: "textarea" as const },
       { name: "products_used", label: "Products Used (comma-separated)", type: "text" as const, placeholder: "e.g. Shampoo, Hair spa cream" },
       { name: "duration", label: "Duration (min)", type: "text" as const, placeholder: "e.g. 30" },
       { name: "price", label: "Price (₹)", type: "number" as const, required: true },
       { name: "old_price", label: "Old Price (₹)", type: "number" as const },
-      { name: "category", label: "Category Name", type: "select" as const, required: true, options: defaultCats },
-      { name: "image", label: "Image URL", type: "url" as const, required: true },
-      { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
       { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
     ];
-  }, [formValues.gender, serviceGender]);
+  }, [formValues.gender, formValues.category]);
 
   const dynamicCatFields = useMemo(() => {
     const currentGender = formValues.gender || serviceGender || "female";
@@ -611,13 +592,31 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
     setModalOpen(true);
   };
 
+  const handleFormChange = (name: string, value: any) => {
+    setFormValues((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === "gender") {
+        next.category = "";
+        next.name = "";
+      } else if (name === "category") {
+        next.name = "";
+      }
+      return next;
+    });
+  };
+
   const handleSaveEntity = async () => {
     setSavingEntity(true);
     try {
       const table = subTab === "services" ? TABLES.SALON_SERVICES : TABLES.SALON_CATEGORIES;
       const payload: any = { ...formValues, salon_id: id };
-      if (subTab === "services" && payload.category) {
-        payload.category = normalizeCategorySlug(payload.category);
+      if (subTab === "services") {
+        if (payload.category) {
+          payload.category = normalizeCategorySlug(payload.category);
+        }
+        const gender = payload.gender || "female";
+        const catSlug = payload.category || "";
+        payload.image = `/categories/${gender}/${catSlug}.svg`;
       }
       delete payload.id;
       delete payload.created_at;
@@ -1829,7 +1828,7 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
         title={editing ? `Edit ${subTab === "services" ? "Service" : "Category"}` : `Add ${subTab === "services" ? "Service" : "Category"}`} 
         fields={subTab === "services" ? dynamicServiceFields : dynamicCatFields}
         values={formValues} 
-        onChange={(name, value) => setFormValues((prev) => ({ ...prev, [name]: value }))} 
+        onChange={handleFormChange} 
         onSubmit={handleSaveEntity} 
         isLoading={savingEntity} 
         submitLabel={editing ? "Save Changes" : `Add to ${serviceGender}`} 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, TABLES } from './supabase';
+import { getCategoryLabelFromSlug, normalizeCategorySlug } from './predefinedServices';
 
 // --- No dummy data fallback allowed ---
 
@@ -188,8 +189,29 @@ export const useSalon = (id: string) => {
             .eq('salon_id', id)
             .order('sort_order', { ascending: true });
 
-          const maleServiceCategories = dbCats ? dbCats.filter(c => c.gender === 'male').map(c => ({ name: c.name, image: c.image })) : [];
-          const femaleServiceCategories = dbCats ? dbCats.filter(c => c.gender === 'female').map(c => ({ name: c.name, image: c.image })) : [];
+          let maleServiceCategories = dbCats ? dbCats.filter(c => c.gender === 'male').map(c => ({ name: c.name, image: c.image })) : [];
+          if (maleServiceCategories.length === 0 && dbSvcs) {
+            const activeMaleCategorySlugs = Array.from(new Set(dbSvcs.filter(s => s.gender === 'male').map(s => s.category).filter(Boolean)));
+            maleServiceCategories = activeMaleCategorySlugs.map(slug => {
+              const label = getCategoryLabelFromSlug(slug, 'male');
+              return {
+                name: label,
+                image: `/categories/male/${normalizeCategorySlug(slug)}.svg`
+              };
+            });
+          }
+
+          let femaleServiceCategories = dbCats ? dbCats.filter(c => c.gender === 'female').map(c => ({ name: c.name, image: c.image })) : [];
+          if (femaleServiceCategories.length === 0 && dbSvcs) {
+            const activeFemaleCategorySlugs = Array.from(new Set(dbSvcs.filter(s => s.gender === 'female').map(s => s.category).filter(Boolean)));
+            femaleServiceCategories = activeFemaleCategorySlugs.map(slug => {
+              const label = getCategoryLabelFromSlug(slug, 'female');
+              return {
+                name: label,
+                image: `/categories/female/${normalizeCategorySlug(slug)}.svg`
+              };
+            });
+          }
 
           const maleServices = dbSvcs ? dbSvcs.filter(s => s.gender === 'male').map(s => ({
             _id: s.id,
