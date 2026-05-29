@@ -99,6 +99,75 @@ const normalizeCategorySlug = (category: string) => {
   return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
 };
 
+const getCategoryUniversalImage = (slug: string, gender: string): string => {
+  const cleanSlug = slug.toLowerCase().replace(/&/g, "and");
+  if (gender === "male") {
+    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
+      return "/Male category image /Hair Cut & Style.svg";
+    }
+    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
+      return "/Male category image /Skin Care.svg";
+    }
+    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
+      return "/Male category image /Hair Color.svg";
+    }
+    if (cleanSlug.includes("chemical")) {
+      return "/Male category image /Hair Chemical.svg";
+    }
+    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
+      return "/Male category image /Mani Pedi & Hygiene.svg";
+    }
+    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
+      return "/Male category image /Spa & Massage.svg";
+    }
+    if (cleanSlug.includes("body") || cleanSlug.includes("polish")) {
+      return "/Male category image /Body Polishhing.svg";
+    }
+    if (cleanSlug.includes("treatment")) {
+      return "/Male category image /Hair Treatments.svg";
+    }
+    if (cleanSlug.includes("pre") || cleanSlug.includes("groom")) {
+      return "/Male category image /Pre Groom.svg";
+    }
+    if (cleanSlug.includes("makeup")) {
+      return "/Male category image /Makeup.svg";
+    }
+    return "/Male category image /Hair Cut & Style.svg";
+  } else {
+    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
+      return "/femail category image/hair cut and style female.svg";
+    }
+    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
+      return "/femail category image/Hair color femaile.svg";
+    }
+    if (cleanSlug.includes("treatment")) {
+      return "/femail category image/Hair Treatments.svg";
+    }
+    if (cleanSlug.includes("chemical")) {
+      return "/femail category image/Hair Chemical.svg";
+    }
+    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
+      return "/femail category image/mani pedi & hygiene.svg";
+    }
+    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
+      return "/femail category image/skin care feamle.svg";
+    }
+    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
+      return "/femail category image/Spa & Massage.svg";
+    }
+    if (cleanSlug.includes("makeup")) {
+      return "/femail category image/makeup Female.svg";
+    }
+    if (cleanSlug.includes("nail") || cleanSlug.includes("art")) {
+      return "/femail category image/nail art .svg";
+    }
+    if (cleanSlug.includes("bridal") || cleanSlug.includes("package")) {
+      return "/femail category image/Bridal package feamle.svg";
+    }
+    return "/femail category image/hair cut and style female.svg";
+  }
+};
+
 export default function AtTheSalonClient() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Holds the selected category slug
@@ -108,32 +177,6 @@ export default function AtTheSalonClient() {
   const [matchingSalonIds, setMatchingSalonIds] = useState<string[] | null>(null);
   const [isFilteringLoading, setIsFilteringLoading] = useState(false);
   const [activeBanner, setActiveBanner] = useState<any>(null);
-  const [dbCategoryImages, setDbCategoryImages] = useState<Record<string, string>>({});
-
-  // Query custom category images dynamically across all salons
-  useEffect(() => {
-    const fetchCategoryImages = async () => {
-      try {
-        const { data } = await supabase
-          .from(TABLES.SALON_CATEGORIES)
-          .select("name, image, gender");
-        if (data) {
-          const mapping: Record<string, string> = {};
-          data.forEach((item) => {
-            const slug = normalizeCategorySlug(item.name);
-            const key = `${slug}_${item.gender}`;
-            if (item.image && !mapping[key]) {
-              mapping[key] = item.image;
-            }
-          });
-          setDbCategoryImages(mapping);
-        }
-      } catch (err) {
-        console.error("Error fetching db category images:", err);
-      }
-    };
-    fetchCategoryImages();
-  }, []);
 
   // Fetch salons and main list
   const { data: dbSalons, isLoading } = useSalons(searchQuery);
@@ -332,7 +375,7 @@ export default function AtTheSalonClient() {
       <div className="px-5 pb-5 overflow-x-auto no-scrollbar flex gap-4 scroll-smooth">
         {categories.map((cat) => {
           const isSelected = selectedCategory === cat.slug;
-          const dynamicImg = dbCategoryImages[`${cat.slug}_${gender}`] || cat.image || getCategoryFallbackImage(cat.slug);
+          const dynamicImg = getCategoryUniversalImage(cat.slug, gender);
           return (
             <div 
               key={cat.slug} 

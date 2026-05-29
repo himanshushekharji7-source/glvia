@@ -93,6 +93,75 @@ const normalizeCategorySlug = (category: string) => {
   return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
 };
 
+const getCategoryUniversalImage = (slug: string, gender: string): string => {
+  const cleanSlug = slug.toLowerCase().replace(/&/g, "and");
+  if (gender === "male") {
+    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
+      return "/Male category image /Hair Cut & Style.svg";
+    }
+    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
+      return "/Male category image /Skin Care.svg";
+    }
+    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
+      return "/Male category image /Hair Color.svg";
+    }
+    if (cleanSlug.includes("chemical")) {
+      return "/Male category image /Hair Chemical.svg";
+    }
+    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
+      return "/Male category image /Mani Pedi & Hygiene.svg";
+    }
+    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
+      return "/Male category image /Spa & Massage.svg";
+    }
+    if (cleanSlug.includes("body") || cleanSlug.includes("polish")) {
+      return "/Male category image /Body Polishhing.svg";
+    }
+    if (cleanSlug.includes("treatment")) {
+      return "/Male category image /Hair Treatments.svg";
+    }
+    if (cleanSlug.includes("pre") || cleanSlug.includes("groom")) {
+      return "/Male category image /Pre Groom.svg";
+    }
+    if (cleanSlug.includes("makeup")) {
+      return "/Male category image /Makeup.svg";
+    }
+    return "/Male category image /Hair Cut & Style.svg";
+  } else {
+    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
+      return "/femail category image/hair cut and style female.svg";
+    }
+    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
+      return "/femail category image/Hair color femaile.svg";
+    }
+    if (cleanSlug.includes("treatment")) {
+      return "/femail category image/Hair Treatments.svg";
+    }
+    if (cleanSlug.includes("chemical")) {
+      return "/femail category image/Hair Chemical.svg";
+    }
+    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
+      return "/femail category image/mani pedi & hygiene.svg";
+    }
+    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
+      return "/femail category image/skin care feamle.svg";
+    }
+    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
+      return "/femail category image/Spa & Massage.svg";
+    }
+    if (cleanSlug.includes("makeup")) {
+      return "/femail category image/makeup Female.svg";
+    }
+    if (cleanSlug.includes("nail") || cleanSlug.includes("art")) {
+      return "/femail category image/nail art .svg";
+    }
+    if (cleanSlug.includes("bridal") || cleanSlug.includes("package")) {
+      return "/femail category image/Bridal package feamle.svg";
+    }
+    return "/femail category image/hair cut and style female.svg";
+  }
+};
+
 // Configuration schemas for Form Modals (services & categories)
 const serviceFieldsPlaceholder = [];
 
@@ -556,7 +625,6 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
 
     return [
       { name: "name", label: "Category Name", type: "select" as const, required: true, options: opts },
-      { name: "image", label: "Category Image", type: "url" as const, required: true, folder: "category-images" },
       { name: "gender", label: "Gender", type: "select" as const, required: true, options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
       { name: "sort_order", label: "Sort Order", type: "number" as const, placeholder: "0" },
     ];
@@ -668,7 +736,10 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   ];
 
   const categoryColumns = [
-    { key: "image", label: "Image", width: "70px", render: (v: string) => v ? <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border"><Image src={v} alt="" fill className="object-cover" /></div> : <div className="w-10 h-10 rounded-lg bg-surface-dim border border-border flex items-center justify-center text-text-tertiary"><span className="material-icons-round text-sm">category</span></div> },
+    { key: "image", label: "Image", width: "70px", render: (v: string, row: any) => {
+      const svgPath = getCategoryUniversalImage(normalizeCategorySlug(row.name), row.gender);
+      return <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border bg-[#FDF2F8]"><Image src={svgPath} alt="" fill className="object-cover" /></div>;
+    } },
     { key: "name", label: "Category Name", render: (v: string) => <span className="font-bold text-text-primary">{v}</span> },
     { key: "sort_order", label: "Sort Order", width: "100px" },
   ];

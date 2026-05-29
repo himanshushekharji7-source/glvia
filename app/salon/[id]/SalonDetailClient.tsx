@@ -58,6 +58,75 @@ const getCategoryFallbackImage = (slug: string) => {
   return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=250&q=80";
 };
 
+const getCategoryUniversalImage = (slug: string, gender: string): string => {
+  const cleanSlug = slug.toLowerCase().replace(/&/g, "and");
+  if (gender === "male") {
+    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
+      return "/Male category image /Hair Cut & Style.svg";
+    }
+    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
+      return "/Male category image /Skin Care.svg";
+    }
+    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
+      return "/Male category image /Hair Color.svg";
+    }
+    if (cleanSlug.includes("chemical")) {
+      return "/Male category image /Hair Chemical.svg";
+    }
+    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
+      return "/Male category image /Mani Pedi & Hygiene.svg";
+    }
+    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
+      return "/Male category image /Spa & Massage.svg";
+    }
+    if (cleanSlug.includes("body") || cleanSlug.includes("polish")) {
+      return "/Male category image /Body Polishhing.svg";
+    }
+    if (cleanSlug.includes("treatment")) {
+      return "/Male category image /Hair Treatments.svg";
+    }
+    if (cleanSlug.includes("pre") || cleanSlug.includes("groom")) {
+      return "/Male category image /Pre Groom.svg";
+    }
+    if (cleanSlug.includes("makeup")) {
+      return "/Male category image /Makeup.svg";
+    }
+    return "/Male category image /Hair Cut & Style.svg";
+  } else {
+    if (cleanSlug.includes("cut") || cleanSlug.includes("style")) {
+      return "/femail category image/hair cut and style female.svg";
+    }
+    if (cleanSlug.includes("colour") || cleanSlug.includes("color")) {
+      return "/femail category image/Hair color femaile.svg";
+    }
+    if (cleanSlug.includes("treatment")) {
+      return "/femail category image/Hair Treatments.svg";
+    }
+    if (cleanSlug.includes("chemical")) {
+      return "/femail category image/Hair Chemical.svg";
+    }
+    if (cleanSlug.includes("mani") || cleanSlug.includes("pedi") || cleanSlug.includes("hygiene")) {
+      return "/femail category image/mani pedi & hygiene.svg";
+    }
+    if (cleanSlug.includes("skin") || cleanSlug.includes("care")) {
+      return "/femail category image/skin care feamle.svg";
+    }
+    if (cleanSlug.includes("spa") || cleanSlug.includes("massage")) {
+      return "/femail category image/Spa & Massage.svg";
+    }
+    if (cleanSlug.includes("makeup")) {
+      return "/femail category image/makeup Female.svg";
+    }
+    if (cleanSlug.includes("nail") || cleanSlug.includes("art")) {
+      return "/femail category image/nail art .svg";
+    }
+    if (cleanSlug.includes("bridal") || cleanSlug.includes("package")) {
+      return "/femail category image/Bridal package feamle.svg";
+    }
+    return "/femail category image/hair cut and style female.svg";
+  }
+};
+
 export default function SalonDetailClient() {
   const { id } = useParams();
   const router = useRouter();
@@ -345,7 +414,7 @@ export default function SalonDetailClient() {
                   isActive ? "border-primary shadow-[0_0_0_2px_rgba(236,72,153,0.2)]" : "border-transparent"
                 }`}>
                   <Image
-                    src={cat.image || getCategoryFallbackImage(normalizeCategorySlug(cat.name))}
+                    src={getCategoryUniversalImage(normalizeCategorySlug(cat.name), gender)}
                     alt={`${cat.name} service category at ${salon?.name || 'premium salon'} - best salon in ${salon?.address?.city || 'Uttar Pradesh'}`}
                     fill
                     loading="lazy"
