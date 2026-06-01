@@ -8,7 +8,7 @@ import BottomNav from "../components/BottomNav";
 import { supabase, TABLES } from "../lib/supabase";
 import ServiceDetailModal from "../components/ServiceDetailModal";
 
-import { MALE_CATEGORIES, MALE_SERVICES, FEMALE_CATEGORIES, FEMALE_SERVICES, getPredefinedServiceImage } from "../lib/predefinedServices";
+import { MALE_CATEGORIES, MALE_SERVICES, FEMALE_CATEGORIES, FEMALE_SERVICES, getPredefinedServiceImage, resolveServiceImage } from "../lib/predefinedServices";
 
 /* ─── Service Price and Duration Defaults Helper ─── */
 function getServiceDefaults(name: string, categorySlug: string) {
@@ -174,7 +174,15 @@ export default function AtHomeClient() {
     Object.entries(servicesMap).forEach(([categorySlug, serviceNames]) => {
       serviceNames.forEach((svcName) => {
         const { price, duration } = getServiceDefaults(svcName, categorySlug);
-        const resolvedImage = getPredefinedServiceImage(gender, categorySlug, svcName);
+        const predefinedImage = getPredefinedServiceImage(gender, categorySlug, svcName);
+        
+        // Resolve using fallback resolver: Service Image -> Category Image -> Fallback
+        const resolvedImage = resolveServiceImage({
+          name: svcName,
+          gender: gender,
+          category: categorySlug,
+          image: predefinedImage
+        });
         
         list.push({
           id: `${gender}-${categorySlug}-${svcName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
@@ -336,7 +344,7 @@ export default function AtHomeClient() {
                   <p className="text-[11px] text-gray-500 leading-snug whitespace-pre-line">{pkg.desc}</p>
                 </div>
                 <div className="w-[80px] h-[70px] relative rounded-lg overflow-hidden shrink-0">
-                  <Image src={pkg.image} alt={pkg.title} fill className="object-cover" unoptimized />
+                  <Image src={pkg.image} alt={pkg.title} fill className="object-cover" unoptimized sizes="80px" />
                 </div>
               </div>
               <div className="flex items-center justify-between border-t border-gray-100 pt-3">
@@ -373,10 +381,15 @@ export default function AtHomeClient() {
             className="flex flex-col items-center gap-2 cursor-pointer shrink-0 transition-transform active:scale-95"
             onClick={() => setActiveCategory(cat.id)}
           >
-            <div className={`w-[72px] h-[72px] relative rounded-2xl overflow-hidden p-0.5 transition-all duration-300 ${activeCategory === cat.id ? 'border-2 border-pink-500 scale-105 shadow-md shadow-pink-100' : 'border border-transparent hover:border-slate-200'}`}>
-              <div className="w-full h-full relative rounded-xl overflow-hidden bg-[#FDF2F8]">
-                <Image src={cat.image} alt={cat.name} fill className="object-cover" unoptimized />
-              </div>
+            <div className={`w-[72px] h-[72px] relative rounded-2xl overflow-hidden bg-[#FDF2F8] border-2 transition-all duration-300 ${activeCategory === cat.id ? 'border-pink-500 scale-105 shadow-md shadow-pink-100' : 'border-transparent hover:border-slate-200 shadow-sm'}`}>
+              <Image 
+                src={cat.image} 
+                alt={cat.name} 
+                fill 
+                className="object-cover" 
+                unoptimized 
+                sizes="72px"
+              />
             </div>
             <span className={`text-[11px] text-center font-bold leading-tight max-w-[80px] transition-colors ${activeCategory === cat.id ? 'text-pink-600 font-black' : 'text-slate-500 font-semibold'}`}>
               {cat.name}
@@ -433,6 +446,7 @@ export default function AtHomeClient() {
                     className="object-cover" 
                     unoptimized 
                     priority={idx < 4}
+                    sizes="100px"
                   />
                 </div>
               </div>
