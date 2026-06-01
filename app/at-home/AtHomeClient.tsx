@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import { supabase, TABLES } from "../lib/supabase";
+import ServiceDetailModal from "../components/ServiceDetailModal";
 
 import { MALE_CATEGORIES, MALE_SERVICES, FEMALE_CATEGORIES, FEMALE_SERVICES, getPredefinedServiceImage } from "../lib/predefinedServices";
 
@@ -110,6 +111,9 @@ export default function AtHomeClient() {
   const [activeCategory, setActiveCategory] = useState<string>("hair-cut-style");
   const [cart, setCart] = useState<string[]>([]);
   const [appName, setAppName] = useState<string>("glvia");
+  const [selectedServiceForModal, setSelectedServiceForModal] = useState<any>(null);
+  
+  const router = useRouter();
 
   // Compute lists based on gender & predefined source
   const categories = useMemo(() => {
@@ -361,26 +365,24 @@ export default function AtHomeClient() {
         </div>
       </div>
 
-      {/* ─── Categories Square Blocks ─── */}
-      <div className="px-5 pb-6">
-        <div className="grid grid-cols-4 gap-3">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              className="flex flex-col items-center gap-2 cursor-pointer"
-              onClick={() => setActiveCategory(cat.id)}
-            >
-              <div className={`w-full aspect-square relative rounded-xl overflow-hidden p-0.5 transition-all ${activeCategory === cat.id ? 'border-2 border-pink-500' : 'border border-transparent'}`}>
-                <div className="w-full h-full relative rounded-lg overflow-hidden bg-gray-100">
-                  <Image src={cat.image} alt={cat.name} fill className="object-cover" unoptimized />
-                </div>
+      {/* ─── Categories Square Blocks Horizontal Carousel ─── */}
+      <div className="px-5 pb-6 overflow-x-auto no-scrollbar flex gap-4 scroll-smooth">
+        {categories.map((cat) => (
+          <div
+            key={cat.id}
+            className="flex flex-col items-center gap-2 cursor-pointer shrink-0 transition-transform active:scale-95"
+            onClick={() => setActiveCategory(cat.id)}
+          >
+            <div className={`w-[72px] h-[72px] relative rounded-2xl overflow-hidden p-0.5 transition-all duration-300 ${activeCategory === cat.id ? 'border-2 border-pink-500 scale-105 shadow-md shadow-pink-100' : 'border border-transparent hover:border-slate-200'}`}>
+              <div className="w-full h-full relative rounded-xl overflow-hidden bg-[#FDF2F8]">
+                <Image src={cat.image} alt={cat.name} fill className="object-cover" unoptimized />
               </div>
-              <span className={`text-[11px] text-center font-medium leading-tight ${activeCategory === cat.id ? 'text-pink-600 font-bold' : 'text-gray-700'}`}>
-                {cat.name}
-              </span>
             </div>
-          ))}
-        </div>
+            <span className={`text-[11px] text-center font-bold leading-tight max-w-[80px] transition-colors ${activeCategory === cat.id ? 'text-pink-600 font-black' : 'text-slate-500 font-semibold'}`}>
+              {cat.name}
+            </span>
+          </div>
+        ))}
       </div>
 
       <div className="w-full h-2 bg-gray-50"></div>
@@ -423,12 +425,22 @@ export default function AtHomeClient() {
                   </div>
                 </div>
 
-                <div className="w-[100px] h-[100px] relative rounded-xl overflow-hidden shrink-0 bg-gray-100">
-                  <Image src={service.image} alt={service.name} fill className="object-cover" unoptimized />
+                <div className="w-[100px] h-[100px] relative rounded-xl overflow-hidden shrink-0 bg-[#FDF2F8]">
+                  <Image 
+                    src={service.image} 
+                    alt={service.name} 
+                    fill 
+                    className="object-cover" 
+                    unoptimized 
+                    priority={idx < 4}
+                  />
                 </div>
               </div>
 
-              <button className="text-[12px] font-bold text-pink-600 mt-3 hover:underline">
+              <button 
+                onClick={() => setSelectedServiceForModal(service)}
+                className="text-[12px] font-bold text-pink-600 mt-3 hover:underline text-left"
+              >
                 View Details
               </button>
 
@@ -439,6 +451,22 @@ export default function AtHomeClient() {
           ))}
         </div>
       </div>
+
+      <ServiceDetailModal
+        isOpen={!!selectedServiceForModal}
+        onClose={() => setSelectedServiceForModal(null)}
+        service={selectedServiceForModal}
+        onAdd={() => {
+          if (selectedServiceForModal) {
+            toggleCart(selectedServiceForModal.id);
+          }
+        }}
+        isAdded={selectedServiceForModal ? cart.includes(selectedServiceForModal.id) : false}
+        onNext={() => {
+          setSelectedServiceForModal(null);
+          router.push("/checkout");
+        }}
+      />
 
       <BottomNav />
     </div>
