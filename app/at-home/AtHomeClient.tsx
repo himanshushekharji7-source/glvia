@@ -7,65 +7,189 @@ import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import { supabase, TABLES } from "../lib/supabase";
 
-/* ─── Data Arrays ─── */
-const dummyMaleCategories = [
-  { id: "mc1", name: "Haircut & styling", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=200&q=80" },
-  { id: "mc2", name: "Facials & Cleanups", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-  { id: "mc3", name: "Shave & Beard", image: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=200&q=80" },
-  { id: "mc4", name: "Hair Color", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=200&q=80" },
-];
+import { MALE_CATEGORIES, MALE_SERVICES, FEMALE_CATEGORIES, FEMALE_SERVICES, getPredefinedServiceImage } from "../lib/predefinedServices";
 
-const dummyFemaleCategories = [
-  { id: "fc1", name: "Waxing", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80" },
-  { id: "fc2", name: "Facials & Cleanups", image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=200&q=80" },
-  { id: "fc3", name: "Threading & Face waxing", image: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=200&q=80" },
-  { id: "fc4", name: "Hair", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=200&q=80" },
-];
+/* ─── Service Price and Duration Defaults Helper ─── */
+function getServiceDefaults(name: string, categorySlug: string) {
+  let price = 299;
+  let duration = "30 mins";
 
-const dummyMalePackages = [
-  { id: "mp1", title: "Classic Grooming", desc: "Haircut & Beard/Shaving\n10 Minutes Head Massage", price: 499, oldPrice: 699, image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=400&q=80" },
-  { id: "mp2", title: "Premium Care", desc: "Haircut & Beard Trimming\nO3+ Shine & Glow Facial", price: 1349, oldPrice: 1999, image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80" },
-];
+  const lowerName = name.toLowerCase();
+  
+  // Threading / small skin care
+  if (lowerName.includes("threading")) {
+    price = 99;
+    duration = "15 mins";
+  } else if (lowerName.includes("upper lip") || lowerName.includes("forehead") || lowerName.includes("side locks")) {
+    price = 79;
+    duration = "10 mins";
+  }
+  // Waxing / Rica
+  else if (lowerName.includes("wax") || lowerName.includes("waxing")) {
+    if (lowerName.includes("full body")) {
+      price = 1399;
+      duration = "90 mins";
+    } else if (lowerName.includes("full arms") || lowerName.includes("full legs")) {
+      price = 499;
+      duration = "40 mins";
+    } else if (lowerName.includes("half")) {
+      price = 249;
+      duration = "25 mins";
+    } else {
+      price = 399;
+      duration = "30 mins";
+    }
+  }
+  // Facials / Cleanup / Skin Care
+  else if (lowerName.includes("facial") || lowerName.includes("cleanup") || lowerName.includes("clean-up") || lowerName.includes("d-tan") || lowerName.includes("detan")) {
+    if (lowerName.includes("gold") || lowerName.includes("shine") || lowerName.includes("korean") || lowerName.includes("radiant") || lowerName.includes("o3+")) {
+      price = 1349;
+      duration = "75 mins";
+    } else if (lowerName.includes("pearl") || lowerName.includes("whitening") || lowerName.includes("charcoal")) {
+      price = 999;
+      duration = "60 mins";
+    } else {
+      price = 499;
+      duration = "45 mins";
+    }
+  }
+  // Haircuts
+  else if (lowerName.includes("haircut") || lowerName.includes("hair cut")) {
+    if (lowerName.includes("beard") && (lowerName.includes("facial") || lowerName.includes("massage"))) {
+      price = 999;
+      duration = "110 mins";
+    } else if (lowerName.includes("massage") || lowerName.includes("beard")) {
+      price = 499;
+      duration = "45 mins";
+    } else {
+      price = 299;
+      duration = "30 mins";
+    }
+  }
+  // Beard / Shave
+  else if (lowerName.includes("beard") || lowerName.includes("shave") || lowerName.includes("shaving") || lowerName.includes("headshave")) {
+    price = 149;
+    duration = "20 mins";
+  }
+  // Massages / Spa
+  else if (lowerName.includes("massage") || lowerName.includes("spa")) {
+    if (lowerName.includes("deep tissue") || lowerName.includes("swedish") || lowerName.includes("aroma")) {
+      price = 1299;
+      duration = "60 mins";
+    } else {
+      price = 799;
+      duration = "45 mins";
+    }
+  }
+  // Makeup / Bridal
+  else if (lowerName.includes("makeup") || lowerName.includes("bridal") || lowerName.includes("reception")) {
+    if (lowerName.includes("package") || lowerName.includes("bridal")) {
+      price = 2999;
+      duration = "120 mins";
+    } else {
+      price = 1499;
+      duration = "90 mins";
+    }
+  }
+  // Mani-Pedi
+  else if (categorySlug === "mani-pedi-hygiene" || lowerName.includes("pedicure") || lowerName.includes("manicure")) {
+    price = 399;
+    duration = "45 mins";
+  }
+  // Hair Treatments
+  else if (lowerName.includes("keratin") || lowerName.includes("botox") || lowerName.includes("smoothening")) {
+    price = 1999;
+    duration = "120 mins";
+  }
 
-const dummyFemalePackages = [
-  { id: "fp1", title: "The Luxe Wax & Glow Package", desc: "Aloevera Wax - Fullbody Wax\nButterfly & Kiss - Fruit &...", price: 1399, oldPrice: 1999, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" },
-  { id: "fp2", title: "The Radiance Package", desc: "Manicure & Pedicure\nComplete Facial Service", price: 1899, oldPrice: 2499, image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=400&q=80" },
-];
-
-const dummyMaleServicesList = [
-  { id: "ms1", name: "Haircut + Beard Trimming + Charcoal Facial", price: 999, duration: "110 mins", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=400&q=80" },
-  { id: "ms2", name: "Haircut + Beard Trimming + O3+ Shine & Glow Facial", price: 1349, duration: "125 mins", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80" },
-  { id: "ms3", name: "Haircut", price: 299, duration: "30 mins", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=400&q=80" },
-];
-
-const dummyFemaleServicesList = [
-  { id: "fs1", name: "Full arms + Full Legs + Underarms", prefix: "Start's at", price: 499, options: "4 option", image: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=400&q=80" },
-  { id: "fs2", name: "Full arms + Underarms", prefix: "Start's at", price: 199, options: "5 option", image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80" },
-  { id: "fs3", name: "Full Legs", prefix: "Start's at", price: 299, options: "5 option", image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" },
-];
+  return { price, duration };
+}
 
 export default function AtHomeClient() {
   const [gender, setGender] = useState<"male" | "female">("male");
-  const [activeCategory, setActiveCategory] = useState<string>("mc1");
+  const [activeCategory, setActiveCategory] = useState<string>("hair-cut-style");
   const [cart, setCart] = useState<string[]>([]);
-  const [dbCategories, setDbCategories] = useState<any[]>([]);
-  const [dbPackages, setDbPackages] = useState<any[]>([]);
-  const [dbServices, setDbServices] = useState<any[]>([]);
   const [appName, setAppName] = useState<string>("glvia");
 
-  // Load site settings & data on mount
+  // Compute lists based on gender & predefined source
+  const categories = useMemo(() => {
+    const sourceCats = gender === "male" ? MALE_CATEGORIES : FEMALE_CATEGORIES;
+    return sourceCats.map(c => ({
+      id: c.slug,
+      name: c.label,
+      image: `/categories/${gender}/${c.slug}.svg`
+    }));
+  }, [gender]);
+
+  const packages = useMemo(() => {
+    if (gender === "male") {
+      return [
+        {
+          id: "pkg-classic-grooming",
+          title: "Classic Grooming Package",
+          desc: "Haircut + Beard/Shaving\n10 Minutes Head Massage",
+          price: 499,
+          oldPrice: 699,
+          image: "/male service/hair cut and style/Haircut + Beard:Shaving + 10 Minutes Head Massage.svg"
+        },
+        {
+          id: "pkg-premium-care",
+          title: "Premium Care Package",
+          desc: "Haircut + Beard Trimming\nO3+ Shine & Glow Facial",
+          price: 1349,
+          oldPrice: 1999,
+          image: "/male service/skin care /O3+ Shine & Glow Facial.svg"
+        }
+      ];
+    } else {
+      return [
+        {
+          id: "pkg-luxe-wax-glow",
+          title: "The Luxe Wax & Glow Package",
+          desc: "Full Body Rica Waxing\nO3+ D-Tan Face Glow",
+          price: 1399,
+          oldPrice: 1999,
+          image: "/Female Service/Skin Care/O3+ D-Tan.svg"
+        },
+        {
+          id: "pkg-radiance",
+          title: "The Radiance Package",
+          desc: "Sara Detan Pedicure\nLotus Radiant Gold Facial",
+          price: 1899,
+          oldPrice: 2499,
+          image: "/Female Service/Skin Care/Lotus Herbals Radiant Gold Facial.svg"
+        }
+      ];
+    }
+  }, [gender]);
+
+  const rawServicesList = useMemo(() => {
+    const servicesMap = gender === "male" ? MALE_SERVICES : FEMALE_SERVICES;
+    const list: any[] = [];
+    
+    Object.entries(servicesMap).forEach(([categorySlug, serviceNames]) => {
+      serviceNames.forEach((svcName) => {
+        const { price, duration } = getServiceDefaults(svcName, categorySlug);
+        const resolvedImage = getPredefinedServiceImage(gender, categorySlug, svcName);
+        
+        list.push({
+          id: `${gender}-${categorySlug}-${svcName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+          name: svcName,
+          category_id: categorySlug,
+          price,
+          duration,
+          image: resolvedImage
+        });
+      });
+    });
+    
+    return list;
+  }, [gender]);
+
+  // Load app name on mount
   useEffect(() => {
     async function loadData() {
       try {
-        const { data: cats } = await supabase.from(TABLES.AT_HOME_CATEGORIES).select('*').order('sort_order', { ascending: true });
-        if (cats && cats.length > 0) setDbCategories(cats);
-
-        const { data: pkgs } = await supabase.from(TABLES.AT_HOME_PACKAGES).select('*').order('sort_order', { ascending: true });
-        if (pkgs && pkgs.length > 0) setDbPackages(pkgs);
-
-        const { data: svcs } = await supabase.from(TABLES.AT_HOME_SERVICES).select('*').order('sort_order', { ascending: true });
-        if (svcs && svcs.length > 0) setDbServices(svcs);
-
         const { data: settings } = await supabase.from(TABLES.SITE_SETTINGS).select('*');
         if (settings && settings.length > 0) {
           const appNameSetting = settings.find(s => s.key === 'app_name');
@@ -77,25 +201,6 @@ export default function AtHomeClient() {
     }
     loadData();
   }, []);
-
-  // Compute lists based on gender & db vs dummy fallback
-  const categories = useMemo(() => {
-    const dbGenderCats = dbCategories.filter(c => c.gender === gender);
-    if (dbGenderCats.length > 0) return dbGenderCats;
-    return gender === "male" ? dummyMaleCategories : dummyFemaleCategories;
-  }, [dbCategories, gender]);
-
-  const packages = useMemo(() => {
-    const dbGenderPkgs = dbPackages.filter(p => p.gender === gender);
-    if (dbGenderPkgs.length > 0) return dbGenderPkgs;
-    return gender === "male" ? dummyMalePackages : dummyFemalePackages;
-  }, [dbPackages, gender]);
-
-  const rawServicesList = useMemo(() => {
-    const dbGenderSvcs = dbServices.filter(s => s.gender === gender);
-    if (dbGenderSvcs.length > 0) return dbGenderSvcs;
-    return gender === "male" ? dummyMaleServicesList : dummyFemaleServicesList;
-  }, [dbServices, gender]);
 
   // Update active category when gender or categories change
   useEffect(() => {
@@ -110,16 +215,7 @@ export default function AtHomeClient() {
   // Filter servicesList by active category
   const servicesList = useMemo(() => {
     return rawServicesList.filter(service => {
-      if (service.category_id) {
-        return service.category_id === activeCategory;
-      }
-      // Fallback filtering for dummy data
-      if (activeCategory === "mc1" && (service.id || service._id)?.startsWith("ms")) return true;
-      if (activeCategory === "fc1" && (service.id || service._id)?.startsWith("fs")) return true;
-      if ((activeCategory.startsWith("mc") || activeCategory.startsWith("fc")) && typeof activeCategory === 'string') {
-        return activeCategory === "mc1" || activeCategory === "fc1";
-      }
-      return true;
+      return service.category_id === activeCategory;
     });
   }, [rawServicesList, activeCategory]);
 
@@ -236,7 +332,7 @@ export default function AtHomeClient() {
                   <p className="text-[11px] text-gray-500 leading-snug whitespace-pre-line">{pkg.desc}</p>
                 </div>
                 <div className="w-[80px] h-[70px] relative rounded-lg overflow-hidden shrink-0">
-                  <Image src={pkg.image} alt={pkg.title} fill className="object-cover" />
+                  <Image src={pkg.image} alt={pkg.title} fill className="object-cover" unoptimized />
                 </div>
               </div>
               <div className="flex items-center justify-between border-t border-gray-100 pt-3">
@@ -276,7 +372,7 @@ export default function AtHomeClient() {
             >
               <div className={`w-full aspect-square relative rounded-xl overflow-hidden p-0.5 transition-all ${activeCategory === cat.id ? 'border-2 border-pink-500' : 'border border-transparent'}`}>
                 <div className="w-full h-full relative rounded-lg overflow-hidden bg-gray-100">
-                  <Image src={cat.image} alt={cat.name} fill className="object-cover" />
+                  <Image src={cat.image} alt={cat.name} fill className="object-cover" unoptimized />
                 </div>
               </div>
               <span className={`text-[11px] text-center font-medium leading-tight ${activeCategory === cat.id ? 'text-pink-600 font-bold' : 'text-gray-700'}`}>
@@ -328,7 +424,7 @@ export default function AtHomeClient() {
                 </div>
 
                 <div className="w-[100px] h-[100px] relative rounded-xl overflow-hidden shrink-0 bg-gray-100">
-                  <Image src={service.image} alt={service.name} fill className="object-cover" />
+                  <Image src={service.image} alt={service.name} fill className="object-cover" unoptimized />
                 </div>
               </div>
 
