@@ -15,7 +15,7 @@ import {
 import SalonOnboardingWizard from "../../components/admin/SalonOnboardingWizard";
 import MediaUploader from "../../components/admin/MediaUploader";
 import { supabase, TABLES } from "../../lib/supabase";
-import { getCategoriesForGender, getServicesForCategory, getCategoryLabelFromSlug } from "../../lib/predefinedServices";
+import { getCategoriesForGender, getServicesForCategory, getCategoryLabelFromSlug, getPredefinedServiceImage, resolveServiceImage } from "../../lib/predefinedServices";
 
 type Tab = "overview" | "bookings" | "services" | "staff" | "settings" | "reviews" | "preview";
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -511,7 +511,7 @@ function ServicesTab({ salonId }: { salonId: string }) {
         gender: form.gender,
         description: form.description,
         products_used: form.products_used || null,
-        image: form.image || "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80",
+        image: getPredefinedServiceImage(form.gender, form.category, form.name),
         old_price: form.old_price ? Number(form.old_price) : null,
       };
       if (modal === "edit" && selected) {
@@ -595,6 +595,26 @@ function ServicesTab({ salonId }: { salonId: string }) {
         )}
       </div>
 
+      {form.gender && form.category && form.name && (
+        <div className="mt-2 p-3 bg-gray-50 border border-slate-100 rounded-xl flex items-center gap-3 animate-scaleIn">
+          <div className="w-14 h-14 relative rounded-lg bg-pink-50 border border-pink-100 overflow-hidden shrink-0 flex items-center justify-center">
+            <Image
+              src={getPredefinedServiceImage(form.gender, form.category, form.name)}
+              alt="Service Image Preview"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Universal Service Image</div>
+            <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px] font-medium">
+              {getPredefinedServiceImage(form.gender, form.category, form.name)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Editable fields: Description, Product Used, Duration, Price, Old Price */}
       <div className="grid grid-cols-2 gap-3">
         <Input label="Price (₹) *" type="number" value={form.price} onChange={(e: any) => setForm(p => ({ ...p, price: e.target.value }))} placeholder="350" />
@@ -657,14 +677,16 @@ function ServicesTab({ salonId }: { salonId: string }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {services.map((svc: any) => (
             <div key={svc.id} className="glass-card border border-[#e1e3e4] rounded-2xl p-4 flex gap-4 hover:shadow-ambient transition-shadow group">
-              <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[#f3f4f5] border border-[#e1e3e4]">
-                {svc.image ? (
-                  <div className="relative w-full h-full"><Image src={svc.image} alt={svc.name} fill className="object-cover" /></div>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-icons-round text-[#8b7079]">spa</span>
-                  </div>
-                )}
+              <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[#f3f4f5] border border-[#e1e3e4] bg-[#FDF2F8]">
+                <div className="relative w-full h-full">
+                  <Image 
+                    src={resolveServiceImage(svc)} 
+                    alt={svc.name} 
+                    fill 
+                    className="object-cover" 
+                    unoptimized 
+                  />
+                </div>
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-between">
                 <div>

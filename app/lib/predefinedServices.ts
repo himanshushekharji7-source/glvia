@@ -374,3 +374,92 @@ export function normalizeCategorySlug(category: string): string {
   if (clean.includes("bridal") && clean.includes("package")) return "bridal-packages";
   return clean.replace(/\s+/g, "-").replace(/&/g, "and").replace(/[^a-z0-9\-]/g, "");
 }
+
+/** Get predefined service image path, or fallback if not matched */
+export function getPredefinedServiceImage(gender: string, category: string, serviceName: string): string {
+  if (!gender || !category || !serviceName) {
+    return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80";
+  }
+
+  const g = gender.trim().toLowerCase();
+  const catSlug = normalizeCategorySlug(category);
+  const svc = serviceName.trim();
+
+  // Check if this service name exists in predefined services for this category
+  const servicesList = getServicesForCategory(g, catSlug);
+  const isPredefined = servicesList.some(s => s.trim().toLowerCase() === svc.toLowerCase());
+
+  if (!isPredefined) {
+    // Fallback: Category image -> Premium default fallback
+    return `/categories/${g}/${catSlug}.svg`;
+  }
+
+  // Replace slashes with colons for file system compatibility
+  const safeSvcName = svc.replace(/\//g, ":");
+
+  if (g === "male") {
+    let folder = "";
+    if (catSlug === "hair-cut-style") folder = "hair cut and style";
+    else if (catSlug === "skin-care") folder = "skin care ";
+    else if (catSlug === "hair-colour" || catSlug === "hair-color") folder = "hair Color";
+    else if (catSlug === "hair-chemical") folder = "hair tretment";
+    else if (catSlug === "mani-pedi-hygiene") folder = "mani pedicure";
+    else if (catSlug === "spa-massage") folder = "spa & massage";
+    else if (catSlug === "hair-treatments") folder = "hair tretment";
+    else if (catSlug === "makeup") folder = "makeup";
+    else folder = catSlug;
+
+    return `/male service/${folder}/${safeSvcName}.svg`;
+  } else {
+    let folder = "";
+    if (catSlug === "bridal-packages") folder = "    Bridal Packages";
+    else if (catSlug === "hair-cut-style") folder = "    Hair Cut & Style";
+    else if (catSlug === "hair-treatments") folder = "    Hair Treatments";
+    else if (catSlug === "hair-chemical") folder = "    Hair Treatments";
+    else if (catSlug === "makeup") folder = "    Makeup";
+    else if (catSlug === "mani-pedi-hygiene") folder = "    Mani Pedi & Hygiene";
+    else if (catSlug === "spa-massage") folder = "    Spa & Massage";
+    else if (catSlug === "skin-care") folder = "Skin Care";
+    else if (catSlug === "hair-colour" || catSlug === "hair-color") folder = "hair color";
+    else folder = catSlug;
+
+    return `/Female Service/${folder}/${safeSvcName}.svg`;
+  }
+}
+
+/** Resolve the correct service image with fallbacks: Custom -> Predefined SVG -> Category SVG -> Premium Fallback */
+export function resolveServiceImage(service: { name: string; gender: string; category: string; image?: string }): string {
+  if (!service) {
+    return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80";
+  }
+
+  // 1. If service has a custom stored image that is NOT the fallback default or category SVG, use it
+  if (
+    service.image &&
+    !service.image.includes("1560066984-138dadb4c035") &&
+    !service.image.includes("/categories/")
+  ) {
+    // Check if it is a predefined URL or local SVG path
+    if (service.image.startsWith("/") || service.image.startsWith("http")) {
+      return service.image;
+    }
+  }
+
+  // 2. Resolve predefined image
+  const predefinedImage = getPredefinedServiceImage(service.gender, service.category, service.name);
+  if (predefinedImage && !predefinedImage.includes("/categories/")) {
+    return predefinedImage;
+  }
+
+  // 3. Fallback to Category SVG if available
+  const catSlug = normalizeCategorySlug(service.category);
+  const g = service.gender ? service.gender.trim().toLowerCase() : "female";
+  if (catSlug) {
+    return `/categories/${g}/${catSlug}.svg`;
+  }
+
+  // 4. Ultimate fallback
+  return "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80";
+}
+
+

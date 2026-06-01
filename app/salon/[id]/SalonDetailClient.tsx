@@ -7,6 +7,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useSalon, useSalonReviews } from "../../lib/hooks";
 import ServiceDetailModal from "../../components/ServiceDetailModal";
 import SalonInfoModal from "../../components/SalonInfoModal";
+import { resolveServiceImage } from "../../lib/predefinedServices";
+
 
 const normalizeCategorySlug = (category: string) => {
   if (!category) return "";
@@ -417,17 +419,16 @@ export default function SalonDetailClient() {
                           </button>
                         </div>
                         {/* Right: Image */}
-                        {svc.image && (
-                          <div className="relative w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
-                            <Image
-                              src={svc.image}
-                              alt={`${svc.name} service at ${salon?.name || 'premium salon'} - best salon in ${salon?.address?.city || 'Uttar Pradesh'}`}
-                              fill
-                              loading="lazy"
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
+                        <div className="relative w-[90px] h-[90px] rounded-xl overflow-hidden bg-surface-dim shrink-0">
+                          <Image
+                            src={resolveServiceImage({ name: svc.name, gender: gender, category: svc.category, image: svc.image })}
+                            alt={`${svc.name} service at ${salon?.name || 'premium salon'} - best salon in ${salon?.address?.city || 'Uttar Pradesh'}`}
+                            fill
+                            loading="lazy"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
                       </div>
                       {idx < (categoryServices as any[]).length - 1 && (
                         <div className="border-b border-gray-100" />

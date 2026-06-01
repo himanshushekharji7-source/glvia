@@ -9,7 +9,7 @@ import { supabase, TABLES } from "../../../lib/supabase";
 import AdminTable from "../../../components/admin/AdminTable";
 import AdminFormModal from "../../../components/admin/AdminFormModal";
 import ConfirmDialog from "../../../components/admin/ConfirmDialog";
-import { getCategoriesForGender, getServicesForCategory, getCategoryLabelFromSlug } from "../../../lib/predefinedServices";
+import { getCategoriesForGender, getServicesForCategory, getCategoryLabelFromSlug, getPredefinedServiceImage, resolveServiceImage } from "../../../lib/predefinedServices";
 
 // Import Shared Logic and Hooks (from Salon Owner system / shared layer)
 import {
@@ -616,7 +616,7 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
         }
         const gender = payload.gender || "female";
         const catSlug = payload.category || "";
-        payload.image = `/categories/${gender}/${catSlug}.svg`;
+        payload.image = getPredefinedServiceImage(gender, catSlug, payload.name);
       }
       delete payload.id;
       delete payload.created_at;
@@ -659,7 +659,7 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
   };
 
   const serviceColumns = [
-    { key: "image", label: "Image", width: "70px", render: (v: string) => v ? <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border"><Image src={v} alt="" fill className="object-cover" /></div> : <div className="w-10 h-10 rounded-lg bg-surface-dim border border-border flex items-center justify-center text-text-tertiary"><span className="material-icons-round text-sm">spa</span></div> },
+    { key: "image", label: "Image", width: "70px", render: (v: string, row: any) => <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border bg-[#FDF2F8]"><Image src={resolveServiceImage(row)} alt="" fill className="object-cover" unoptimized /></div> },
     { key: "name", label: "Service Name", render: (v: string, row: any) => <div><div className="font-bold text-text-primary">{v}</div>{row.description && <div className="text-xs text-text-secondary truncate max-w-xs mt-0.5">{row.description}</div>}</div> },
     { key: "category", label: "Category", render: (v: string, row: any) => {
       const match = salonCategoriesList.find(c => normalizeCategorySlug(c.name) === v && c.gender === row.gender);
@@ -1832,7 +1832,27 @@ export default function SalonWorkspacePage({ params }: { params: Promise<{ id: s
         onSubmit={handleSaveEntity} 
         isLoading={savingEntity} 
         submitLabel={editing ? "Save Changes" : `Add to ${serviceGender}`} 
-      />
+      >
+        {subTab === "services" && formValues.gender && formValues.category && formValues.name && (
+          <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-xl flex items-center gap-4 animate-scaleIn">
+            <div className="w-16 h-16 relative rounded-lg bg-pink-50 border border-pink-100 overflow-hidden shrink-0 flex items-center justify-center">
+              <Image
+                src={getPredefinedServiceImage(formValues.gender, formValues.category, formValues.name)}
+                alt="Service Image Preview"
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Universal Service Image</div>
+              <div className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[280px]">
+                {getPredefinedServiceImage(formValues.gender, formValues.category, formValues.name)}
+              </div>
+            </div>
+          </div>
+        )}
+      </AdminFormModal>
 
       {/* --- Entity Delete Confirmation dialog --- */}
       <ConfirmDialog 
